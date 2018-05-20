@@ -8,7 +8,7 @@
 #ifndef BOARD_H_
 #define BOARD_H_
 
-#include "component.h"
+#include "components.h"
 #define B_ACTION_CARDS "Action cards"
 #define B_MINORIMPROVEMENTS "Minor Improvements"
 #define B_OCCUPATIONS "Occupations"
