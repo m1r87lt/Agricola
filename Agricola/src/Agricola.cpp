@@ -12,7 +12,7 @@
 using namespace std;
 
 #include <fstream>
-#include "statusMachine.h"
+#include "state_machine.h"
 #include <src/ui.h>
 #include <chrono>
 #include <typeinfo>
