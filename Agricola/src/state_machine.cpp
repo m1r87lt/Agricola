@@ -120,10 +120,8 @@ void phase_start__1(base::Log track) {
 
 	log << track.tracker() << "void phase_start__1()";
 	std::clog << " {" << std::endl;
-	keying = keys();
-	k = keying.find(SM_PHASE_START);
-	K = keying.end();
-	if (STEP == 1 && k == K) {
+	if ((k = (keying = keys()).find(SM_PHASE_START)) == (K = keying.end())
+			&& STEP == 1) {
 		keying.emplace(SM_PHASE_START);
 		std::clog << track() << instant() << " " << SM_PHASE_START << std::endl;
 	} else if (STEP == 1 && k != K) {
@@ -141,14 +139,15 @@ void phase_start__1(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void phase_end__2(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_PHASE_END);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void phase_end__2()";
 	std::clog << " {" << std::endl;
-	if (STEP == 2 && k == K) {
+	if ((k = (keying = keys()).find(SM_PHASE_END)) == (K = keying.end())
+			&& STEP == 2) {
 		keying.emplace(SM_PHASE_END);
 		std::clog << track() << instant() << " " << SM_PHASE_END << std::endl;
 	} else if (STEP == 2 && k != K) {
@@ -167,13 +166,16 @@ void phase_end__2(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void phase1_draw_a_new_round_card_1_3(base::Log track) {
-	auto keying = keys();
-	auto k = keying.begin();
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "phase1_draw_a_new_round_card_1_3()";
 	std::clog << " {" << std::endl;
+	keying = keys();
+	k = keying.find(SM_NEW_ROUND_CARD);
+	K = keying.end();
 	/* Turn over the top Round card and place it on
 	 * the appropriate space on the board. The action
 	 * on this card is available to all players, and
@@ -243,9 +245,9 @@ void phase1_draw_a_new_round_card_1_3(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void phase1_start_the_round_1_4(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_ROUND_START);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void phase1_start_the_round_1_4()";
@@ -260,7 +262,8 @@ void phase1_start_the_round_1_4(base::Log track) {
 	 * these are distributed to the appropriate
 	 * players (who earned them by playing an
 	 * Occupation or Improvement). */
-	if (PHASE == 1 && STEP == 4 && !HARVEST && k == K) {
+	if ((k = (keying = keys()).find(SM_ROUND_START)) == (K = keying.end())
+			&& PHASE == 1 && STEP == 4 && !HARVEST) {
 		keying.emplace(SM_ROUND_START);
 		std::clog << track() << instant() << " " << SM_ROUND_START << std::endl;
 	} else if (PHASE == 1 && STEP == 4 && !HARVEST && k != K) {
@@ -279,9 +282,9 @@ void phase1_start_the_round_1_4(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void phase2_replenish_2_3(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_REPLENISH);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void phase2_replenish_2_3()";
@@ -297,7 +300,8 @@ void phase2_replenish_2_3(base::Log track) {
 	// Players Action spaces receive 1 Food each round. These
 	// goods and Food are taken from the general supply and can
 	// build up over several rounds – there is no upper limit.
-	if (PHASE == 2 && STEP == 3 && !HARVEST && k == K) {
+	if ((k = (keying = keys()).find(SM_REPLENISH)) == (K = keying.end())
+			&& PHASE == 2 && STEP == 3 && !HARVEST) {
 		keying.emplace(SM_REPLENISH);
 		std::clog << track() << instant() << " " << SM_REPLENISH << std::endl;
 	} else if (PHASE == 2 && STEP == 3 && !HARVEST && k != K) {
@@ -317,13 +321,16 @@ void phase2_replenish_2_3(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void phase3_work_3_3(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_WORK);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void phase3_work_3_3()";
 	std::clog << log.str() << " {" << std::endl;
+	keying = keys();
+	k = keying.find(SM_WORK);
+	K = keying.end();
 	/* In clockwise order, starting with the Starting player,*/
 	if (PHASE == 3 && STEP == 3 && !HARVEST && k == K) {
 		auto fp = first_player();
@@ -348,9 +355,9 @@ void phase3_work_3_3(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void phase3_work_3_(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_WORK);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	short unsigned player = STEP - 3;
 	std::ostringstream log;
 
@@ -361,7 +368,8 @@ void phase3_work_3_(base::Log track) {
 	 * that action. Play continues until all Family members have
 	 * been placed. A player may only ever place one Family member
 	 * at a time. */
-	if (PHASE == 3 && STEP > 3 && !HARVEST && k != K) {
+	if ((k = (keying = keys()).find(SM_WORK)) != (K = keying.end())
+			&& PHASE == 3 && STEP > 3 && !HARVEST) {
 		if (player > Player::quantity())
 			STEP = (player = 1) + 3;
 		if ((k = find_key_containing(std::string(SM_ACTION) + " ")) == K) {
@@ -432,16 +440,17 @@ void phase3_work_3_(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void phase4_return_home_4_3(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_RETURN_HOME);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void phase4_return_home_4_3()";
 	std::clog << log.str() << " {" << std::endl;
 	/* Players remove their Family members from the game
 	 * boards and return them to their home. */
-	if (PHASE == 4 && STEP == 3 && !HARVEST && k == K) {
+	if ((k = (keying = keys()).find(SM_RETURN_HOME)) == (K = keying.end())
+			&& PHASE == 4 && STEP == 3 && !HARVEST) {
 		keying.emplace(SM_RETURN_HOME);
 		STEP = 3 + first_player();
 		std::clog << track() << instant() << " " << SM_RETURN_HOME << std::endl;
@@ -461,18 +470,17 @@ void phase4_return_home_4_3(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void phase4_return_home_4_(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_RETURN_HOME);
-	auto K = keying.end();
-
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void phase4_return_home_4_()";
 	std::clog << log.str() << " {" << std::endl;
 	/* Players remove their Family members from the game
 	 * boards and return them to their home. */
-
-	if (PHASE == 4 && STEP > 3 && !HARVEST && k != K) {
+	if ((k = (keying = keys()).find(SM_RETURN_HOME)) != (K = keying.end())
+			&& PHASE == 4 && STEP > 3 && !HARVEST) {
 		if ((k = find_key_containing(std::string(SM_RETURN_HOME) + " ")) != K)
 			if (++STEP - 3 > Player::quantity())
 				STEP = 4;
@@ -513,14 +521,15 @@ void phase4_return_home_4_(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_phase1_field_1_3(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_HARVEST);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void harvest_phase1_field_1_3()";
 	std::clog << log.str() << " {" << std::endl;
-	if (PHASE == 1 && STEP == 3 && HARVEST && k == K) {
+	if ((k = (keying = keys()).find(SM_HARVEST)) == (K = keying.end())
+			&& PHASE == 1 && STEP == 3 && HARVEST) {
 		auto fp = first_player();
 
 		keying.emplace(std::string(SM_HARVEST) + " " + std::to_string(fp));
@@ -543,9 +552,9 @@ void harvest_phase1_field_1_3(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_phase1_field_1_(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_HARVEST);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	short unsigned player = STEP - 3;
 	std::ostringstream log;
 
@@ -557,7 +566,8 @@ void harvest_phase1_field_1_(base::Log track) {
 	// Improvement cards that they have played.
 	if (player > Player::quantity())
 		STEP = (player = 1) + 3;
-	if (PHASE == 1 && STEP > 3 && HARVEST && k != K) {
+	if ((k = (keying = keys()).find(SM_HARVEST)) != (K = keying.end())
+			&& PHASE == 1 && STEP > 3 && HARVEST) {
 		if ((k = find_key_containing(SM_HARVESTED)) == K) {
 			auto harvested = harvest(player, track);
 
@@ -597,14 +607,15 @@ void harvest_phase1_field_1_(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_phase2_feeding_the_family_2_3(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_FEEDING);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void harvest_phase2_feeding_the_family_2_3()";
 	std::clog << log.str() << " {" << std::endl;
-	if (PHASE == 2 && STEP == 3 && HARVEST && k == K) {
+	if ((k = (keying = keys()).find(SM_FEEDING)) == (K = keying.end())
+			&& PHASE == 2 && STEP == 3 && HARVEST) {
 		auto fp = first_player();
 
 		STEP = 3 + fp;
@@ -626,9 +637,9 @@ void harvest_phase2_feeding_the_family_2_3(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_phase2_feeding_the_family_2_(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_FEEDING);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	short unsigned player = STEP - 3;
 	std::ostringstream log;
 
@@ -646,7 +657,8 @@ void harvest_phase2_feeding_the_family_2_(base::Log track) {
 	 * will require 2 Food in future Harvests. */
 	if (player > Player::quantity())
 		STEP = (player = 1) + 3;
-	if (PHASE == 2 && STEP > 3 && HARVEST && k != K) {
+	if ((k = (keying = keys()).find(SM_FEEDING)) != (K = keying.end())
+			&& PHASE == 2 && STEP > 3 && HARVEST) {
 		auto feeding = std::string(SM_FEEDING) + " " + std::to_string(player);
 
 		if ((k = find_key_containing(std::string(SM_FEEDING) + " ")) == K) {
@@ -706,14 +718,15 @@ void harvest_phase2_feeding_the_family_2_(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_phase3_breeding_3_3(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_BREEDING);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void harvest_phase3_breeding_3_3()";
 	std::clog << log.str() << " {" << std::endl;
-	if (PHASE == 3 && STEP == 3 && HARVEST && k == K) {
+	if ((k = (keying = keys()).find(SM_BREEDING)) == (K = keying.end())
+			&& PHASE == 3 && STEP == 3 && HARVEST) {
 		auto fp = first_player();
 
 		keying.emplace(std::string(SM_BREEDING) + " " + std::to_string(fp));
@@ -736,14 +749,17 @@ void harvest_phase3_breeding_3_3(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_phase3_breeding_3_(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_BREEDING);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	short unsigned player = STEP - 3;
 	std::ostringstream log;
 
 	log << track.tracker() << "void harvest_phase3_breeding_3_()";
 	std::clog << log.str() << " {" << std::endl;
+	keying = keys();
+	k = keying.find(SM_BREEDING);
+	K = keying.end();
 	/* Lastly, any player with at least 2 animals of the same type
 	 * receives exactly one additional (baby) animal of that type –
 	 * but only if the lamb, the shoat or the calf can be
@@ -778,22 +794,22 @@ void harvest_phase3_breeding_3_(base::Log track) {
 				std::clog << track() << " player " << player << " get: ";
 				if (bred_animals.length()) {
 					bred_animals.pop_back();
-					keying.emplace(
-							std::string(SM_BRED) + " " + bred_animals);
+					keying.emplace(std::string(SM_BRED) + " " + bred_animals);
 					std::clog << bred_animals << std::endl;
 				}
 				std::clog << "; ";
 				if (freed_animals.length()) {
 					freed_animals.pop_back();
-					keying.emplace(
-							std::string(SM_FREED) + " " + freed_animals);
+					keying.emplace(std::string(SM_FREED) + " " + freed_animals);
 					std::clog << freed_animals << std::endl;
 				}
 				keying.emplace(
-						std::string(SM_BREEDING) + " " + std::to_string(player));
+						std::string(SM_BREEDING) + " "
+								+ std::to_string(player));
 				std::clog << "." << std::endl;
 			} else if (*k
-					== std::string(SM_BREEDING) + " " + std::to_string(player)) {
+					== std::string(SM_BREEDING) + " "
+							+ std::to_string(player)) {
 				STEP = 3;
 				std::clog << track() << "The Breeding phase is terminated."
 						<< std::endl;
@@ -818,14 +834,15 @@ void harvest_phase3_breeding_3_(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void round_start(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_ROUND_START);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void round_start()";
 	std::clog << " {" << std::endl;
-	if (!HARVEST && PHASE == 1 && STEP == 1 && k == K) {
+	if ((k = (keying = keys()).find(SM_ROUND_START)) == (K = keying.end())
+			&& !HARVEST && PHASE == 1 && STEP == 1) {
 		keying.emplace(SM_ROUND_START);
 		phase_start__1(track);
 		std::clog << track() << instant() << " " << SM_ROUND_START << std::endl;
@@ -845,14 +862,15 @@ void round_start(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void round_end(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_ROUND_END);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void round_end()";
 	std::clog << " {" << std::endl;
-	if (!HARVEST && PHASE == 4 && STEP == 2 && k == K) {
+	if ((k = (keying = keys()).find(SM_ROUND_END)) == (K = keying.end())
+			&& !HARVEST && PHASE == 4 && STEP == 2) {
 		keying.emplace(SM_ROUND_END);
 		phase_end__2(track);
 		std::clog << track() << instant() << " " << SM_ROUND_END << std::endl;
@@ -873,13 +891,16 @@ void round_end(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_start(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_HARVEST_START);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void harvest_start()";
 	std::clog << " {" << std::endl;
+	keying = keys();
+	k = keying.find(SM_HARVEST_START);
+	K = keying.end();
 	if (HARVEST && PHASE == 1 && STEP == 1
 			&& harvestTimes.find(ROUND) != harvestTimes.end() && k == K) {
 		keying.emplace(SM_HARVEST_START);
@@ -903,15 +924,16 @@ void harvest_start(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_end(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_HARVEST_END);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void harvest_end()";
 	std::clog << " {" << std::endl;
-	if (HARVEST && PHASE == 3 && STEP == 2
-			&& harvestTimes.find(ROUND) != harvestTimes.end() && k == K) {
+	if ((k = (keying = keys()).find(SM_HARVEST_END)) == (K = keying.end())
+			&& HARVEST && PHASE == 3 && STEP == 2
+			&& harvestTimes.find(ROUND) != harvestTimes.end()) {
 		keying.emplace(SM_HARVEST_END);
 		phase_end__2(track);
 		std::clog << track() << instant() << " " << SM_ROUND_START << std::endl;
@@ -933,15 +955,16 @@ void harvest_end(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void stage_start(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_STAGE_START);
-	auto K= keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void stage_start()";
 	std::clog << " {" << std::endl;
-	if (!HARVEST && PHASE == 1 && STEP == 1
-			&& harvestTimes.find(ROUND - 1) != harvestTimes.end() && k == K) {
+	if ((k = (keying = keys()).find(SM_STAGE_START)) == (K = keying.end())
+			&& !HARVEST && PHASE == 1 && STEP == 1
+			&& harvestTimes.find(ROUND - 1) != harvestTimes.end()) {
 		keying.emplace(SM_STAGE_START);
 		round_start(track);
 		std::clog << track() << instant() << " " << SM_STAGE_START << std::endl;
@@ -962,15 +985,16 @@ void stage_start(base::Log track) {
 	std::clog << track() << "}" << std::endl;
 }
 void stage_end(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_STAGE_END);
-	auto K= keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void stage_end()";
 	std::clog << " {" << std::endl;
-	if (HARVEST && PHASE == 3 && STEP == 2
-			&& harvestTimes.find(ROUND) != harvestTimes.end() && k == K) {
+	if ((k = (keying = keys()).find(SM_STAGE_END)) == (K = keying.end())
+			&& HARVEST && PHASE == 3 && STEP == 2
+			&& harvestTimes.find(ROUND) != harvestTimes.end()) {
 		keying.emplace(SM_STAGE_END);
 		harvest_end(track);
 		std::clog << track() << instant() << " " << SM_STAGE_END << std::endl;
@@ -982,8 +1006,8 @@ void stage_end(base::Log track) {
 		std::clog << track() << "the stage is ended." << std::endl;
 	} else {
 		std::string message =
-				"= ERROR range error: this function is called with PHASE != 1 "
-						"or STEP != 1 or HARVEST as false or after an invalid round.";
+				"= ERROR range error: this function is called with PHASE != 3 "
+						"or STEP != 2 or HARVEST as false or after an invalid round.";
 
 		std::clog << track() << "}" << message << std::endl;
 		std::cerr << log.str() << message << std::endl;
