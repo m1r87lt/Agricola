@@ -113,13 +113,16 @@ std::list<std::string>& triggers() {
 }
 
 void phase_start__1(base::Log track) {
-	auto keying = keys();
-	auto k = keying.find(SM_PHASE_START);
-	auto K = keying.end();
+	std::set<std::string> keying;
+	std::set<std::string>::iterator k;
+	std::set<std::string>::iterator K;
 	std::ostringstream log;
 
 	log << track.tracker() << "void phase_start__1()";
 	std::clog << " {" << std::endl;
+	keying = keys();
+	k = keying.find(SM_PHASE_START);
+	K = keying.end();
 	if (STEP == 1 && k == K) {
 		keying.emplace(SM_PHASE_START);
 		std::clog << track() << instant() << " " << SM_PHASE_START << std::endl;
@@ -165,7 +168,7 @@ void phase_end__2(base::Log track) {
 }
 void phase1_draw_a_new_round_card_1_3(base::Log track) {
 	auto keying = keys();
-	auto k = find_key_containing(std::string(SM_NEW_ROUND_CARD) + " \"");
+	auto k = keying.begin();
 	auto K = keying.end();
 	std::ostringstream log;
 

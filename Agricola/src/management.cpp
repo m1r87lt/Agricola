@@ -12,6 +12,7 @@
 #define CARDS 365
 #define M_HARVEST "harvesting"
 #define M_NEWBORN "newborn"
+#define M_STALL "stall"
 
 unsigned foodPerPerson = 2;
 std::set<std::string> KEYS;
@@ -1193,10 +1194,7 @@ long unsigned feed(short unsigned player, base::Log track) {
 	std::list<base::Object*> resources;
 	auto newborn = std::string(M_NEWBORN) + " - player "
 			+ std::to_string(player) + ": ";
-	auto key = std::find_if(KEYS.begin(), KEYS.end(),
-			[newborn](const std::string& k) {
-				return !k.find(newborn);
-			});
+	std::set<std::string>::iterator key;
 	std::map<std::string, std::pair<std::set<std::string>, std::string>> variables;
 	std::pair<bool, std::map<std::string, std::string>> chosen = { false, { } };
 	std::ostringstream log;
@@ -1216,7 +1214,7 @@ long unsigned feed(short unsigned player, base::Log track) {
 			* (5
 					- (playerObject = Player::player(player))->find_each(
 							Wooden::familyMemberType).size());
-	if (KEYS.end() != key)
+	if (KEYS.end() != (key = find_key_containing(newborn)))
 		food -= std::stoul(key->substr(newborn.length()));
 	if ((result =
 			(resources = (ps = &personal_supply(*playerObject))->find_each(
@@ -1298,7 +1296,7 @@ std::set<Data> breed(short unsigned player, base::Log track) {
 	result = player_animals(*(playerObject = Player::player(player)));
 	for (auto data : result)
 		if (data.quantity > 1)
-			if (true) {
+			if ((k = find_key_containing(M_STALL)) == K) {
 
 			}
 	variables["feed"] = {std::set<std::string>(), std::string()};
