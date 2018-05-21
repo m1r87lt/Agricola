@@ -11,11 +11,11 @@
 #include "management.h"
 
 bool new_stage();
-bool harvest();
 std::string status();
 std::string instant();
 unsigned stage();
 unsigned round();
+bool harvest();
 unsigned phase();
 unsigned step();
 unsigned stage();

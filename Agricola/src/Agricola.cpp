@@ -73,7 +73,7 @@ int main() {
 				case 2:
 					switch (phase()) {
 					case 3:
-						harvest_end();
+						stage_end();
 						break;
 					default:
 						phase_end__2();
@@ -88,7 +88,7 @@ int main() {
 						harvest_phase2_feeding_the_family_2_3();
 						break;
 					case 3:
-						harvest_phase3__3_3();
+						harvest_phase3_breeding_3_3();
 					}
 					break;
 				default:
@@ -100,7 +100,7 @@ int main() {
 						harvest_phase2_feeding_the_family_2_();
 						break;
 					case 3:
-						harvest_phase3__3_();
+						harvest_phase3_breeding_3_();
 					}
 				}
 			else

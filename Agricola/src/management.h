@@ -12,6 +12,7 @@
 #include <array>
 
 std::set<std::string>& keys();
+std::set<std::string>::iterator find_key_containing(std::string, bool beginning = true);
 
 class Stack: public base::Location {
 	bool use;
@@ -71,9 +72,8 @@ Farmyard::PersonalSupply& personal_supply(Player&);
 Data harvest(short unsigned, base::Log track = base::Log());
 std::list<Data> cook(short unsigned, base::Log track = base::Log());
 long unsigned feed(short unsigned, base::Log track = base::Log());
-std::set<Data> player_animals(Farmyard&, base::Log = base::Log());
+std::set<Data> player_animals(Player&);
 std::set<Data> breed(short unsigned, base::Log track = base::Log());
-void clear_keys(base::Log track = base::Log());
 
 void end_of_the_game(base::Log track = base::Log());
 

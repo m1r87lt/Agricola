@@ -21,6 +21,28 @@ std::set<std::string>& keys() {
 
 	return KEYS;
 }
+std::set<std::string>::iterator find_key_containing(std::string text,
+		bool beginning) {
+	auto k = KEYS.begin();
+	auto K = KEYS.end();
+	base::Log track;
+
+	std::clog << track.tracker() << "std::set<std::string>::iterator "
+			"find_key_containing(std::string text=\"" << text
+			<< "\", bool beginning=" << beginning << ") {"
+			<< std::endl;
+	while (k != K) {
+		auto p = k->find(text);
+
+		if (p < (beginning ? 1 : std::string::npos))
+			K = k;
+		else
+			++k;
+	}
+	std::clog << track() << "}=" << *k << std::endl;
+
+	return k;
+}
 
 //Stack
 base::Object* Stack::enter(std::string content, size_t number,
@@ -118,7 +140,7 @@ void preparing_to_play(std::vector<std::string> playerNames, bool family,
 	/* Place the three game boards */
 	// as shown in the illustration to the right.
 	if (family) {
-		gameboard0->emplace_back<Action>(EX_A_ROOMS_STABLES, track,
+		gameboard0->emplace_back < Action > (EX_A_ROOMS_STABLES, track,
 		EX_A_ROOMS_STABLES, Data(track), "{t}Build room(s){t}"
 				"{r}Wooden hut:#5(W)+2(R)#\n"
 				"Clay hut:#5(C)+2(R)#\n"
@@ -126,26 +148,26 @@ void preparing_to_play(std::vector<std::string> playerNames, bool family,
 				"and/or"
 				"{t}Build Stable(s){t}"
 				"2 Wood per stable", track);
-		gameboard0->emplace_back<Action>(EX_AF_STARTINGPLAYER_SHOP, track,
+		gameboard0->emplace_back < Action > (EX_AF_STARTINGPLAYER_SHOP, track,
 		EX_AF_STARTINGPLAYER_SHOP, Data(track), "{t}Starting Player{t}"
 				"and{t}Shop{t}1 Food{t}#1(f)#", track);
-		gameboard0->emplace_back<Action>(EX_A_TAKE1GRAIN, track,
+		gameboard0->emplace_back < Action > (EX_A_TAKE1GRAIN, track,
 		EX_A_TAKE1GRAIN, Data(track), "{t}Take 1 Grain{t}"
 				"and place in your personal supply"
 				"{t}#+(G)#{t}", track);
-		gameboard0->emplace_back<Action>(EX_A_1FIELD, track, EX_A_1FIELD,
-				Data(track), "{t}Plow\n1 Field{t}", track);
-		gameboard0->emplace_back<Action>(EX_AF_STABLE, track, EX_AF_STABLE,
-				Data(track), "{t}Build Stable{t}"
+		gameboard0->emplace_back < Action
+				> (EX_A_1FIELD, track, EX_A_1FIELD, Data(track), "{t}Plow\n1 Field{t}", track);
+		gameboard0->emplace_back < Action
+				> (EX_AF_STABLE, track, EX_AF_STABLE, Data(track), "{t}Build Stable{t}"
 						"Build 1 Stable per 1 Wood\nand/or"
 						"{t}Bake bread{t}", track);
-		gameboard0->emplace_back<Action>(EX_AF_DAYLABORER, track,
+		gameboard0->emplace_back < Action > (EX_AF_DAYLABORER, track,
 		EX_AF_DAYLABORER, Data(track), "{t}Day Laborer{t}"
 				"Take 1 Food and 1 Building resource (Wood/Clay/Reed/Stone)"
 				"and place them in your personal supply."
 				"{t}#+(f){(W)(C)(R)(S)}#{t}", track);
 	} else {
-		gameboard0->emplace_back<Action>(EX_A_ROOMS_STABLES, track,
+		gameboard0->emplace_back < Action > (EX_A_ROOMS_STABLES, track,
 		EX_A_ROOMS_STABLES, Data(track), "{t}Build room(s){t}"
 				"{r}Wooden hut:#5(W)+2(R)#\n"
 				"Clay hut:#5(C)+2(R)#\n"
@@ -153,52 +175,52 @@ void preparing_to_play(std::vector<std::string> playerNames, bool family,
 				"and/or"
 				"{t}Build Stable(s){t}"
 				"2 Wood per stable", track);
-		gameboard0->emplace_back<Action>(EX_A_STARTINGPLAYER_MINORIMPROVEMENT,
-				track, EX_A_STARTINGPLAYER_MINORIMPROVEMENT, Data(track),
-				"{t}Starting Player{t}"
+		gameboard0->emplace_back < Action
+				> (EX_A_STARTINGPLAYER_MINORIMPROVEMENT, track, EX_A_STARTINGPLAYER_MINORIMPROVEMENT, Data(
+						track), "{t}Starting Player{t}"
 						"and/or\n1 Minor"
 						"{t}Improvement{t}", track);
-		gameboard0->emplace_back<Action>(EX_A_TAKE1GRAIN, track,
+		gameboard0->emplace_back < Action > (EX_A_TAKE1GRAIN, track,
 		EX_A_TAKE1GRAIN, Data(track), "{t}Take 1 Grain{t}"
 				"and place in your personal supply"
 				"{t}#+(G)#{t}", track);
-		gameboard0->emplace_back<Action>(EX_A_1FIELD, track, EX_A_1FIELD,
-				Data(track), "{t}Plow\n1 Field{t}", track);
-		gameboard0->emplace_back<Action>(EX_A_OCCUPATION_0_1_, track,
+		gameboard0->emplace_back < Action
+				> (EX_A_1FIELD, track, EX_A_1FIELD, Data(track), "{t}Plow\n1 Field{t}", track);
+		gameboard0->emplace_back < Action > (EX_A_OCCUPATION_0_1_, track,
 		EX_A_OCCUPATION_0_1_, Data(track), "{t}1 Occupation{t}"
 				"(A player's first Occupation is free, "
 				"each additional one costs 1 Food)", track);
-		gameboard0->emplace_back<Action>(EX_A_DAYLABORER, track,
+		gameboard0->emplace_back < Action > (EX_A_DAYLABORER, track,
 		EX_A_DAYLABORER, Data(track), "{t}Day Laborer{t}"
 				"Take 2 Foods and place them in your personal supply"
 				"{t}#+(f)(f)#{t}", track);
 	}
-	gameboard1->emplace_back<Card::Round>(B_R1, track, 1, 1, 4, track);
-	gameboard1->emplace_back<Action>(EX_A_3WOOD, track, EX_A_3WOOD,
-			Data(3, Wooden::woodType, 0, "", track),
-			"{t}3 Wood\n#(W)(W)(W)#{t}", track);
-	gameboard1->emplace_back<Action>(EX_A_1CLAY, track, EX_A_1CLAY,
-			Data(1, Wooden::clayType, 0, "", track), "{t}1 Clay\n#(C)#{t}",
-			track);
-	gameboard1->emplace_back<Action>(EX_A_1REED, track, EX_A_1REED,
-			Data(1, Wooden::reedType, 0, "", track), "{t}1 Reed\n#(R)#{t}",
-			track);
-	gameboard1->emplace_back<Action>(EX_A_FISHING, track, EX_A_FISHING,
-			Data(1, Food::type, 0, "", track), "{t}Fishing{t}1 Food{t}#(f)#{t}",
-			track);
-	gameboard1->emplace_back<Card::Round>(B_R2, track, 1, 1, 4, track);
-	gameboard1->emplace_back<Card::Round>(B_R3, track, 1, 1, 4, track);
-	gameboard1->emplace_back<Card::Round>(B_R4, track, 1, 1, 4, track);
-	gameboard1->emplace_back<Card::Round>(B_R5, track, 2, 5, 7, track);
-	gameboard1->emplace_back<Card::Round>(B_R6, track, 2, 5, 7, track);
-	gameboard1->emplace_back<Card::Round>(B_R7, track, 2, 5, 7, track);
-	gameboard2->emplace_back<Card::Round>(B_R8, track, 3, 8, 9, track);
-	gameboard2->emplace_back<Card::Round>(B_R9, track, 3, 8, 9, track);
-	gameboard2->emplace_back<Card::Round>(B_R10, track, 4, 10, 11, track);
-	gameboard2->emplace_back<Card::Round>(B_R11, track, 4, 10, 11, track);
-	gameboard2->emplace_back<Card::Round>(B_R12, track, 5, 12, 13, track);
-	gameboard2->emplace_back<Card::Round>(B_R13, track, 5, 12, 13, track);
-	gameboard2->emplace_back<Card::Round>(B_R14, track, 6, 14, 14, track);
+	gameboard1->emplace_back < Card::Round > (B_R1, track, 1, 1, 4, track);
+	gameboard1->emplace_back < Action
+			> (EX_A_3WOOD, track, EX_A_3WOOD, Data(3, Wooden::woodType, 0, "",
+					track), "{t}3 Wood\n#(W)(W)(W)#{t}", track);
+	gameboard1->emplace_back < Action
+			> (EX_A_1CLAY, track, EX_A_1CLAY, Data(1, Wooden::clayType, 0, "",
+					track), "{t}1 Clay\n#(C)#{t}", track);
+	gameboard1->emplace_back < Action
+			> (EX_A_1REED, track, EX_A_1REED, Data(1, Wooden::reedType, 0, "",
+					track), "{t}1 Reed\n#(R)#{t}", track);
+	gameboard1->emplace_back < Action
+			> (EX_A_FISHING, track, EX_A_FISHING, Data(1, Food::type, 0, "",
+					track), "{t}Fishing{t}1 Food{t}#(f)#{t}", track);
+	gameboard1->emplace_back < Card::Round > (B_R2, track, 1, 1, 4, track);
+	gameboard1->emplace_back < Card::Round > (B_R3, track, 1, 1, 4, track);
+	gameboard1->emplace_back < Card::Round > (B_R4, track, 1, 1, 4, track);
+	gameboard1->emplace_back < Card::Round > (B_R5, track, 2, 5, 7, track);
+	gameboard1->emplace_back < Card::Round > (B_R6, track, 2, 5, 7, track);
+	gameboard1->emplace_back < Card::Round > (B_R7, track, 2, 5, 7, track);
+	gameboard2->emplace_back < Card::Round > (B_R8, track, 3, 8, 9, track);
+	gameboard2->emplace_back < Card::Round > (B_R9, track, 3, 8, 9, track);
+	gameboard2->emplace_back < Card::Round > (B_R10, track, 4, 10, 11, track);
+	gameboard2->emplace_back < Card::Round > (B_R11, track, 4, 10, 11, track);
+	gameboard2->emplace_back < Card::Round > (B_R12, track, 5, 12, 13, track);
+	gameboard2->emplace_back < Card::Round > (B_R13, track, 5, 12, 13, track);
+	gameboard2->emplace_back < Card::Round > (B_R14, track, 6, 14, 14, track);
 	/* Each player */
 
 	for (size_t p = 0; p < P; ++p) {
@@ -1219,30 +1241,45 @@ long unsigned feed(short unsigned player, base::Log track) {
 
 	return result;
 }
-std::set<Data> player_animals(Farmyard& farmyard, base::Log track) {
-	std::set<Data> result = { Data(0, Wooden::sheepType, farmyard., "", track), Data(), Data() };
+std::set<Data> player_animals(Player& player) {
+	std::set<Data> result;
+	std::map<std::string, unsigned> animals;
 	std::set<const base::Object*> all;
+	base::Log track;
 	std::ostringstream log;
 
-	std::clog << track.tracker() << "std::set<Data> breed(Farmyard& farmyard="
-			<< &farmyard << ") {";
-
+	std::clog << track.tracker() << "std::set<Data> breed(Player& player="
+			<< &player << ") {";
+	animals = { {Wooden::sheepType, 0},
+		{	Wooden::wildBoarType, 0},
+		{	Wooden::cattleType, 0}};
 	for (auto object : (all = base::Object::all())) {
 		auto path = base::Location::path(*object);
 		auto end = path.end();
 
 		if (std::find(path.begin(), path.end(),
-				dynamic_cast<base::Object*>(&farmyard)) != end)
-			;
+				dynamic_cast<base::Object*>(&player)) != end) {
+			if (object->what() == Wooden::sheepType)
+				++animals[Wooden::sheepType];
+			else if (object->what() == Wooden::wildBoarType)
+				++animals[Wooden::wildBoarType];
+			else if (object->what() == Wooden::cattleType)
+				++animals[Wooden::cattleType];
+		}
 	}
-	std::clog << track() << "}=" << result << std::endl;
+	result = {Data(animals[Wooden::sheepType], Wooden::sheepType,
+				player.number(), "gotten", track),
+		Data(animals[Wooden::wildBoarType], Wooden::wildBoarType,
+				player.number(), "gotten", track),
+		Data(animals[Wooden::cattleType], Wooden::cattleType,
+				player.number(), "gotten", track)};
+	std::clog << track() << "}=" << base::Prompt::list(result) << std::endl;
 
 	return result;
 }
 std::set<Data> breed(short unsigned player, base::Log track) {
-	std::set<Data> result = 0;
+	std::set<Data> result;
 	Player* playerObject = nullptr;
-	Farmyard::PersonalSupply* ps = nullptr;
 	std::map<std::string, std::pair<std::set<std::string>, std::string>> variables;
 	std::pair<bool, std::map<std::string, std::string>> chosen = { false, { } };
 	std::ostringstream log;
@@ -1258,8 +1295,14 @@ std::set<Data> breed(short unsigned player, base::Log track) {
 		std::cerr << log.str() << message.str() << std::endl;
 		throw std::out_of_range(log.str() + message.str());
 	}
-	variables["feed"] = {std::set<std::string>(), std::to_string(food - result)};
-	if ()
+	result = player_animals(*(playerObject = Player::player(player)));
+	for (auto data : result)
+		if (data.quantity > 1)
+			if (true) {
+
+			}
+	variables["feed"] = {std::set<std::string>(), std::string()};
+	if (true)
 		chosen = base::dialog(
 				"Player " + std::to_string(player) + " "
 						+ playerObject->identity()
@@ -1270,15 +1313,10 @@ std::set<Data> breed(short unsigned player, base::Log track) {
 								"then that limit will be considered.",
 				variables, track);
 	if (chosen.first)
-		;
-	std::clog << track() << "}=" << result << std::endl;
+		chosen.first = true;
+	std::clog << track() << "}=" << base::Prompt::list(result) << std::endl;
 
 	return result;
-}
-void clear_keys(base::Log track) {
-	std::clog << track.tracker() << "void clear_keys() {" << std::endl;
-	KEYS.clear();
-	std::clog << track() << "}" << std::endl;
 }
 
 void end_of_the_game(base::Log track) {

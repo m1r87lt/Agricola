@@ -165,10 +165,7 @@ void phase_end__2(base::Log track) {
 }
 void phase1_draw_a_new_round_card_1_3(base::Log track) {
 	auto keying = keys();
-	auto k = std::find_if(keying.begin(), keying.end(),
-			[](const std::string& key) {
-				return !key.find(std::string(SM_NEW_ROUND_CARD) + " \"");
-			});
+	auto k = find_key_containing(std::string(SM_NEW_ROUND_CARD) + " \"");
 	auto K = keying.end();
 	std::ostringstream log;
 
@@ -364,10 +361,7 @@ void phase3_work_3_(base::Log track) {
 	if (PHASE == 3 && STEP > 3 && !HARVEST && k != K) {
 		if (player > Player::quantity())
 			STEP = (player = 1) + 3;
-		if ((k = std::find_if(keying.begin(), keying.end(),
-				[](const std::string& key) {
-					return !key.find(std::string(SM_ACTION) + " ");
-				})) == K) {
+		if ((k = find_key_containing(std::string(SM_ACTION) + " ")) == K) {
 			auto member = waiting_member(player);
 
 			if (member) {
@@ -476,10 +470,7 @@ void phase4_return_home_4_(base::Log track) {
 	 * boards and return them to their home. */
 
 	if (PHASE == 4 && STEP > 3 && !HARVEST && k != K) {
-		if ((k = std::find_if(keying.begin(), keying.end(),
-				[](const std::string& key) {
-					return !key.find(std::string(SM_RETURN_HOME) + " ");
-				})) != K)
+		if ((k = find_key_containing(std::string(SM_RETURN_HOME) + " ")) != K)
 			if (++STEP - 3 > Player::quantity())
 				STEP = 4;
 		short unsigned player = STEP - 3;
@@ -564,16 +555,10 @@ void harvest_phase1_field_1_(base::Log track) {
 	if (player > Player::quantity())
 		STEP = (player = 1) + 3;
 	if (PHASE == 1 && STEP > 3 && HARVEST && k != K) {
-		if ((k = std::find_if(keying.begin(), keying.end(),
-				[](const std::string& key) {
-					return !key.find(SM_HARVESTED);
-				})) == K) {
+		if ((k = find_key_containing(SM_HARVESTED)) == K) {
 			auto harvested = harvest(player, track);
 
-			k = std::find_if(keying.begin(), keying.end(),
-					[](const std::string& key) {
-						return !key.find(std::string(SM_HARVEST) + " ");
-					});
+			k = find_key_containing(std::string(SM_HARVEST) + " ");
 			if (harvested.quantity) {
 				keying.erase(k);
 				keying.emplace(
@@ -661,17 +646,11 @@ void harvest_phase2_feeding_the_family_2_(base::Log track) {
 	if (PHASE == 2 && STEP > 3 && HARVEST && k != K) {
 		auto feeding = std::string(SM_FEEDING) + " " + std::to_string(player);
 
-		if ((k = std::find_if(keying.begin(), keying.end(),
-				[](const std::string& key) {
-					return !key.find(std::string(SM_FEEDING) + " ");
-				})) == K) {
+		if ((k = find_key_containing(std::string(SM_FEEDING) + " ")) == K) {
 			keying.emplace(feeding);
 			keying.emplace(SM_COOKED);
 		} else if (keying.find(SM_COOKED) == K) {
-			if ((k = std::find_if(keying.begin(), keying.end(),
-					[](const std::string& key) {
-						return !key.find(std::string(SM_BEG) + " ");
-					})) == K) {
+			if ((k = find_key_containing(std::string(SM_BEG) + " ")) == K) {
 				auto beg = feed(player, track);
 
 				keying.emplace(SM_BEG + std::to_string(beg));
@@ -687,10 +666,7 @@ void harvest_phase2_feeding_the_family_2_(base::Log track) {
 				}
 			}
 		} else {
-			if ((k = std::find_if(keying.begin(), keying.end(),
-					[](const std::string& key) {
-						return !key.find(std::string(SM_COOKED) + " ");
-					})) == K) {
+			if ((k = find_key_containing(std::string(SM_COOKED) + " ")) == K) {
 				auto cooked = cook(player, track);
 
 				if (cooked.size() && cooked.front().quantity) {
@@ -776,22 +752,13 @@ void harvest_phase3_breeding_3_(base::Log track) {
 	if (player > Player::quantity())
 		STEP = (player = 1) + 3;
 	if (PHASE == 3 && STEP > 3 && HARVEST && k != K) {
-		auto freed = std::find_if(keying.begin(), keying.end(),
-				[](const std::string& key) {
-					return !key.find(SM_FREED);
-				});
-		auto bred = std::find_if(keying.begin(), keying.end(),
-				[](const std::string& key) {
-					return !key.find(SM_BRED);
-				});
+		auto freed = find_key_containing(SM_FREED);
+		auto bred = find_key_containing(SM_BRED);
 
 		if (freed == bred) {
 			auto breeding = breed(player, track);
 
-			k = std::find_if(keying.begin(), keying.end(),
-					[](const std::string& key) {
-						return !key.find(std::string(SM_BREEDING) + " ");
-					});
+			k = find_key_containing(std::string(SM_BREEDING) + " ");
 			if (breeding.size()) {
 				std::string freed_animals;
 				std::string bred_animals;
