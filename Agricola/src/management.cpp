@@ -1277,6 +1277,8 @@ std::set<Data> player_animals(Player& player) {
 }
 std::set<Data> breed(short unsigned player, base::Log track) {
 	std::set<Data> result;
+	std::set<Data>::iterator r;
+	std::set<Data>::iterator R;
 	Player* playerObject = nullptr;
 	std::map<std::string, std::pair<std::set<std::string>, std::string>> variables;
 	std::pair<bool, std::map<std::string, std::string>> chosen = { false, { } };
@@ -1293,12 +1295,39 @@ std::set<Data> breed(short unsigned player, base::Log track) {
 		std::cerr << log.str() << message.str() << std::endl;
 		throw std::out_of_range(log.str() + message.str());
 	}
-	result = player_animals(*(playerObject = Player::player(player)));
-	for (auto data : result)
-		if (data.quantity > 1)
-			if ((k = find_key_containing(M_STALL)) == K) {
+	r = (result = player_animals(*(playerObject = Player::player(player)))).begin();
+	R = result.end();
+	while (r != R)
+		if (r->quantity > 1 && r->note == "gotten") {
+			auto k = KEYS.begin();
+			auto K = KEYS.end();
+			bool search = true;
 
+			while (search && k != K)
+				if (!k->find(M_STALL)) {
+					std::stringstream key(*k);
+					base::Location* place = nullptr;
+					std::string type;
+					short unsigned p = 0;
+					unsigned actual = 0;
+					unsigned possible = 0;
+
+					key >> type >> p >> place >> actual >> type >> possible;
+					if (p == player && type == r->label && actual < possible) {
+						key.clear();
+						place->insert_back(type, serialize(type, 0, track), track);
+						KEYS.erase(k);
+						key << M_STALL << " " << p << " " << place << " " << ++actual << type << possible;
+						KEYS.emplace(key.str());
+						K = k = KEYS.end();
+					} else
+						++k;
+				}
+			if (search) {
+				r->quantity -= 2;
+				result
 			}
+		}
 	variables["feed"] = {std::set<std::string>(), std::string()};
 	if (true)
 		chosen = base::dialog(
