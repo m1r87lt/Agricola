@@ -1302,6 +1302,7 @@ std::set<Data> breed(short unsigned player, base::Log track) {
 			auto k = KEYS.begin();
 			auto K = KEYS.end();
 			bool search = true;
+			std::string animal = r->label;
 
 			while (search && k != K)
 				if (!k->find(M_STALL)) {
@@ -1313,7 +1314,7 @@ std::set<Data> breed(short unsigned player, base::Log track) {
 					unsigned possible = 0;
 
 					key >> type >> p >> place >> actual >> type >> possible;
-					if (p == player && type == r->label && actual < possible) {
+					if (p == player && type == animal && actual < possible) {
 						key.clear();
 						place->insert_back(type, serialize(type, 0, track), track);
 						KEYS.erase(k);
@@ -1325,7 +1326,8 @@ std::set<Data> breed(short unsigned player, base::Log track) {
 				}
 			if (search) {
 				r->quantity -= 2;
-				result
+				result.emplace(3, r->label, r->player, "freed");
+
 			}
 		}
 	variables["feed"] = {std::set<std::string>(), std::string()};
