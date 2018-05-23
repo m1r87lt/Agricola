@@ -1275,10 +1275,12 @@ std::set<Data> player_animals(Player& player) {
 
 	return result;
 }
+void free_animals(Farmyard& farmyard) {
+
+}
 std::set<Data> breed(short unsigned player, base::Log track) {
 	std::set<Data> result;
 	std::set<Data>::iterator r;
-	std::set<Data>::iterator R;
 	Player* playerObject = nullptr;
 	std::map<std::string, std::pair<std::set<std::string>, std::string>> variables;
 	std::pair<bool, std::map<std::string, std::string>> chosen = { false, { } };
@@ -1296,8 +1298,7 @@ std::set<Data> breed(short unsigned player, base::Log track) {
 		throw std::out_of_range(log.str() + message.str());
 	}
 	r = (result = player_animals(*(playerObject = Player::player(player)))).begin();
-	R = result.end();
-	while (r != R)
+	while (r != result.end())
 		if (r->quantity > 1 && r->note == "gotten") {
 			auto k = KEYS.begin();
 			auto K = KEYS.end();
@@ -1324,10 +1325,12 @@ std::set<Data> breed(short unsigned player, base::Log track) {
 					} else
 						++k;
 				}
+			result.erase(r);
 			if (search) {
-				r->quantity -= 2;
-				result.emplace(3, r->label, r->player, "freed");
-
+				KEYS.erase(k);
+				result.emplace(3, animal, player, "freed");
+				K = KEYS.end();
+				k = KEYS.begin();
 			}
 		}
 	variables["feed"] = {std::set<std::string>(), std::string()};
