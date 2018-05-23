@@ -136,6 +136,7 @@ void phase_start__1(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void phase_end__2(base::Log track) {
@@ -163,6 +164,7 @@ void phase_end__2(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void phase1_draw_a_new_round_card_1_3(base::Log track) {
@@ -173,15 +175,12 @@ void phase1_draw_a_new_round_card_1_3(base::Log track) {
 
 	log << track.tracker() << "phase1_draw_a_new_round_card_1_3()";
 	std::clog << " {" << std::endl;
-	keying = keys();
-	k = keying.find(SM_NEW_ROUND_CARD);
-	K = keying.end();
 	/* Turn over the top Round card and place it on
 	 * the appropriate space on the board. The action
 	 * on this card is available to all players, and
 	 * can be used not only in this round but in all
 	 * subsequent rounds. */
-	if (PHASE == 1 && STEP == 3 && !HARVEST && k == K) {
+	if ((k = (keying = keys()).find(SM_NEW_ROUND_CARD)) == (K = keying.end()) && PHASE == 1 && STEP == 3 && !HARVEST) {
 		auto roundDeck = deck(B_ROUND_CARDS);
 		Card::Round* roundSpace = nullptr;
 		Card::Round* roundFace = nullptr;
@@ -241,7 +240,7 @@ void phase1_draw_a_new_round_card_1_3(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
-
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void phase1_start_the_round_1_4(base::Log track) {
@@ -279,6 +278,7 @@ void phase1_start_the_round_1_4(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void phase2_replenish_2_3(base::Log track) {
@@ -318,6 +318,7 @@ void phase2_replenish_2_3(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void phase3_work_3_3(base::Log track) {
@@ -328,11 +329,8 @@ void phase3_work_3_3(base::Log track) {
 
 	log << track.tracker() << "void phase3_work_3_3()";
 	std::clog << log.str() << " {" << std::endl;
-	keying = keys();
-	k = keying.find(SM_WORK);
-	K = keying.end();
 	/* In clockwise order, starting with the Starting player,*/
-	if (PHASE == 3 && STEP == 3 && !HARVEST && k == K) {
+	if ((k = (keying = keys()).find(SM_WORK)) == (K = keying.end()) && PHASE == 3 && STEP == 3 && !HARVEST) {
 		auto fp = first_player();
 
 		keying.emplace(SM_WORK);
@@ -352,6 +350,7 @@ void phase3_work_3_3(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void phase3_work_3_(base::Log track) {
@@ -437,6 +436,7 @@ void phase3_work_3_(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void phase4_return_home_4_3(base::Log track) {
@@ -467,6 +467,7 @@ void phase4_return_home_4_3(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void phase4_return_home_4_(base::Log track) {
@@ -518,6 +519,7 @@ void phase4_return_home_4_(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_phase1_field_1_3(base::Log track) {
@@ -549,6 +551,7 @@ void harvest_phase1_field_1_3(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_phase1_field_1_(base::Log track) {
@@ -604,6 +607,7 @@ void harvest_phase1_field_1_(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_phase2_feeding_the_family_2_3(base::Log track) {
@@ -634,6 +638,7 @@ void harvest_phase2_feeding_the_family_2_3(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_phase2_feeding_the_family_2_(base::Log track) {
@@ -715,6 +720,7 @@ void harvest_phase2_feeding_the_family_2_(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_phase3_breeding_3_3(base::Log track) {
@@ -746,6 +752,7 @@ void harvest_phase3_breeding_3_3(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_phase3_breeding_3_(base::Log track) {
@@ -757,9 +764,6 @@ void harvest_phase3_breeding_3_(base::Log track) {
 
 	log << track.tracker() << "void harvest_phase3_breeding_3_()";
 	std::clog << log.str() << " {" << std::endl;
-	keying = keys();
-	k = keying.find(SM_BREEDING);
-	K = keying.end();
 	/* Lastly, any player with at least 2 animals of the same type
 	 * receives exactly one additional (baby) animal of that type –
 	 * but only if the lamb, the shoat or the calf can be
@@ -770,7 +774,7 @@ void harvest_phase3_breeding_3_(base::Log track) {
 	 * placed – the parents may be in separate areas. */
 	if (player > Player::quantity())
 		STEP = (player = 1) + 3;
-	if (PHASE == 3 && STEP > 3 && HARVEST && k != K) {
+	if ((k = (keying = keys()).find(SM_BREEDING)) != (K = keying.end()) && PHASE == 3 && STEP > 3 && HARVEST && k != K) {
 		auto freed = find_key_containing(SM_FREED);
 		auto bred = find_key_containing(SM_BRED);
 
@@ -831,6 +835,7 @@ void harvest_phase3_breeding_3_(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void round_start(base::Log track) {
@@ -859,6 +864,7 @@ void round_start(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void round_end(base::Log track) {
@@ -888,6 +894,7 @@ void round_end(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_start(base::Log track) {
@@ -898,8 +905,7 @@ void harvest_start(base::Log track) {
 
 	log << track.tracker() << "void harvest_start()";
 	std::clog << " {" << std::endl;
-	keying = keys();
-	k = keying.find(SM_HARVEST_START);
+	k = (keying = keys()).find(SM_HARVEST_START);
 	K = keying.end();
 	if (HARVEST && PHASE == 1 && STEP == 1
 			&& harvestTimes.find(ROUND) != harvestTimes.end() && k == K) {
@@ -921,6 +927,7 @@ void harvest_start(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void harvest_end(base::Log track) {
@@ -952,6 +959,7 @@ void harvest_end(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void stage_start(base::Log track) {
@@ -982,6 +990,7 @@ void stage_start(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 void stage_end(base::Log track) {
@@ -1013,6 +1022,7 @@ void stage_end(base::Log track) {
 		std::cerr << log.str() << message << std::endl;
 		throw std::range_error(log.str() + message);
 	}
+	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
 

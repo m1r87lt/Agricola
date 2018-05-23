@@ -723,8 +723,7 @@ void collection(base::Log track) {
 	std::set<const base::Object*> all;
 
 	std::clog << track.tracker() << "void board_collection() {" << std::endl;
-	all = base::Object::all();
-	for (auto object : all)
+	for (auto object : (all = base::Object::all()))
 		if (object->what() == typeid(Action).name()) {
 			Action& action =
 					dynamic_cast<Action&>(*const_cast<base::Object*>(object));
@@ -1275,8 +1274,31 @@ std::set<Data> player_animals(Player& player) {
 
 	return result;
 }
-void free_animals(Farmyard& farmyard) {
+void free_animals(Data data, base::Log track) {
+	std::set<base::Object*> all;
+	std::ostringstream log;
 
+	std::clog << track.tracker()
+			<< "void free_animals(Data data=" << (std::string) data << ") {";
+	if (data.player < 1 || data.player > Player::quantity()) {
+		std::ostringstream message;
+
+		message << "= ERROR out of range: the player number " << data.player
+				<< " does not exist.";
+		std::clog << track() << "}" << message.str() << std::endl;
+		std::cerr << log.str() << message.str() << std::endl;
+		throw std::out_of_range(log.str() + message.str());
+	}
+	for (auto object : (all = base::Object::all())) {
+		auto path = base::Location::path(*object);
+		auto end = path.end();
+
+		if (std::find(path.begin(), path.end(),
+				dynamic_cast<base::Object*>(Player::player(data.player)))
+				!= end && data.label == object->what())
+
+	}
+	std::clog << track() << "}" << std::endl;
 }
 std::set<Data> breed(short unsigned player, base::Log track) {
 	std::set<Data> result;
@@ -1287,7 +1309,7 @@ std::set<Data> breed(short unsigned player, base::Log track) {
 	std::ostringstream log;
 
 	std::clog << track.tracker()
-			<< "std::set<Data> breed(short unsigned player=" << player << ") {";
+			<< "std::set< Data > breed(short unsigned player=" << player << ") {";
 	if (player < 1 || player > Player::quantity()) {
 		std::ostringstream message;
 
@@ -1327,12 +1349,10 @@ std::set<Data> breed(short unsigned player, base::Log track) {
 				}
 			result.erase(r);
 			if (search) {
-				KEYS.erase(k);
 				result.emplace(3, animal, player, "freed");
-				K = KEYS.end();
-				k = KEYS.begin();
 			}
-		}
+		} else
+			result.erase(r);
 	variables["feed"] = {std::set<std::string>(), std::string()};
 	if (true)
 		chosen = base::dialog(
