@@ -755,6 +755,7 @@ void harvest_phase3_breeding_3_3(base::Log track) {
 	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
+//TODO adjust the next function
 void harvest_phase3_breeding_3_(base::Log track) {
 	std::set<std::string> keying;
 	std::set<std::string>::iterator k;
