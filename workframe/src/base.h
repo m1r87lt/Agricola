@@ -9,71 +9,113 @@
 #define BASE_H_
 
 #include <string>
+#include <forward_list>
+#include <map>
+#include <set>
+#include <utility>
 #include <iostream>
 #include <vector>
 #include <sstream>
-#include <set>
-#include <utility>
 #include <memory>
 #include <list>
 #include <functional>
-#include <map>
 
 namespace base {
 bool running();
 void end();
-class Log {
-	bool call;
-	long long unsigned track;
-	std::string nest;
 
-	static bool calling;
+template<typename Class> Class nillable(Class&& object, Class&& otherwise) {
+	return std::forward(object ? object : otherwise);
+}
+template<typename Container> std::string lister(Container& container,
+		std::string separator = ",", bool cascading = false, bool embracing =
+				false, bool enumerating = false) {
+	std::ostringstream result;
+	size_t i = 0;
+	auto length = log10(nillable(container.size(), 1));
+	std::string space = cascading ? "\n\t" : " ";
+
+	for (auto content : container) {
+		result << space << separator;
+		if (enumerating)
+			result << std::string(length, ' ') << ++i << ":\t";
+		result << content;
+	}
+	result.str(
+			"{" + result.str().substr(separator.length())
+					+ (cascading ? "\n" : " ") + "}");
+
+	return result.str();
+}
+template<typename Container> std::string textual(Container& container,
+		std::string separator = ",", bool cascading = false, bool embracing =
+				false, bool enumerating = false) {
+	std::ostringstream result;
+	size_t i = 0;
+	auto length = log10(nillable(container.size(), 1));
+	std::string space = cascading ? "\n\t" : " ";
+
+	for (auto content : container) {
+		result << space << separator;
+		if (enumerating)
+			result << std::string(length, ' ') << ++i << ":\t";
+		result << (std::string) content;
+	}
+	result.str(
+			"{" + result.str().substr(separator.length())
+					+ (cascading ? "\n" : " ") + "}");
+
+	return result.str();
+}
+
+class Log {
+	std::string ns;
+	long long unsigned track;
 	static long long unsigned tracking;
-	static std::string nesting;
+
 	static void parameters();
+	template<typename Argument, typename ... Arguments> static void parameters(
+			Argument& argument, Arguments& ... arguments) {
+		std::clog << ", " << typeid(Argument).name() << "=" << argument;
+		parameters(arguments ...);
+	}
+protected:
+	template<typename ... Arguments> Log(std::string ns, std::string function,
+			Arguments& ... arguments) {
+		auto params = parameters(arguments[0] ...);
+
+		std::clog << (track = ++tracking) << ": " << ns << "::"
+				<< typeid(*this).name() << "(" << parameters(params);
+	}
+	template<typename ... Arguments> Log(std::string ns, std::string function,
+			Arguments& ... arguments) {
+		auto params = parameters(arguments[0] ...);
+
+		std::clog << (track = ++tracking) << ": " << ns << "::"
+				<< typeid(*this).name() << "(" << parameters(params);
+	}
 public:
 	std::string tracker() const;
 	std::string operator()() const;
 	std::string close() const;
 	operator const char*() const;
-	template<typename Argument, typename ... Arguments> static void parameters(
-			Argument&& argument, Arguments&& ... arguments) {
-		std::clog << ", " << typeid(Argument).name() << "=" << argument;
-		parameters(arguments ...);
-	}
 
-	Log();
 	~Log();
 	Log(const Log&);
 };
 
 struct Prompt {
-	virtual Prompt* enter(std::string, size_t, unsigned) const = 0;
-	virtual std::string field(std::string, unsigned) const = 0;
-	virtual void field(std::string, size_t, std::string, unsigned) = 0;
 
 	static std::string address(void*);
-	template<typename Container> static std::string list(
-			Container&& container) {
-		std::ostringstream text;
-		auto i = 0;
-
-		for (auto content : container)
-			text << ",\n\t" << i++ << ": " << content;
-		text.str(
-				text.str().empty() ?
-						"{ }" : "{" + text.str().substr(1) + "\n}");
-
-		return text.str();
-	}
 
 	virtual ~Prompt() = default;
 };
-class Object: public Prompt {
+class Object {
+	std::map<std::string, std::string> attributing;
 	time_t creation;
 	Object* position;
 	friend class Location;
-	static std::set<const Object*> everything;
+	static std::set<Object*> everything;
 protected:
 	time_t modification;
 
