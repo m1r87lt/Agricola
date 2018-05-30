@@ -69,10 +69,21 @@ template<typename Container> std::string textual(Container& container,
 }
 
 class Log {
+	Log * caller;
 	std::string ns;
+	std::string object;
+	std::string function;
 	long long unsigned track;
 	static long long unsigned tracking;
 
+	void initialize(Log*, std::string, std::string) {
+		this->caller = caller;
+		if (typeid(*this) != typeid(Log))
+			object = typeid(*this).name();
+		if (function.empty())
+			function = object;
+		std::clog << (track = ++tracking) << ": " << ns << "::" << typeid(*this).name() << "(" << parameters(params);
+	}
 	static void parameters();
 	template<typename Argument, typename ... Arguments> static void parameters(
 			Argument& argument, Arguments& ... arguments) {
@@ -80,19 +91,11 @@ class Log {
 		parameters(arguments ...);
 	}
 protected:
-	template<typename ... Arguments> Log(std::string ns, std::string function,
+	template<typename ... Arguments> Log(std::string function, Log* caller, std::string ns,
 			Arguments& ... arguments) {
-		auto params = parameters(arguments[0] ...);
+		auto params = parameters(arguments ...);
 
-		std::clog << (track = ++tracking) << ": " << ns << "::"
-				<< typeid(*this).name() << "(" << parameters(params);
-	}
-	template<typename ... Arguments> Log(std::string ns, std::string function,
-			Arguments& ... arguments) {
-		auto params = parameters(arguments[0] ...);
-
-		std::clog << (track = ++tracking) << ": " << ns << "::"
-				<< typeid(*this).name() << "(" << parameters(params);
+		initialize(caller, ns, function);
 	}
 public:
 	std::string tracker() const;
