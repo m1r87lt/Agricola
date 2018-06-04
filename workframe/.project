@@ -3,6 +3,7 @@
 	<name>workframe</name>
 	<comment></comment>
 	<projects>
+		<project>odpi</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

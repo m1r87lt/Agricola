@@ -69,6 +69,7 @@
 						<entry flags="RESOLVED" kind="libraryFile" name="workframe" srcPrefixMapping="" srcRootPath=""/>
 					</externalSetting>
 				</externalSettings>
+				<externalSettings containerId="odpi;" factoryId="org.eclipse.cdt.core.cfg.export.settings.sipplier"/>
 			</storageModule>
 		</cconfiguration>
 		<cconfiguration id="cdt.managedbuild.config.gnu.mingw.exe.release.581254639">
@@ -145,4 +146,5 @@
 			<resource resourceType="PROJECT" workspacePath="/Agricola"/>
 		</configuration>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 </cproject>
