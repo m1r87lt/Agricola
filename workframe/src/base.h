@@ -8,18 +8,24 @@
 #ifndef BASE_H_
 #define BASE_H_
 
+#include <utility>
 #include <string>
 #include <sstream>
 #include <forward_list>
 #include <tuple>
 #include <map>
 #include <set>
-#include <utility>
 #include <iostream>
 #include <vector>
 #include <memory>
 #include <list>
 #include <functional>
+
+namespace dpi {
+template<typename ... Arguments> int insert_into(std::string table, Arguments& ... arguments) {
+
+}
+}
 
 namespace base {
 bool running();
@@ -76,11 +82,12 @@ class Log {
 	Log* caller;
 	std::string object;
 	long long unsigned track;
+	bool open;
 	std::string logging;
-	std::tuple<std::string, std::string, std::string> returning;
+	std::string returning;
 	static long long unsigned tracking;
 
-	void operator() (Log*, list, bool, std::string, std::string);
+	void operator()(list, std::string, std::string);
 	void operator ()() const;
 	template<typename Argument, typename ... Arguments> static list arguments(
 			std::string name, Argument& argument, Arguments& ... rest) {
@@ -111,54 +118,62 @@ class Log {
 	static std::string lister(list);
 protected:
 	template<typename ... Arguments> Log(std::string message, bool open,
-			Log* caller, std::string ns, std::string name1, Arguments& ... args) {
+			Log* caller, std::string ns, std::string name1,
+			Arguments& ... args) {
 		auto params = arguments(name1, args...);
 
-		operator() (caller, params, open, message, ns);
+		this->caller = caller;
+		track = ++tracking;
+		this->open = open;
+		operator()(params, message, ns);
 	}
 	template<typename ... Arguments> Log(bool open, std::string message,
 			Log* caller, std::string ns, Arguments& ... args) {
 		auto params = parameters(args...);
 
-		operator() (caller, params, open, message, ns);
+		this->caller = caller;
+		track = ++tracking;
+		this->open = open;
+		operator()(params, message, ns);
 	}
 public:
 	template<typename ... Arguments> Log method(std::string message, bool open,
-			std::string function, std::string name1, Arguments& ... args) const {
-		return Log(function, message, open, this, name1, args ...);
+			std::string function, std::string name1,
+			Arguments& ... args) const {
+		return std::move(Log(this, message, open, object + "." + function, name1, args ...));
 	}
 	template<typename ... Arguments> Log method(bool open, std::string message,
 			std::string function, Arguments& ... args) const {
-		return Log(function, open, message, this, args ...);
+		return Log(this, open, message, object + "." + function, args ...);
 	}
 	template<typename Argument> void returned(Argument& argument) {
 		returning = parameters(argument).front();
 	}
 	void operator ()(std::string) const;
 
-	template<typename ... Arguments> Log(std::string function,
-			std::string message, bool open, Log* caller,
+	template<typename ... Arguments> Log(Log* caller, std::string message,
+			bool open, std::string function,
 			std::string name1, Arguments& ... args) {
 		auto params = arguments(name1, args ...);
 
-		operator() (caller, params, open, message, function);
+		this->caller = caller;
+		track = ++tracking;
+		this->open = open;
+		operator()(params, message, function);
 	}
-	template<typename ... Arguments> Log(std::string function,
-			bool open, std::string message, Log* caller,
-			Arguments& ... args) {
+	template<typename ... Arguments> Log(Log* caller, bool open,
+			std::string message, std::string function, Arguments& ... args) {
 		auto params = parameters(args ...);
 
-		operator() (caller, params, open, message, function);
+		this->caller = caller;
+		track = ++tracking;
+		this->open = open;
+		operator()(params, message, function);
 	}
 	~Log();
+	Log(const Log&) = delete;
 };
 /*
- struct Prompt {
-
- static std::string address(void*);
-
- virtual ~Prompt() = default;
- };
  class Object {
  std::map<std::string, std::string> attributing;
  time_t creation;
