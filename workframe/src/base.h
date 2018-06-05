@@ -74,22 +74,14 @@ class Log {
 	std::tuple<std::string, std::string, std::string>>;
 
 	Log* caller;
-	std::string ns;
 	std::string object;
 	long long unsigned track;
+	std::string logging;
+	std::tuple<std::string, std::string, std::string> returning;
 	static long long unsigned tracking;
 
-	void initialize(Log*, std::string, std::string) {
-		std::ostringstream object;
-
-		this->caller = caller;
-		if (typeid(*this) != typeid(Log)) {
-			object << typeid(*this).name() << "{" << this << "}";
-			this->object = object.str();
-		}
-		tracker = ++tracking;
-	}
-	void log() const;
+	void operator() (Log*, list, bool, std::string, std::string);
+	void operator ()() const;
 	template<typename Argument, typename ... Arguments> static list arguments(
 			std::string name, Argument& argument, Arguments& ... rest) {
 		std::ostringstream text;
@@ -119,43 +111,46 @@ class Log {
 	static std::string lister(list);
 protected:
 	template<typename ... Arguments> Log(std::string message, bool open,
-			Log* caller, std::string ns, bool templating, Arguments& ... args) {
-		list params;
+			Log* caller, std::string ns, std::string name1, Arguments& ... args) {
+		auto params = arguments(name1, args...);
 
-		initialize(caller, ns, "");
-		if (templating)
-			params = parameters(args ...);
-		else
-			params = arguments(args ...);
-		std::clog << track << ": " << ns << "::" << object << "::"
-				<< typeid(*this).name() << "(" << Log::lister(params)
-				<< (open ? ") {" : ")");
+		operator() (caller, params, open, message, ns);
+	}
+	template<typename ... Arguments> Log(bool open, std::string message,
+			Log* caller, std::string ns, Arguments& ... args) {
+		auto params = parameters(args...);
+
+		operator() (caller, params, open, message, ns);
 	}
 public:
 	template<typename ... Arguments> Log method(std::string message, bool open,
-			std::string function, bool templating, Arguments& ... args) const {
-		Log called(function, message, this, ns, templating, args ...);
-
-		if (templating)
-			params = parameters(args ...);
-		else
-			params = arguments(args ...);
-		std::clog << track << "->" << ": " << ns << "::" << object << "::"
-				<< typeid(*this).name() << "(" << Log::lister(params)
-				<< (open ? ") {" : ")");
+			std::string function, std::string name1, Arguments& ... args) const {
+		return Log(function, message, open, this, name1, args ...);
 	}
-	template<typename Argument> void returned(Argument& argument) const;
-	void returned() const;
+	template<typename ... Arguments> Log method(bool open, std::string message,
+			std::string function, Arguments& ... args) const {
+		return Log(function, open, message, this, args ...);
+	}
+	template<typename Argument> void returned(Argument& argument) {
+		returning = parameters(argument).front();
+	}
+	void operator ()(std::string) const;
 
 	template<typename ... Arguments> Log(std::string function,
-			std::string message, bool open, Log* caller, std::string ns,
-			bool templating, Arguments& ... arguments) {
-		auto params = parameters(arguments ...);
+			std::string message, bool open, Log* caller,
+			std::string name1, Arguments& ... args) {
+		auto params = arguments(name1, args ...);
 
-		initialize(caller, ns, function);
+		operator() (caller, params, open, message, function);
+	}
+	template<typename ... Arguments> Log(std::string function,
+			bool open, std::string message, Log* caller,
+			Arguments& ... args) {
+		auto params = parameters(args ...);
+
+		operator() (caller, params, open, message, function);
 	}
 	~Log();
-	Log(const Log&);
 };
 /*
  struct Prompt {

@@ -21,73 +21,56 @@ void end() {
 }
 
 //Log
-bool Log::calling = false;
 long long unsigned Log::tracking = 0;
-std::string Log::nesting = " ";
 
-void Log::parameters() {
-}
-std::string Log::tracker() const {
+void Log::operator() (Log* caller, list params, bool open, std::string name, std::string message) {
 	std::ostringstream result;
 
-	result << track << ":" << nest;
-
-	return result.str();
+	this->caller = caller;
+	if (typeid(*this) != typeid(Log)) {
+		result << "::" << typeid(*this).name() << "{" << this << "}";
+		object = result.str();
+		result.clear();
+	}
+	track = ++tracking;
+	result << track << ": " << name << object << "::"
+			<< typeid(*this).name() << "(" << Log::lister(params)
+			<< ")";
+	logging = result.str();
+	if (message.length())
+		result << " \"" + message + "\"";
+	if (open)
+		result << " {";
+	std::clog << result.str() << std::endl;
 }
-std::string Log::operator()() const {
-	std::ostringstream result;
-
-	result << track << " " << nest;
-
-	return result.str();
+void Log::operator ()() const {
+	//TODO
 }
-std::string Log::close() const {
+Log::list Log::arguments() {
+	return list();
+}
+Log::list Log::parameters() {
+	return list();
+}
+std::string Log::lister(list params) {
 	std::string result;
 
-	for (auto l = nest.length() + 1; nesting.length() > l; nesting.pop_back()) {
-		result += nesting + " }!\n";
-		nesting.pop_back();
-	}
+	for (auto param : params)
+		result += ", " + std::get<0>(param) + " " + std::get<0>(param) + "=" + std::get<0>(param);
+	if (result.length())
+		result.erase(0, 2);
 
 	return result;
 }
-Log::operator const char*() const {
-	return std::to_string(track).c_str();
+void Log::operator ()(std::string message) const {
+	std::clog << track << "  " << message << std::endl;
+	//TODO
 }
 
-Log::Log() {
-	track = ++tracking;
-	call = calling;
-	if (calling)
-		nesting += "  ";
-	else
-		calling = true;
-	nest = nesting;
-}
 Log::~Log() {
-	if (run) {
-		if (call && nesting.length() > 1) {
-			nesting.pop_back();
-			nesting.pop_back();
-		}
-		calling = nesting.length() > 1;
-	}
+	//TODO
 }
-Log::Log(const Log& log) {
-	track = log.track;
-	nest = nesting += "  ";
-	call = true;
-}
-
-//Prompt
-std::string Prompt::address(void* pointer) {
-	std::ostringstream result;
-
-	result << pointer;
-
-	return result.str();
-}
-
+/*
 //Object
 std::set<const Object*> Object::everything;
 
@@ -1076,5 +1059,5 @@ Deck::Deck(std::string label, Location* position, base::Log track) :
 	std::clog << track.tracker() << "game::Deck::Deck(std::string label=\""
 			<< label << "\", base::Location* position=" << position << ")="
 			<< this << std::endl;
-}
+}*/
 }
