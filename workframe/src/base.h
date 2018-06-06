@@ -22,8 +22,13 @@
 #include <functional>
 
 namespace dpi {
+dpiConn* connection();
 template<typename ... Arguments> int insert_into(std::string table, Arguments& ... arguments) {
+	dpiStmt **stmt = nullptr;
 
+	return dpiConn_prepareStmt(connection(), int scrollable, const char *sql,
+	        uint32_t sqlLength, const char *tag, uint32_t tagLength,
+	        dpiStmt **stmt);
 }
 }
 

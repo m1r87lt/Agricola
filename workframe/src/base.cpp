@@ -18,18 +18,22 @@
 namespace dpi {
 dpiConn* dpiconn = nullptr;
 
-int prepare() {
+dpiConn* connection() {
 	const char* mainUserName = DBUSER;
-	uint32_t mainUserNameLength = strlen(mainUserName);
+	uint32_t mainUserNameLength = std::char_traits<char>::length(mainUserName);
 	const char* mainPassword = DBUSER;
-	uint32_t mainPasswordLength = strlen(mainPassword);
+	uint32_t mainPasswordLength = std::char_traits<char>::length(mainPassword);
 	const char* connectString = DBINSTANCE;
-	uint32_t connectStringLength = strlen(connectString);
+	uint32_t connectStringLength = std::char_traits<char>::length(
+			connectString);
 
-	dpiConn_create(nullptr, mainUserName, mainUserNameLength,
-			mainPassword, mainPasswordLength,
-			connectString, connectStringLength, nullptr,
-			nullptr, &dpiconn);
+	if (!dpiconn
+			&& dpiConn_create(nullptr, mainUserName, mainUserNameLength,
+					mainPassword, mainPasswordLength, connectString,
+					connectStringLength, nullptr, nullptr, &dpiconn) < 0)
+		return nullptr;
+
+	return dpiconn;
 }
 }
 
