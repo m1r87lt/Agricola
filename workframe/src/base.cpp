@@ -16,7 +16,13 @@
 #include <random>
 
 namespace dpi {
+dpiContext* dpicontext = nullptr;
 dpiConn* dpiconn = nullptr;
+dpiErrorInfo dpierrorinfo;
+int initialize() {
+	return dpiContext_create(DPI_MAJOR_VERSION, DPI_MINOR_VERSION, &dpicontext,
+			&dpierrorinfo);
+}
 
 dpiConn* connection() {
 	const char* mainUserName = DBUSER;

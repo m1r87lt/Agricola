@@ -22,6 +22,7 @@
 #include <functional>
 
 namespace dpi {
+int initialize();
 dpiConn* connection();
 template<typename ... Arguments> int insert_into(std::string table, Arguments& ... arguments) {
 	dpiStmt **stmt = nullptr;
