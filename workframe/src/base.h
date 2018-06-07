@@ -8,10 +8,11 @@
 #ifndef BASE_H_
 #define BASE_H_
 
-#include <utility>
 #include <string>
-#include <sstream>
 #include <forward_list>
+#include <utility>
+#include <type_index>
+#include <sstream>
 #include <tuple>
 #include <map>
 #include <set>
@@ -24,13 +25,7 @@
 namespace dpi {
 int initialize();
 dpiConn* connection();
-template<typename ... Arguments> int insert_into(std::string table, Arguments& ... arguments) {
-	dpiStmt **stmt = nullptr;
-
-	return dpiConn_prepareStmt(connection(), int scrollable, const char *sql,
-	        uint32_t sqlLength, const char *tag, uint32_t tagLength,
-	        dpiStmt **stmt);
-}
+int insert_into(std::string, std::forward_list<std::pair<std::type_index, std::string>>);
 }
 
 namespace base {

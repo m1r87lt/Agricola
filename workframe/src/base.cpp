@@ -6,7 +6,7 @@
  */
 
 #define DBUSER "agricola"
-#define DBINSTANCE "localhost"
+#define DBINSTANCE "localhost:1521/xe"
 
 #include "base.h"
 #include "include/dpi.h"
@@ -16,15 +16,12 @@
 #include <random>
 
 namespace dpi {
-dpiContext* dpicontext = nullptr;
-dpiConn* dpiconn = nullptr;
-dpiErrorInfo dpierrorinfo;
+dpiContext* context = nullptr;
+dpiConn* conn = nullptr;
+dpiErrorInfo errorInfo;
 int initialize() {
-	return dpiContext_create(DPI_MAJOR_VERSION, DPI_MINOR_VERSION, &dpicontext,
-			&dpierrorinfo);
-}
-
-dpiConn* connection() {
+	int result = dpiContext_create(DPI_MAJOR_VERSION, DPI_MINOR_VERSION,
+			&context, &errorInfo);
 	const char* mainUserName = DBUSER;
 	uint32_t mainUserNameLength = std::char_traits<char>::length(mainUserName);
 	const char* mainPassword = DBUSER;
@@ -33,13 +30,23 @@ dpiConn* connection() {
 	uint32_t connectStringLength = std::char_traits<char>::length(
 			connectString);
 
-	if (!dpiconn
-			&& dpiConn_create(nullptr, mainUserName, mainUserNameLength,
-					mainPassword, mainPasswordLength, connectString,
-					connectStringLength, nullptr, nullptr, &dpiconn) < 0)
-		return nullptr;
+	if (result > 0)
+		return dpiConn_create(context, mainUserName, mainUserNameLength,
+				mainPassword, mainPasswordLength, connectString,
+				connectStringLength, nullptr, nullptr, &conn);
+	else
+		return result;
 
-	return dpiconn;
+}
+dpiConn* connection() {
+	return conn;
+}
+int insert_into(std::string table,
+		std::forward_list<std::pair<std::string, std::string>> parameters) {
+	dpiStmt *stmt = nullptr;
+	const char* sql = "insert into " + table + " values(";
+
+	return dpiConn_prepareStmt(connection(), 0, sql, 1, nullptr, 0, &stmt);
 }
 }
 
@@ -78,7 +85,7 @@ void Log::operator()(list params, std::string message, std::string name) {
 	std::clog << result.str() << std::endl;
 }
 void Log::operator ()() const {
-	//TODO
+//TODO
 }
 Log::list Log::arguments() {
 	return list();
@@ -98,12 +105,12 @@ std::string Log::lister(list params) {
 	return result;
 }
 void Log::operator ()(std::string message) const {
-	//TODO
+//TODO
 	std::clog << track << "  " << message << std::endl;
 }
 
 Log::~Log() {
-	//TODO
+//TODO
 	std::clog << track << (open ? "  }" : "  ")
 			<< (returning.empty() ? "" : "=") << returning << std::endl;
 }
