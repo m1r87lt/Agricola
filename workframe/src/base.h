@@ -11,9 +11,8 @@
 #include <string>
 #include <forward_list>
 #include <utility>
-#include <type_index>
+#include <typeindex>
 #include <sstream>
-#include <tuple>
 #include <map>
 #include <set>
 #include <iostream>
@@ -24,7 +23,6 @@
 
 namespace dpi {
 int initialize();
-dpiConn* connection();
 int insert_into(std::string, std::forward_list<std::pair<std::type_index, std::string>>);
 }
 
@@ -77,8 +75,8 @@ template<typename Container> std::string textual(Container& container,
 }
 
 class Log {
-	using list = std::forward_list<
-	std::tuple<std::string, std::string, std::string>>;
+	using list = std::unordered_map<std::string,
+	std::pair<std::string, std::string>>;
 
 	Log* caller;
 	std::string object;
@@ -93,10 +91,10 @@ class Log {
 	template<typename Argument, typename ... Arguments> static list arguments(
 			std::string name, Argument& argument, Arguments& ... rest) {
 		std::ostringstream text;
-		auto result = arguments(rest ...);
+		list result = arguments(rest ...);
 
 		text << argument;
-		result.push_front(
+		result.(
 				std::make_tuple(std::string(typeid(Argument).name()), name,
 						text.str()));
 

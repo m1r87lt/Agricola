@@ -10,6 +10,7 @@
 
 #include "base.h"
 #include "include/dpi.h"
+#include <cstring>
 #include <stdexcept>
 #include <chrono>
 #include <fstream>
@@ -19,34 +20,77 @@ namespace dpi {
 dpiContext* context = nullptr;
 dpiConn* conn = nullptr;
 dpiErrorInfo errorInfo;
+
 int initialize() {
 	int result = dpiContext_create(DPI_MAJOR_VERSION, DPI_MINOR_VERSION,
 			&context, &errorInfo);
-	const char* mainUserName = DBUSER;
-	uint32_t mainUserNameLength = std::char_traits<char>::length(mainUserName);
-	const char* mainPassword = DBUSER;
-	uint32_t mainPasswordLength = std::char_traits<char>::length(mainPassword);
-	const char* connectString = DBINSTANCE;
-	uint32_t connectStringLength = std::char_traits<char>::length(
-			connectString);
+	const char mainUserName[] = DBUSER;
+	uint32_t mainUserNameLength = strlen(mainUserName);
+	const char mainPassword[] = DBUSER;
+	uint32_t mainPasswordLength = strlen(mainPassword);
+	const char connectString[] = DBINSTANCE;
+	uint32_t connectStringLength = strlen(connectString);
 
-	if (result > 0)
-		return dpiConn_create(context, mainUserName, mainUserNameLength,
-				mainPassword, mainPasswordLength, connectString,
-				connectStringLength, nullptr, nullptr, &conn);
-	else
-		return result;
+	if (result != DPI_SUCCESS) {
+		std::ostringstream log;
 
-}
-dpiConn* connection() {
-	return conn;
+		log << "dpi error:\n\tcode=" << errorInfo.code << "\n\tstate="
+				<< errorInfo.sqlState << "\n\tfunction=" << errorInfo.fnName
+				<< "\n\tmessage" << errorInfo.message << "\n\taction"
+				<< errorInfo.action;
+		std::cerr << log.str() << std::endl;
+		std::clog << log.str() << std::endl;
+
+		throw std::runtime_error(log.str());
+	}
+
+	return dpiConn_create(context, mainUserName, mainUserNameLength,
+			mainPassword, mainPasswordLength, connectString,
+			connectStringLength, nullptr, nullptr, &conn);
+
 }
 int insert_into(std::string table,
-		std::forward_list<std::pair<std::string, std::string>> parameters) {
+		std::forward_list<std::pair<std::type_index, std::string>> parameters) {
 	dpiStmt *stmt = nullptr;
-	const char* sql = "insert into " + table + " values(";
+	char* sql = ("insert into " + table + " values(").c_str();
+	uint32_t sqln = 0;
+	dpiStmtInfo stmtInfo;
+	std::ostringstream log;
+	int result = 0;
 
-	return dpiConn_prepareStmt(connection(), 0, sql, 1, nullptr, 0, &stmt);
+	for (auto parameter : parameters)
+		if (parameter.first == typeid(bool) && parameter.second == "true")
+			strcat(sql, "1, ");
+		else if (parameter.first == typeid(bool) && parameter.second == "false")
+			strcat(sql, "0, ");
+		else if (parameter.first == typeid(std::string))
+			strcat(sql, ("'" + parameter.second + "', ").c_str());
+		else
+			strcat(sql, (parameter.second + ", ").c_str());
+	sql[sqln = strlen(sql) - 2] = ')';
+	strncpy(sql, sql, ++sqln);
+	if ((result = dpiConn_prepareStmt(conn, 0, sql, sqln, nullptr, 0, &stmt))
+			!= DPI_SUCCESS
+			|| (result = dpiStmt_execute(stmt,
+					dpiExecMode::DPI_MODE_EXEC_DEFAULT, &sqln)) != DPI_SUCCESS)
+		result = dpiStmt_getInfo(stmt, &stmtInfo);
+	if (result != DPI_SUCCESS)
+		log << "dpi error:\n\tcode=" << errorInfo.code << "\n\tstate="
+				<< errorInfo.sqlState << "\n\tfunction=" << errorInfo.fnName
+				<< "\n\tmessage" << errorInfo.message << "\n\taction"
+				<< errorInfo.action;
+	else if (stmtInfo.isReturning != 1) {
+		log << "dpi error: " << stmtInfo.isReturning << " rows are inserted.";
+		result = DPI_FAILURE;
+	}
+	if (result != DPI_SUCCESS) {
+		std::cerr << log.str() << std::endl;
+		std::clog << log.str() << std::endl;
+
+		throw std::runtime_error(log.str());
+	}
+
+	return dpiStmt_close(stmt, nullptr, 0);
 }
 }
 
@@ -97,8 +141,8 @@ std::string Log::lister(list params) {
 	std::string result;
 
 	for (auto param : params)
-		result += ", " + std::get<0>(param) + " " + std::get<0>(param) + "="
-				+ std::get<0>(param);
+		result += ", " + param.second.first + " " + param.first + "="
+				+ param.second.second;
 	if (result.length())
 		result.erase(0, 2);
 
