@@ -52,12 +52,11 @@ int initialize() {
 int insert_into(std::string table,
 		std::forward_list<std::pair<std::type_index, std::string>> parameters) {
 	dpiStmt *stmt = nullptr;
-	char* sql = ("insert into " + table + " values(").c_str();
+	char* sql = nullptr;
 	uint32_t sqln = 0;
-	dpiStmtInfo stmtInfo;
-	std::ostringstream log;
 	int result = 0;
 
+	strcat(sql, ("insert into " + table + " values(").c_str());
 	for (auto parameter : parameters)
 		if (parameter.first == typeid(bool) && parameter.second == "true")
 			strcat(sql, "1, ");
@@ -68,22 +67,17 @@ int insert_into(std::string table,
 		else
 			strcat(sql, (parameter.second + ", ").c_str());
 	sql[sqln = strlen(sql) - 2] = ')';
-	strncpy(sql, sql, ++sqln);
 	if ((result = dpiConn_prepareStmt(conn, 0, sql, sqln, nullptr, 0, &stmt))
-			!= DPI_SUCCESS
-			|| (result = dpiStmt_execute(stmt,
-					dpiExecMode::DPI_MODE_EXEC_DEFAULT, &sqln)) != DPI_SUCCESS)
-		result = dpiStmt_getInfo(stmt, &stmtInfo);
-	if (result != DPI_SUCCESS)
+			!= DPI_SUCCESS)
+		result = dpiStmt_execute(stmt,
+					dpiExecMode::DPI_MODE_EXEC_DEFAULT, &sqln);
+	if (result != DPI_SUCCESS) {
+		std::ostringstream log;
+
 		log << "dpi error:\n\tcode=" << errorInfo.code << "\n\tstate="
 				<< errorInfo.sqlState << "\n\tfunction=" << errorInfo.fnName
 				<< "\n\tmessage" << errorInfo.message << "\n\taction"
 				<< errorInfo.action;
-	else if (stmtInfo.isReturning != 1) {
-		log << "dpi error: " << stmtInfo.isReturning << " rows are inserted.";
-		result = DPI_FAILURE;
-	}
-	if (result != DPI_SUCCESS) {
 		std::cerr << log.str() << std::endl;
 		std::clog << log.str() << std::endl;
 
@@ -91,6 +85,42 @@ int insert_into(std::string table,
 	}
 
 	return dpiStmt_close(stmt, nullptr, 0);
+}
+long long unsigned param_sequence() {
+	dpiStmt *stmt = nullptr;
+	const char* sql = "select seq_param.nextval from dual";
+	uint32_t sqln = strlen(sql);
+	int column = 0;
+	uint32_t index = 0;
+	dpiNativeTypeNum nativeTypeNum;
+	dpiData* data;
+	long long unsigned result = 0;
+
+	if ((result = dpiConn_prepareStmt(conn, 0, sql, sqln, nullptr, 0, &stmt))
+			!= DPI_SUCCESS
+			|| (result = dpiStmt_execute(stmt,
+					dpiExecMode::DPI_MODE_EXEC_DEFAULT, &sqln)) != DPI_SUCCESS
+		|| (result = dpiStmt_fetch(stmt, &column, &index)) != DPI_SUCCESS)
+		result = dpiStmt_getQueryValue(stmt, 1, &nativeTypeNum, &data);
+	if (result != DPI_SUCCESS) {
+		std::ostringstream log;
+
+		log << "dpi error:\n\tcode=" << errorInfo.code << "\n\tstate="
+				<< errorInfo.sqlState << "\n\tfunction=" << errorInfo.fnName
+				<< "\n\tmessage" << errorInfo.message << "\n\taction"
+				<< errorInfo.action;
+		std::cerr << log.str() << std::endl;
+		std::clog << log.str() << std::endl;
+
+		throw std::runtime_error(log.str());
+	}
+	if (nativeTypeNum == DPI_NATIVE_TYPE_INT64)
+		result = dpiData_getInt64(data);
+	else
+		result = dpiData_getUint64(data);
+	dpiStmt_close(stmt, nullptr, 0);
+
+	return result;
 }
 }
 
@@ -127,9 +157,65 @@ void Log::operator()(list params, std::string message, std::string name) {
 	if (open)
 		result << " {";
 	std::clog << result.str() << std::endl;
+	operator()(name, "", typeid(*this).name(), caller, params,
+			message);
 }
-void Log::operator ()() const {
-//TODO
+void Log::operator ()(std::string class_ns, std::string fun_type,
+		std::string function, Log* caller, list args,
+		std::string message) const {
+	std::forward_list<std::pair<std::type_index, std::string>> values;
+	std::string class_type = typeid(*this).name();
+	unsigned a = 1;
+
+	values.emplace_front(typeid(class_type), class_type);
+	values.emplace_front(typeid(class_ns), class_ns);
+	dpi::insert_into("log_class", values);
+	values.emplace_front(typeid(long long unsigned),
+			std::to_string((long long unsigned) this));
+	dpi::insert_into("log_object", values);
+	values.pop_front();
+	values.emplace_front(typeid(fun_type), fun_type);
+	values.emplace_front(typeid(std::string), "");
+	values.emplace_front(typeid(function), function);
+	dpi::insert_into("log_function", values);
+	values.clear();
+	values.emplace_front(typeid(long long unsigned),
+			std::to_string((long long unsigned) caller));
+	values.emplace_front(typeid(long long unsigned),
+			std::to_string((long long unsigned) this));
+	values.emplace_front(typeid(function), function);
+	values.emplace_front(typeid(std::string), "");
+	values.emplace_front(typeid(long long unsigned), std::to_string(track));
+	dpi::insert_into("log_call", values);
+	for (auto arg : args) {
+		auto par_seq = dpi::param_sequence();
+
+		values.clear();
+		values.emplace_front(typeid(std::string), std::get<0>(arg));
+		values.emplace_front(typeid(std::string), std::get<1>(arg));
+		values.emplace_front(typeid(unsigned), std::to_string(a++));
+		values.emplace_front(typeid(function), function);
+		values.emplace_front(typeid(std::string), "");
+		values.emplace_front(typeid(long long unsigned),
+				std::to_string(par_seq));
+		dpi::insert_into("log_parameters", values);
+		values.clear();
+		values.emplace_front(typeid(long long unsigned),
+				std::to_string(par_seq));
+		values.emplace_front(typeid(std::string), std::get<2>(arg));
+		values.emplace_front(typeid(long long unsigned), std::to_string(track));
+		dpi::insert_into("log_arguments", values);
+	}
+	values.clear();
+	values.emplace_front(typeid(message), message);
+	values.emplace_front(typeid(long long unsigned),
+			std::to_string((long long unsigned) this));
+	values.emplace_front(typeid(long long unsigned), std::to_string(track));
+	values.emplace_front(typeid(long long unsigned),
+			std::to_string(
+					std::chrono::system_clock::to_time_t(
+							std::chrono::system_clock::now())));
+	dpi::insert_into("log", values);
 }
 Log::list Log::arguments() {
 	return list();
@@ -141,8 +227,8 @@ std::string Log::lister(list params) {
 	std::string result;
 
 	for (auto param : params)
-		result += ", " + param.second.first + " " + param.first + "="
-				+ param.second.second;
+		result += ", " + std::get<0>(param) + " " + std::get<1>(param) + "="
+				+ std::get<2>(param);
 	if (result.length())
 		result.erase(0, 2);
 

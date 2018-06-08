@@ -13,6 +13,7 @@
 #include <utility>
 #include <typeindex>
 #include <sstream>
+#include <tuple>
 #include <map>
 #include <set>
 #include <iostream>
@@ -23,7 +24,6 @@
 
 namespace dpi {
 int initialize();
-int insert_into(std::string, std::forward_list<std::pair<std::type_index, std::string>>);
 }
 
 namespace base {
@@ -75,8 +75,8 @@ template<typename Container> std::string textual(Container& container,
 }
 
 class Log {
-	using list = std::unordered_map<std::string,
-	std::pair<std::string, std::string>>;
+	using list = std::forward_list<
+	std::tuple<std::string, std::string, std::string>>;
 
 	Log* caller;
 	std::string object;
@@ -87,14 +87,15 @@ class Log {
 	static long long unsigned tracking;
 
 	void operator()(list, std::string, std::string);
-	void operator ()() const;
+	void operator ()(std::string, std::string, std::string,
+			Log*, list, std::string) const;
 	template<typename Argument, typename ... Arguments> static list arguments(
 			std::string name, Argument& argument, Arguments& ... rest) {
 		std::ostringstream text;
 		list result = arguments(rest ...);
 
 		text << argument;
-		result.(
+		result.emplace_front(
 				std::make_tuple(std::string(typeid(Argument).name()), name,
 						text.str()));
 
@@ -146,7 +147,7 @@ public:
 		return Log(this, open, message, object + "." + function, args ...);
 	}
 	template<typename Argument> void returned(Argument& argument) {
-		returning = parameters(argument).front();
+		returning = std::get<2>(parameters(argument).front());
 	}
 	void operator ()(std::string) const;
 
