@@ -9,11 +9,11 @@
 #define BASE_H_
 
 #include <string>
-#include <forward_list>
 #include <utility>
-#include <typeindex>
 #include <sstream>
+#include <forward_list>
 #include <tuple>
+#include <typeindex>
 #include <map>
 #include <set>
 #include <iostream>
@@ -86,9 +86,11 @@ class Log {
 	std::string returning;
 	static long long unsigned tracking;
 
-	void operator()(list, std::string, std::string);
-	void operator ()(std::string, std::string, std::string,
-			Log*, list, std::string) const;
+	static std::string logger(long long unsigned, Log*, std::string,
+			std::string, std::type_index, Log*, std::string, list, std::string,
+			bool);
+	static void db(long long unsigned, Log*, std::string, std::string,
+			std::type_index, Log*, std::string, list, std::string);
 	template<typename Argument, typename ... Arguments> static list arguments(
 			std::string name, Argument& argument, Arguments& ... rest) {
 		std::ostringstream text;
@@ -116,95 +118,137 @@ class Log {
 	static list arguments();
 	static list parameters();
 	static std::string lister(list);
+
+	template<typename ... Arguments> Log(Log* caller, std::string message,
+			bool open, std::string type, std::string ns, Log* instance,
+			std::string function, std::string name1, Arguments& ... args) {
+		auto params = arguments(name1, args ...);
+
+		logging = logger(track = ++tracking, this->caller = caller, type, ns,
+				typeid(*instance), instance, function, params, message,
+				this->open = open);
+	}
+	template<typename ... Arguments> Log(Log* caller, bool open,
+			std::string message, std::string type, std::string ns,
+			Log* instance, std::string function, Arguments& ... args) {
+		auto params = parameters(args ...);
+
+		logging = logger(track = ++tracking, this->caller = caller, type, ns,
+				typeid(*instance), instance, function, params, message,
+				this->open = open);
+	}
 protected:
 	template<typename ... Arguments> Log(std::string message, bool open,
 			Log* caller, std::string ns, std::string name1,
 			Arguments& ... args) {
 		auto params = arguments(name1, args...);
+		std::ostringstream result;
+		std::type_index type = typeid(*this);
 
-		this->caller = caller;
-		track = ++tracking;
-		this->open = open;
-		operator()(params, message, ns);
+		if (type == typeid(Log))
+			result << ns << "::" << type.name() << "{" << this << "}";
+		object = result.str();
+		logging = logger(track = ++tracking, this->caller = caller, "", ns,
+				type, this, type.name(), params, message, this->open = open);
 	}
 	template<typename ... Arguments> Log(bool open, std::string message,
 			Log* caller, std::string ns, Arguments& ... args) {
 		auto params = parameters(args...);
+		std::ostringstream result;
+		std::type_index type = typeid(*this);
 
-		this->caller = caller;
-		track = ++tracking;
-		this->open = open;
-		operator()(params, message, ns);
+		if (type == typeid(Log))
+			result << ns << "::" << type.name() << "{" << this << "}";
+		object = result.str();
+		logging = logger(track = ++tracking, this->caller = caller, "", ns,
+				type, this, type.name(), params, message, this->open = open);
 	}
 public:
 	template<typename ... Arguments> Log method(std::string message, bool open,
-			std::string function, std::string name1,
+			std::string type, std::string function, std::string name1,
 			Arguments& ... args) const {
-		return std::move(Log(this, message, open, object + "." + function, name1, args ...));
+		return std::move(
+				Log(this, message, open, type,
+						object.substr(0, object.find_last_of("::")), this,
+						function, name1, args ...));
 	}
-	template<typename ... Arguments> Log method(bool open, std::string message,
-			std::string function, Arguments& ... args) const {
-		return Log(this, open, message, object + "." + function, args ...);
+	template<typename ... Arguments> Log method(std::string message, bool open,
+			std::string type, std::string function, Arguments& ... args) const {
+		return std::move(
+				Log(this, message, open, type,
+						object.substr(0, object.find_last_of("::")), this,
+						function, args ...));
 	}
 	template<typename Argument> void returned(Argument& argument) {
 		returning = std::get<2>(parameters(argument).front());
 	}
-	void operator ()(std::string) const;
+	void message(std::string) const;
 
 	template<typename ... Arguments> Log(Log* caller, std::string message,
-			bool open, std::string function,
+			bool open, std::string type, std::string ns, std::type_index object,
+			std::string function, std::string name1, Arguments& ... args) {
+		auto params = arguments(name1, args ...);
+
+		logging = logger(track = ++tracking, this->caller = caller, type, ns,
+				object, nullptr, function, params, message, this->open = open);
+	}
+	template<typename ... Arguments> Log(Log* caller, bool open,
+			std::string message, std::string type, std::string ns,
+			std::type_index object, std::string function, Arguments& ... args) {
+		auto params = parameters(args ...);
+
+		logging = logger(track = ++tracking, this->caller = caller, type, ns,
+				object, nullptr, function, params, message, this->open = open);
+	}
+	template<typename ... Arguments> Log(Log* caller, std::string message,
+			bool open, std::string type, std::string ns, std::string function,
 			std::string name1, Arguments& ... args) {
 		auto params = arguments(name1, args ...);
 
-		this->caller = caller;
-		track = ++tracking;
-		this->open = open;
-		operator()(params, message, function);
+		logging = logger(track = ++tracking, this->caller = caller, type, ns,
+				typeid(nullptr), nullptr, function, params, message,
+				this->open = open);
 	}
 	template<typename ... Arguments> Log(Log* caller, bool open,
-			std::string message, std::string function, Arguments& ... args) {
+			std::string message, std::string type, std::string ns,
+			std::string function, Arguments& ... args) {
 		auto params = parameters(args ...);
 
-		this->caller = caller;
-		track = ++tracking;
-		this->open = open;
-		operator()(params, message, function);
+		logging = logger(track = ++tracking, this->caller = caller, type, ns,
+				typeid(nullptr), nullptr, function, params, message,
+				this->open = open);
 	}
 	~Log();
 	Log(const Log&) = delete;
 };
+
+class Object: public Log {
+	time_t creation;
+	Log* position;
+	friend class Location;
+	static std::set<Log*> everything;
+protected:
+	time_t modification;
+
+	Object(Log*, Log);
+public:
+	std::map<std::string, std::string> attributing;
+
+	time_t when(bool) const;
+	Object* where() const;
+	bool operator ==(const Object&) const;
+	bool operator !=(const Object&) const;
+
+	static std::set<const Object*>& all();
+	static std::set<const Object*> root();
+
+	virtual ~Object();
+	Object(const Object&) = delete;
+	Object(Object&&) = delete;
+	Object& operator =(const Object&) = delete;
+	Object& operator =(Object&&) = delete;
+};
 /*
- class Object {
- std::map<std::string, std::string> attributing;
- time_t creation;
- Object* position;
- friend class Location;
- static std::set<Object*> everything;
- protected:
- time_t modification;
-
- Object(Object*, Log);
- public:
- virtual Object* enter(std::string, size_t, unsigned) const;
- virtual std::string field(std::string, unsigned) const;
- virtual void field(std::string, size_t, std::string, unsigned);
- virtual std::string what() const = 0;
-
- time_t when() const;
- Object* where() const;
- time_t since() const;
- bool operator ==(const Object&) const;
- bool operator !=(const Object&) const;
-
- static std::set<const Object*>& all();
- static std::set<const Object*> root();
-
- virtual ~Object();
- Object(const Object&) = delete;
- Object(Object&&) = delete;
- Object& operator =(const Object&) = delete;
- Object& operator =(Object&&) = delete;
- };
  class Location: public Object {
  using content = std::pair<std::string, std::unique_ptr<Object>>;
  using container = std::list<content>;

@@ -49,7 +49,7 @@ int initialize() {
 			connectStringLength, nullptr, nullptr, &conn);
 
 }
-int insert_into(std::string table,
+int log_insert(std::string table,
 		std::forward_list<std::pair<std::type_index, std::string>> parameters) {
 	dpiStmt *stmt = nullptr;
 	char* sql = nullptr;
@@ -69,8 +69,8 @@ int insert_into(std::string table,
 	sql[sqln = strlen(sql) - 2] = ')';
 	if ((result = dpiConn_prepareStmt(conn, 0, sql, sqln, nullptr, 0, &stmt))
 			!= DPI_SUCCESS)
-		result = dpiStmt_execute(stmt,
-					dpiExecMode::DPI_MODE_EXEC_DEFAULT, &sqln);
+		result = dpiStmt_execute(stmt, dpiExecMode::DPI_MODE_EXEC_DEFAULT,
+				&sqln);
 	if (result != DPI_SUCCESS) {
 		std::ostringstream log;
 
@@ -86,9 +86,9 @@ int insert_into(std::string table,
 
 	return dpiStmt_close(stmt, nullptr, 0);
 }
-long long unsigned param_sequence() {
+long long unsigned single_llu(std::string field, std::string table) {
 	dpiStmt *stmt = nullptr;
-	const char* sql = "select seq_param.nextval from dual";
+	char* sql = nullptr;
 	uint32_t sqln = strlen(sql);
 	int column = 0;
 	uint32_t index = 0;
@@ -96,11 +96,13 @@ long long unsigned param_sequence() {
 	dpiData* data;
 	long long unsigned result = 0;
 
+	strcat(strcat(strcat(strcat(sql, "select "), field.c_str()), " from "),
+			table.c_str());
 	if ((result = dpiConn_prepareStmt(conn, 0, sql, sqln, nullptr, 0, &stmt))
 			!= DPI_SUCCESS
 			|| (result = dpiStmt_execute(stmt,
 					dpiExecMode::DPI_MODE_EXEC_DEFAULT, &sqln)) != DPI_SUCCESS
-		|| (result = dpiStmt_fetch(stmt, &column, &index)) != DPI_SUCCESS)
+			|| (result = dpiStmt_fetch(stmt, &column, &index)) != DPI_SUCCESS)
 		result = dpiStmt_getQueryValue(stmt, 1, &nativeTypeNum, &data);
 	if (result != DPI_SUCCESS) {
 		std::ostringstream log;
@@ -135,87 +137,104 @@ void end() {
 }
 
 //Log
-long long unsigned Log::tracking = 0;
+long long unsigned Log::tracking = ++dpi::single_llu("max(progressive)",
+		"log_call");
 
-void Log::operator()(list params, std::string message, std::string name) {
-	std::ostringstream result;
+std::string Log::logger(long long unsigned track, Log* caller, std::string type,
+		std::string ns, std::type_index object, Log* instance, std::string name,
+		list params, std::string message, bool open) {
+	std::ostringstream buf;
+	std::string result;
 
-	if (typeid(*this) != typeid(Log)) {
-		result << name << "::" << typeid(*this).name() << "{" << this << "}";
-		object = result.str();
-		result.clear();
-	}
-	result << track << ": ";
-	if (object.empty())
-		result << name;
+	buf << track << ": ";
+	if (object == typeid(nullptr) || object == typeid(Log))
+		buf << type << " " << ns << "::" << name;
+	else if (instance && type.empty())
+		buf << ns << "::" << object.name() << "::" << object.name();
+	else if (instance)
+		buf << type << " " << ns << "::" << object.name() << "{" << instance
+				<< "}." << name;
 	else
-		result << object << "::" << typeid(*this).name();
-	result << "(" << Log::lister(params) << ")";
-	logging = result.str();
+		buf << type << " " << ns << "::" << object.name() << "::" << name;
+	buf << "(" << Log::lister(params) << ")";
+	result = buf.str();
 	if (message.length())
-		result << " \"" + message + "\"";
+		buf << " \"" + message + "\"";
 	if (open)
-		result << " {";
-	std::clog << result.str() << std::endl;
-	operator()(name, "", typeid(*this).name(), caller, params,
-			message);
-}
-void Log::operator ()(std::string class_ns, std::string fun_type,
-		std::string function, Log* caller, list args,
-		std::string message) const {
-	std::forward_list<std::pair<std::type_index, std::string>> values;
-	std::string class_type = typeid(*this).name();
-	unsigned a = 1;
+		buf << " {";
+	db(track, caller, type, ns, object, instance, name, params, message);
+	std::clog << buf.str() << std::endl;
 
-	values.emplace_front(typeid(class_type), class_type);
-	values.emplace_front(typeid(class_ns), class_ns);
-	dpi::insert_into("log_class", values);
-	values.emplace_front(typeid(long long unsigned),
-			std::to_string((long long unsigned) this));
-	dpi::insert_into("log_object", values);
-	values.pop_front();
-	values.emplace_front(typeid(fun_type), fun_type);
-	values.emplace_front(typeid(std::string), "");
+	return result;
+}
+void Log::db(long long unsigned track, Log* caller, std::string type,
+		std::string ns, std::type_index object, Log* instance,
+		std::string function, list args, std::string message) {
+	std::forward_list<std::pair<std::type_index, std::string>> values;
+	unsigned a = 1;
+	bool staticly = object == typeid(nullptr) && object == typeid(Log);
+
+	if (staticly) {
+		values.emplace_front(typeid(int), "null");
+		values.emplace_front(typeid(int), "null");
+	} else {
+		values.emplace_front(typeid(std::string), object.name());
+		values.emplace_front(typeid(ns), ns);
+		dpi::log_insert("log_class", values);
+		values.emplace_front(typeid(long long unsigned),
+				std::to_string((long long unsigned) instance));
+		dpi::log_insert("log_object", values);
+		values.pop_front();
+		ns.clear();
+	}
+	values.emplace_front(typeid(type), type);
 	values.emplace_front(typeid(function), function);
-	dpi::insert_into("log_function", values);
+	values.emplace_front(typeid(std::string), ns);
+	dpi::log_insert("log_function", values);
 	values.clear();
 	values.emplace_front(typeid(long long unsigned),
 			std::to_string((long long unsigned) caller));
-	values.emplace_front(typeid(long long unsigned),
-			std::to_string((long long unsigned) this));
+	if (staticly)
+		values.emplace_front(typeid(int), "null");
+	else
+		values.emplace_front(typeid(long long unsigned),
+				std::to_string((long long unsigned) instance));
 	values.emplace_front(typeid(function), function);
-	values.emplace_front(typeid(std::string), "");
+	values.emplace_front(typeid(std::string), ns);
 	values.emplace_front(typeid(long long unsigned), std::to_string(track));
-	dpi::insert_into("log_call", values);
+	dpi::log_insert("log_call", values);
 	for (auto arg : args) {
-		auto par_seq = dpi::param_sequence();
+		auto par_seq = dpi::single_llu("seq_param.nextval", "dual");
 
 		values.clear();
 		values.emplace_front(typeid(std::string), std::get<0>(arg));
 		values.emplace_front(typeid(std::string), std::get<1>(arg));
 		values.emplace_front(typeid(unsigned), std::to_string(a++));
 		values.emplace_front(typeid(function), function);
-		values.emplace_front(typeid(std::string), "");
+		values.emplace_front(typeid(std::string), ns);
 		values.emplace_front(typeid(long long unsigned),
 				std::to_string(par_seq));
-		dpi::insert_into("log_parameters", values);
+		dpi::log_insert("log_parameters", values);
 		values.clear();
 		values.emplace_front(typeid(long long unsigned),
 				std::to_string(par_seq));
 		values.emplace_front(typeid(std::string), std::get<2>(arg));
 		values.emplace_front(typeid(long long unsigned), std::to_string(track));
-		dpi::insert_into("log_arguments", values);
+		dpi::log_insert("log_arguments", values);
 	}
 	values.clear();
 	values.emplace_front(typeid(message), message);
-	values.emplace_front(typeid(long long unsigned),
-			std::to_string((long long unsigned) this));
+	if (staticly)
+		values.emplace_front(typeid(int), "null");
+	else
+		values.emplace_front(typeid(long long unsigned),
+				std::to_string((long long unsigned) instance));
 	values.emplace_front(typeid(long long unsigned), std::to_string(track));
 	values.emplace_front(typeid(long long unsigned),
 			std::to_string(
 					std::chrono::system_clock::to_time_t(
 							std::chrono::system_clock::now())));
-	dpi::insert_into("log", values);
+	dpi::log_insert("log", values);
 }
 Log::list Log::arguments() {
 	return list();
@@ -234,8 +253,21 @@ std::string Log::lister(list params) {
 
 	return result;
 }
-void Log::operator ()(std::string message) const {
-//TODO
+void Log::message(std::string message) const {
+	std::forward_list<std::pair<std::type_index, std::string>> values;
+
+	values.emplace_front(typeid(message), message);
+	if (object.empty())
+		values.emplace_front(typeid(int), "null");
+	else
+		values.emplace_front(typeid(long long unsigned),
+				std::to_string((long long unsigned) this));
+	values.emplace_front(typeid(long long unsigned), std::to_string(track));
+	values.emplace_front(typeid(long long unsigned),
+			std::to_string(
+					std::chrono::system_clock::to_time_t(
+							std::chrono::system_clock::now())));
+	dpi::log_insert("log", values);
 	std::clog << track << "  " << message << std::endl;
 }
 
