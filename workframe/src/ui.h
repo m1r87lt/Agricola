@@ -10,7 +10,7 @@
 
 #include "base.h"
 #include <map>
-
+/*
 namespace base {
 std::pair<bool, std::map<std::string, std::string>> dialog(std::string,
 		std::map<std::string, std::pair<std::set<std::string>, std::string>> variables = { }, Log track = Log());

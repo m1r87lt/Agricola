@@ -6,7 +6,7 @@
  */
 
 #include "ui.h"
-
+/*
 namespace base {
 std::pair<bool, std::map<std::string, std::string>> dialog(std::string caption,
 		std::map<std::string, std::pair<std::set<std::string>, std::string>> variables,

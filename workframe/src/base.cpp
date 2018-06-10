@@ -137,8 +137,8 @@ void end() {
 }
 
 //Log
-long long unsigned Log::tracking = ++dpi::single_llu("max(progressive)",
-		"log_call");
+long long unsigned Log::tracking = dpi::single_llu("max(progressive)",
+		"log_call") + 1;
 
 std::string Log::logger(long long unsigned track, Log* caller, std::string type,
 		std::string ns, std::type_index object, Log* instance, std::string name,
