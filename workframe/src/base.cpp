@@ -11,7 +11,12 @@
 #include "base.h"
 #include "include/dpi.h"
 #include <cstring>
+#include <sstream>
 #include <stdexcept>
+#include <string>
+#include <forward_list>
+#include <utility>
+#include <typeindex>
 #include <chrono>
 #include <fstream>
 #include <random>
@@ -124,6 +129,46 @@ long long unsigned single_llu(std::string field, std::string table) {
 
 	return result;
 }
+int log_update(std::string table,
+		std::forward_list<std::tuple<std::string, std::type_index, std::string>> parameters) {
+	dpiStmt *stmt = nullptr;
+	char* sql = nullptr;
+	uint32_t sqln = 0;
+	int result = 0;
+
+	strcat(sql, ("update " + table).c_str());
+	for (auto parameter : parameters) {
+		strcat(sql, ("\nset " + std::get<0>(parameter) + " = ").c_str());
+		if (std::get<1>(parameter) == typeid(bool)
+				&& std::get<2>(parameter) == "true")
+			strcat(sql, "1");
+		else if (std::get<1>(parameter) == typeid(bool)
+				&& std::get<2>(parameter) == "false")
+			strcat(sql, "0");
+		else if (std::get<1>(parameter) == typeid(std::string))
+			strcat(sql, ("'" + std::get<2>(parameter) + "'").c_str());
+		else
+			strcat(sql, std::get<2>(parameter).c_str());
+	}
+	if ((result = dpiConn_prepareStmt(conn, 0, sql, sqln = strlen(sql), nullptr,
+			0, &stmt)) != DPI_SUCCESS)
+		result = dpiStmt_execute(stmt, dpiExecMode::DPI_MODE_EXEC_DEFAULT,
+				&sqln);
+	if (result != DPI_SUCCESS) {
+		std::ostringstream log;
+
+		log << "dpi error:\n\tcode=" << errorInfo.code << "\n\tstate="
+				<< errorInfo.sqlState << "\n\tfunction=" << errorInfo.fnName
+				<< "\n\tmessage" << errorInfo.message << "\n\taction"
+				<< errorInfo.action;
+		std::cerr << log.str() << std::endl;
+		std::clog << log.str() << std::endl;
+
+		throw std::runtime_error(log.str());
+	}
+
+	return dpiStmt_close(stmt, nullptr, 0);
+}
 }
 
 namespace base {
@@ -140,26 +185,28 @@ void end() {
 long long unsigned Log::tracking = dpi::single_llu("max(progressive)",
 		"log_call") + 1;
 
-std::string Log::logger(long long unsigned track, Log* caller, std::string type,
+std::string Log::logger(long long unsigned track, Log* caller, std::type_index type,
 		std::string ns, std::type_index object, Log* instance, std::string name,
 		list params, std::string message, bool open) {
 	std::ostringstream buf;
 	std::string result;
 
 	buf << track << ": ";
-	if (object == typeid(nullptr) || object == typeid(Log))
-		buf << type << " " << ns << "::" << name;
-	else if (instance && type.empty())
-		buf << ns << "::" << object.name() << "::" << object.name();
-	else if (instance)
-		buf << type << " " << ns << "::" << object.name() << "{" << instance
-				<< "}." << name;
-	else
-		buf << type << " " << ns << "::" << object.name() << "::" << name;
-	buf << "(" << Log::lister(params) << ")";
+	if (!instance || object.name() != name)
+		buf << type.name() << " ";
+	buf << ns << "::";
+	if (instance) {
+		buf << object.name() << "{" << instance
+						<< "}";
+		if (object.name() == name)
+			buf << "::";
+		else
+			buf << ".";
+	}
+	buf << name << "(" << Log::lister(params) << ")";
 	result = buf.str();
 	if (message.length())
-		buf << " \"" + message + "\"";
+		buf << " '" + message + "'";
 	if (open)
 		buf << " {";
 	db(track, caller, type, ns, object, instance, name, params, message);
@@ -167,36 +214,31 @@ std::string Log::logger(long long unsigned track, Log* caller, std::string type,
 
 	return result;
 }
-void Log::db(long long unsigned track, Log* caller, std::string type,
+void Log::db(long long unsigned track, Log* caller, std::type_index type,
 		std::string ns, std::type_index object, Log* instance,
 		std::string function, list args, std::string message) {
 	std::forward_list<std::pair<std::type_index, std::string>> values;
 	unsigned a = 1;
-	bool staticly = object == typeid(nullptr) && object == typeid(Log);
+	bool classic = object != typeid(void);
 
-	if (staticly) {
-		values.emplace_front(typeid(int), "null");
-		values.emplace_front(typeid(int), "null");
-	} else {
-		values.emplace_front(typeid(std::string), object.name());
-		values.emplace_front(typeid(ns), ns);
-		dpi::log_insert("log_class", values);
+	if (classic) {
 		values.emplace_front(typeid(long long unsigned),
 				std::to_string((long long unsigned) instance));
+		values.emplace_front(typeid(std::string), object.name());
+		values.emplace_front(typeid(ns), ns);
 		dpi::log_insert("log_object", values);
-		values.pop_front();
+		values.clear();
 		ns.clear();
 	}
-	values.emplace_front(typeid(type), type);
+	values.emplace_front(typeid(int), "null");
 	values.emplace_front(typeid(function), function);
+	values.emplace_front(typeid(type), type);
 	values.emplace_front(typeid(std::string), ns);
 	dpi::log_insert("log_function", values);
 	values.clear();
 	values.emplace_front(typeid(long long unsigned),
 			std::to_string((long long unsigned) caller));
-	if (staticly)
-		values.emplace_front(typeid(int), "null");
-	else
+	if (classic)
 		values.emplace_front(typeid(long long unsigned),
 				std::to_string((long long unsigned) instance));
 	values.emplace_front(typeid(function), function);
@@ -268,115 +310,45 @@ void Log::message(std::string message) const {
 					std::chrono::system_clock::to_time_t(
 							std::chrono::system_clock::now())));
 	dpi::log_insert("log", values);
-	std::clog << track << "  " << message << std::endl;
+	std::clog << track << "  '" << message << "'" << std::endl;
 }
 
 Log::~Log() {
-//TODO
-	std::clog << track << (open ? "  }" : "  ")
-			<< (returning.empty() ? "" : "=") << returning << std::endl;
+	std::forward_list<std::tuple<std::string, std::type_index, std::string>> values;
+
+	if (!void_type) {
+		values.emplace_front("return", typeid(std::string), returning);
+		dpi::log_update("log_function", values);
+	}
+	if (open)
+		std::clog << track << (void_type ? "  }" : "  }=")
+				<< returning << std::endl;
 }
-/*
- //Object
- std::set<const Object*> Object::everything;
 
- Object* Object::enter(std::string content, size_t number,
- unsigned derived) const {
- if (content == "position")
- return position;
- else if (content == "everything") {
- if (number < everything.size()) {
- auto e = everything.begin();
+//Object
+std::set<Log*> Object::everything;
+Object::Object(Object* position, std::map<std::string, std::string> attributes,
+		Log* caller) :
+		Log(caller, "", "base", "position", position, "attributes",
+				mapper(attributes)) {
+	modification = creation = std::chrono::system_clock::to_time_t(
+			std::chrono::system_clock::now());
+	this->position = position;
+	attributing = attributes;
+	everything.emplace(this);
+}
 
- while (number--)
- ++e;
+time_t Object::when() const {
+	method(false, "", "time_t", "when");
 
- return const_cast<Object*>(*e);
- } else {
- std::ostringstream result;
+	return creation;
+}
+Object* Object::where() const {
+	std::clog << Log().tracker() << "Object* base::Object{" << this
+			<< "}.where()=" << position;
 
- result << "= ERROR invalid argument: number >= size"
- << everything.size() << ".";
- std::cerr << result.str() << std::endl;
- throw std::invalid_argument(result.str());
- }
- } else {
- std::ostringstream result;
-
- result << "base::Object* base::Object{" << this
- << "}.enter(std::string content=\"" << content << "\", number="
- << number << ", derived=" << derived
- << ")= ERROR input argument: invalid content.";
- std::cerr << result.str() << std::endl;
- throw std::invalid_argument(result.str());
- }
- }
- std::string Object::field(std::string variable, unsigned derived) const {
- if (variable == "creation")
- return ctime(&creation);
- else if (variable == "position")
- return Prompt::address(position);
- else if (variable == "modification")
- return ctime(&modification);
- else if (variable == "everything")
- return list(everything);
- else {
- std::ostringstream result;
-
- result << "std::string base::Object{" << this
- << "}.field(std::string variable=\"" << variable
- << "\", derived=" << derived
- << ")= ERROR invalid argument: invalid variable.";
- std::cerr << result.str() << std::endl;
- throw std::invalid_argument(result.str());
- }
- }
- void Object::field(std::string variable, size_t position, std::string value,
- unsigned derived) {
- std::istringstream command(value);
- std::ostringstream result;
-
- if (variable == "position") {
- command >> position;
- this->position = (Object*) position;
- } else if (variable == "everything") {
- if (value == "insert")
- everything.emplace((const Object*) position);
- else if (value == "erase")
- everything.erase((const Object*) position);
- else
- result << "void base::Object{" << this
- << "}.field(std::string variable=\"" << variable
- << "\", size_t position=" << position
- << ", std::string value=\"" << value << "\", derived="
- << derived
- << ")= ERROR invalid argument: invalid value (command).";
- } else
- result << "void base::Object{" << this
- << "}.field(std::string variable=\"" << variable
- << "\", size_t position=" << position
- << ", std::string value=\"" << value << "\", derived="
- << derived << ")= ERROR invalid argument: invalid variable.";
- if (result.good()) {
- std::cerr << result.str() << std::endl;
- throw std::invalid_argument(result.str());
- }
- modification = std::chrono::system_clock::to_time_t(
- std::chrono::system_clock::now());
- }
-
- time_t Object::when() const {
- std::clog << Log().tracker() << "time_t base::Object{" << this
- << "}.when()=" << ctime(&creation);
-
- return creation;
- }
- Object* Object::where() const {
- std::clog << Log().tracker() << "Object* base::Object{" << this
- << "}.where()=" << position;
-
- return position;
- }
+	return position;
+}/*
  time_t Object::since() const {
  std::clog << Log().tracker() << "time_t base::Object{" << this
  << "}.since()=" << ctime(&modification);
@@ -426,15 +398,6 @@ Log::~Log() {
  return result;
  }
 
- Object::Object(Object* location, Log track) {
- modification = creation = std::chrono::system_clock::to_time_t(
- std::chrono::system_clock::now());
- position = location;
- everything.emplace(this);
- std::clog << track.tracker()
- << "base::Object::Object(base::Object location=" << location << ")="
- << this << std::endl;
- }
  Object::~Object() {
  if (run)
  everything.erase(this);
