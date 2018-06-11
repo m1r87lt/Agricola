@@ -97,7 +97,6 @@ class Log {
 	std::tuple<std::string, std::type_index, std::string>>;
 
 	Log* caller;
-	std::string object;
 	long long unsigned track;
 	bool open;
 	std::string logging;
@@ -105,7 +104,7 @@ class Log {
 	std::type_index type;
 	static long long unsigned tracking;
 
-	std::string logger(std::type_index, std::string, std::string, list, std::string,
+	std::string logger(std::string, std::string, list, std::string,
 			std::string);
 	void db(std::type_index, std::string, std::string, list, std::string, std::string) const;
 	template<typename Argument, typename ... Arguments> static list arguments(

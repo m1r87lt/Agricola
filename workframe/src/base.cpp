@@ -185,9 +185,8 @@ void end() {
 long long unsigned Log::tracking = dpi::single_llu("max(progressive)",
 		"log_call") + 1;
 
-std::string Log::logger(long long unsigned track, Log* caller, std::type_index type,
-		std::string ns, std::type_index object, Log* instance, std::string name,
-		list params, std::string message, bool open) {
+std::string Log::logger(std::string ns, std::string function, list params,
+		std::string, std::string) {
 	std::ostringstream buf;
 	std::string result;
 
