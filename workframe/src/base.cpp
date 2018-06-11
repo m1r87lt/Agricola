@@ -10,13 +10,14 @@
 
 #include "base.h"
 #include "include/dpi.h"
+#include <string>
 #include <cstring>
 #include <sstream>
 #include <stdexcept>
-#include <string>
 #include <forward_list>
 #include <utility>
 #include <typeindex>
+#include <tuple>///////
 #include <chrono>
 #include <fstream>
 #include <random>
@@ -182,66 +183,64 @@ void end() {
 }
 
 //Log
-long long unsigned Log::tracking = dpi::single_llu("max(progressive)",
-		"log_call") + 1;
+long long unsigned Log::tracking = dpi::single_llu("max(track)", "log_call")
+		+ 1;
 
-std::string Log::logger(std::string ns, std::string function, list params,
-		std::string, std::string) {
-	std::ostringstream buf;
-	std::string result;
+void Log::logger(std::string ns, std::type_index object, Log* instance,
+		std::string function, list params, std::string message) const {
+	std::ostringstream result;
 
-	buf << track << ": ";
-	if (!instance || object.name() != name)
-		buf << type.name() << " ";
-	buf << ns << "::";
+	result << track << ": ";
+	if (object.name() != function)
+		result << type.name() << " ";
+	result << ns << "::";
 	if (instance) {
-		buf << object.name() << "{" << instance
-						<< "}";
-		if (object.name() == name)
-			buf << "::";
+		result << typeid(*instance).name() << "{" << instance->track << "}";
+		if (object.name() == function)
+			result << "::";
 		else
-			buf << ".";
-	}
-	buf << name << "(" << Log::lister(params) << ")";
-	result = buf.str();
+			result << ".";
+	} else if (object != typeid(void))
+		result << object.name() << "::";
+	result << function << "(" << Log::lister(params) << ")";
+	logging = result.str();
+	db(ns, object, instance, function, params, message);
 	if (message.length())
-		buf << " '" + message + "'";
+		message = " '" + message + "'";
 	if (open)
-		buf << " {";
-	db(track, caller, type, ns, object, instance, name, params, message);
-	std::clog << buf.str() << std::endl;
-
-	return result;
+		std::clog << message << " { ";
+	else
+		result << "=" << returning << message;
+	std::clog << std::endl;
 }
-void Log::db(long long unsigned track, Log* caller, std::type_index type,
-		std::string ns, std::type_index object, Log* instance,
-		std::string function, list args, std::string message) {
+void Log::db(std::string ns, std::type_index object, Log* instance,
+		std::string function, list args, std::string message) const {
 	std::forward_list<std::pair<std::type_index, std::string>> values;
 	unsigned a = 1;
 	bool classic = object != typeid(void);
+	auto code = "\"" + type + "\"" + ns + "::" + object.name() + "::" + function
+			+ "(";
 
-	if (classic) {
-		values.emplace_front(typeid(long long unsigned),
-				std::to_string((long long unsigned) instance));
+	for (auto param : args)
+		code += std::get<1>(param).name() + ",";
+	code.back() = ')';
+	if (classic)
 		values.emplace_front(typeid(std::string), object.name());
-		values.emplace_front(typeid(ns), ns);
-		dpi::log_insert("log_object", values);
-		values.clear();
-		ns.clear();
-	}
-	values.emplace_front(typeid(int), "null");
-	values.emplace_front(typeid(function), function);
-	values.emplace_front(typeid(type), type);
-	values.emplace_front(typeid(std::string), ns);
+	else
+		values.emplace_front(typeid(void), "null");
+	values.emplace_front(typeid(ns), ns);
+	values.emplace_front(typeid(code), code);
 	dpi::log_insert("log_function", values);
 	values.clear();
 	values.emplace_front(typeid(long long unsigned),
-			std::to_string((long long unsigned) caller));
-	if (classic)
-		values.emplace_front(typeid(long long unsigned),
-				std::to_string((long long unsigned) instance));
-	values.emplace_front(typeid(function), function);
-	values.emplace_front(typeid(std::string), ns);
+			instance ?
+					std::to_string((long long unsigned) instance) :
+					std::string("null"));
+	values.emplace_front(typeid(long long unsigned),
+			caller ?
+					std::to_string((long long unsigned) caller) :
+					std::string("null"));
+	values.emplace_front(typeid(code), code);
 	values.emplace_front(typeid(long long unsigned), std::to_string(track));
 	dpi::log_insert("log_call", values);
 	for (auto arg : args) {
@@ -252,24 +251,18 @@ void Log::db(long long unsigned track, Log* caller, std::type_index type,
 		values.emplace_front(typeid(std::string), std::get<1>(arg));
 		values.emplace_front(typeid(unsigned), std::to_string(a++));
 		values.emplace_front(typeid(function), function);
-		values.emplace_front(typeid(std::string), ns);
 		values.emplace_front(typeid(long long unsigned),
 				std::to_string(par_seq));
 		dpi::log_insert("log_parameters", values);
 		values.clear();
+		values.emplace_front(typeid(std::string), std::get<2>(arg));
 		values.emplace_front(typeid(long long unsigned),
 				std::to_string(par_seq));
-		values.emplace_front(typeid(std::string), std::get<2>(arg));
 		values.emplace_front(typeid(long long unsigned), std::to_string(track));
 		dpi::log_insert("log_arguments", values);
 	}
 	values.clear();
 	values.emplace_front(typeid(message), message);
-	if (staticly)
-		values.emplace_front(typeid(int), "null");
-	else
-		values.emplace_front(typeid(long long unsigned),
-				std::to_string((long long unsigned) instance));
 	values.emplace_front(typeid(long long unsigned), std::to_string(track));
 	values.emplace_front(typeid(long long unsigned),
 			std::to_string(
@@ -298,11 +291,6 @@ void Log::message(std::string message) const {
 	std::forward_list<std::pair<std::type_index, std::string>> values;
 
 	values.emplace_front(typeid(message), message);
-	if (object.empty())
-		values.emplace_front(typeid(int), "null");
-	else
-		values.emplace_front(typeid(long long unsigned),
-				std::to_string((long long unsigned) this));
 	values.emplace_front(typeid(long long unsigned), std::to_string(track));
 	values.emplace_front(typeid(long long unsigned),
 			std::to_string(
@@ -320,8 +308,8 @@ Log::~Log() {
 		dpi::log_update("log_function", values);
 	}
 	if (open)
-		std::clog << track << (void_type ? "  }" : "  }=")
-				<< returning << std::endl;
+		std::clog << track << (void_type ? "  }" : "  }=") << returning
+				<< std::endl;
 }
 
 //Object

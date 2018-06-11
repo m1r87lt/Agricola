@@ -104,9 +104,10 @@ class Log {
 	std::type_index type;
 	static long long unsigned tracking;
 
-	std::string logger(std::string, std::string, list, std::string,
-			std::string);
-	void db(std::type_index, std::string, std::string, list, std::string, std::string) const;
+	void logger(std::string, std::type_index, Log*, std::string, list,
+			std::string) const;
+	void db(std::string, std::type_index, Log*, std::string, list,
+			std::string) const;
 	template<typename Argument, typename ... Arguments> static list arguments(
 			std::string name, Argument& argument, Arguments& ... rest) {
 		std::ostringstream text;
@@ -142,28 +143,32 @@ class Log {
 	static std::string lister(list);
 
 	template<typename ... Arguments> Log(Log* caller, std::string message,
-			bool open, std::string type, std::string ns, Log* instance,
-			std::string function, std::string name1, Arguments&& ... args) {
+			bool open, std::type_index type, std::string ns, std::type_index object, Log* instance,
+			std::string function, std::string returning, std::string name1, Arguments&& ... args) {
 		auto params = arguments(name1, args ...);
 
-		void_type = type == "void";
-		logging = logger(track = ++tracking, this->caller = caller, type, ns,
-				typeid(*instance), instance, function, params, message,
-				this->open = open);
+		this->caller = caller;
+		track = ++tracking;
+		this->open = open;
+		this->returning = returning;
+		this->type = type;
+		logger(ns, object, instance, function, params, message);
 	}
 	template<typename ... Arguments> Log(std::string message, Log* caller,
-			bool open, std::string type, std::string ns, Log* instance,
-			std::string function, Arguments&& ... args) {
+			bool open, std::type_index type, std::string ns, std::type_index object, Log* instance,
+			std::string function, std::string returning, Arguments&& ... args) {
 		auto params = parameters(args ...);
 
-		void_type = type == "void";
-		logging = logger(track = ++tracking, this->caller = caller, type, ns,
-				typeid(*instance), instance, function, params, message,
-				this->open = open);
+		this->caller = caller;
+		track = ++tracking;
+		this->open = open;
+		this->returning = returning;
+		this->type = type;
+		logger(ns, object, instance, function, params, message);
 	}
 protected:
-	template<typename ... Arguments> Log(Log* caller, std::string message, std::string ns,
-			std::string name1, Arguments&& ... args) {
+	template<typename ... Arguments> Log(Log* caller, std::string message,
+			std::string ns, std::string name1, Arguments&& ... args) {
 		auto params = arguments(name1, args...);
 		std::ostringstream result;
 		std::type_index type = typeid(*this);
@@ -268,8 +273,7 @@ public:
 
 	time_t when() const;
 	Object* where() const;
-	std::pair<time_t,
-			std::map<std::string, std::pair<std::string, std::string>>>modifications();
+	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> modifications();
 	bool operator ==(const Object&) const;
 	bool operator !=(const Object&) const;
 	static std::set<Log*>& all();
