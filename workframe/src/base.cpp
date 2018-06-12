@@ -186,37 +186,39 @@ void end() {
 long long unsigned Log::tracking = dpi::single_llu("max(track)", "log_call")
 		+ 1;
 
-void Log::logger(std::string ns, std::type_index object, Log* instance,
-		std::string function, list params, std::string message) const {
-	std::ostringstream result;
+void Log::logger(std::type_index object, Log* instance, std::string function,
+		list params, std::string message) const {
+	std::ostringstream log;
 
-	result << track << ": ";
+	log << track << ": ";
 	if (object.name() != function)
-		result << type.name() << " ";
-	result << ns << "::";
+		log << type.name() << " ";
+	log << ns << "::";
 	if (instance) {
-		result << typeid(*instance).name() << "{" << instance->track << "}";
+		log << typeid(*instance).name() << "{" << instance->track << "}";
 		if (object.name() == function)
-			result << "::";
+			log << "::";
 		else
-			result << ".";
+			log << ".";
 	} else if (object != typeid(void))
-		result << object.name() << "::";
-	result << function << "(" << Log::lister(params) << ")";
-	logging = result.str();
-	db(ns, object, instance, function, params, message);
+		log << object.name() << "::";
+	log << function << "(" << Log::lister(params) << ")";
+	logging = log.str();
+	db(object, instance, function, params, message);
 	if (message.length())
-		message = " '" + message + "'";
+		log << " '" + message + "'";
 	if (open)
-		std::clog << message << " { ";
-	else
-		result << "=" << returning << message;
-	std::clog << std::endl;
+		log << " {";
+	else if (param0) {
+		log << "=" << returning;
+		param0 = 0;
+	}
+	std::clog << log.str() << std::endl;
 }
-void Log::db(std::string ns, std::type_index object, Log* instance,
-		std::string function, list args, std::string message) const {
+void Log::db(std::type_index object, Log* instance, std::string function,
+		list args, std::string message) const {
 	std::forward_list<std::pair<std::type_index, std::string>> values;
-	unsigned a = 1;
+	unsigned a = 0;
 	bool classic = object != typeid(void);
 	auto code = "\"" + type + "\"" + ns + "::" + object.name() + "::" + function
 			+ "(";
@@ -241,8 +243,23 @@ void Log::db(std::string ns, std::type_index object, Log* instance,
 					std::to_string((long long unsigned) caller) :
 					std::string("null"));
 	values.emplace_front(typeid(code), code);
-	values.emplace_front(typeid(long long unsigned), std::to_string(track));
+	values.emplace_front(typeid(track), std::to_string(track));
 	dpi::log_insert("log_call", values);
+	values.clear();
+	values.emplace_front(typeid(function), function);
+	values.emplace_front(typeid(std::string), type.name());
+	values.emplace_front(typeid(a), std::to_string(a++));
+	values.emplace_front(typeid(code), code);
+	param0 = dpi::single_llu("seq_param.nextval", "dual");
+	values.emplace_front(typeid(param0), std::to_string(param0));
+	dpi::log_insert("log_parameters", values);
+	if (!open) {
+		values.clear();
+		values.emplace_front(typeid(returning), returning);
+		values.emplace_front(typeid(param0), std::to_string(param0));
+		values.emplace_front(typeid(track), std::to_string(track));
+		dpi::log_insert("log_arguments", values);
+	}
 	for (auto arg : args) {
 		auto par_seq = dpi::single_llu("seq_param.nextval", "dual");
 
@@ -250,7 +267,7 @@ void Log::db(std::string ns, std::type_index object, Log* instance,
 		values.emplace_front(typeid(std::string), std::get<0>(arg));
 		values.emplace_front(typeid(std::string), std::get<1>(arg));
 		values.emplace_front(typeid(unsigned), std::to_string(a++));
-		values.emplace_front(typeid(function), function);
+		values.emplace_front(typeid(code), code);
 		values.emplace_front(typeid(long long unsigned),
 				std::to_string(par_seq));
 		dpi::log_insert("log_parameters", values);
@@ -291,7 +308,7 @@ void Log::message(std::string message) const {
 	std::forward_list<std::pair<std::type_index, std::string>> values;
 
 	values.emplace_front(typeid(message), message);
-	values.emplace_front(typeid(long long unsigned), std::to_string(track));
+	values.emplace_front(typeid(track), std::to_string(track));
 	values.emplace_front(typeid(long long unsigned),
 			std::to_string(
 					std::chrono::system_clock::to_time_t(
@@ -301,15 +318,14 @@ void Log::message(std::string message) const {
 }
 
 Log::~Log() {
-	std::forward_list<std::tuple<std::string, std::type_index, std::string>> values;
+	std::forward_list<std::pair<std::type_index, std::string>> values;
+	std::ostringstream log;
 
-	if (!void_type) {
-		values.emplace_front("return", typeid(std::string), returning);
-		dpi::log_update("log_function", values);
-	}
 	if (open)
-		std::clog << track << (void_type ? "  }" : "  }=") << returning
-				<< std::endl;
+		log << track << "  }";
+	if (param0)
+		log << "=" << returning;
+	std::clog << log.str() << std::endl;
 }
 
 //Object
