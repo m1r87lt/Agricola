@@ -10,15 +10,11 @@
 
 #include "base.h"
 #include "include/dpi.h"
-#include <string>
 #include <cstring>
 #include <sstream>
 #include <stdexcept>
-#include <forward_list>
-#include <utility>
-#include <typeindex>
-#include <tuple>///////
-#include <chrono>
+#include <tuple>
+#include <chrono>///
 #include <fstream>
 #include <random>
 
@@ -187,7 +183,7 @@ long long unsigned Log::tracking = dpi::single_llu("max(track)", "log_call")
 		+ 1;
 
 void Log::logger(std::type_index object, Log* instance, std::string function,
-		list params, std::string message) const {
+		list params, std::string message) {
 	std::ostringstream log;
 
 	log << track << ": ";
@@ -216,16 +212,19 @@ void Log::logger(std::type_index object, Log* instance, std::string function,
 	std::clog << log.str() << std::endl;
 }
 void Log::db(std::type_index object, Log* instance, std::string function,
-		list args, std::string message) const {
+		list args, std::string message) {
 	std::forward_list<std::pair<std::type_index, std::string>> values;
 	unsigned a = 0;
 	bool classic = object != typeid(void);
-	auto code = "\"" + type + "\"" + ns + "::" + object.name() + "::" + function
-			+ "(";
+	auto code = std::string("\"") + type.name() + "\"" + ns + "::"
+			+ object.name() + "::" + function + "(";
 
 	for (auto param : args)
-		code += std::get<1>(param).name() + ",";
-	code.back() = ')';
+		code += std::string(std::get<1>(param).name()) + ",";
+	if (code.back() == ',')
+		code.back() = ')';
+	else
+		code += ")";
 	if (classic)
 		values.emplace_front(typeid(std::string), object.name());
 	else
@@ -297,8 +296,8 @@ std::string Log::lister(list params) {
 	std::string result;
 
 	for (auto param : params)
-		result += ", " + std::get<0>(param) + " " + std::get<1>(param) + "="
-				+ std::get<2>(param);
+		result += std::string(", ") + std::get<1>(param).name() + " "
+				+ std::get<0>(param) + "=" + std::get<2>(param);
 	if (result.length())
 		result.erase(0, 2);
 
@@ -327,6 +326,17 @@ Log::~Log() {
 		log << "=" << returning;
 	std::clog << log.str() << std::endl;
 }
+Log::Log(Log&& moved): type(moved.type) {
+	caller = moved.caller;
+	track = moved.track;
+	open = moved.open;
+	ns = moved.ns;
+	logging = moved.logging;
+	returning = moved.returning;
+	param0 = moved.param0;
+	moved.open = false;
+	moved.param0 = 0;
+}
 
 //Object
 std::set<Log*> Object::everything;
@@ -342,22 +352,38 @@ Object::Object(Object* position, std::map<std::string, std::string> attributes,
 }
 
 time_t Object::when() const {
-	method(false, "", "time_t", "when");
+	method("", const_cast<Object*>(this), false, typeid(time_t), "when",
+			creation);
 
 	return creation;
 }
 Object* Object::where() const {
-	std::clog << Log().tracker() << "Object* base::Object{" << this
-			<< "}.where()=" << position;
+	method("", const_cast<Object*>(this), false, typeid(Object*), "where",
+			position);
 
 	return position;
-}/*
- time_t Object::since() const {
- std::clog << Log().tracker() << "time_t base::Object{" << this
- << "}.since()=" << ctime(&modification);
+}
+/*std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> Object::modifications() const {
+	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> result;
+	Log log(method("", const_cast<Object*>(this), true, typeid(result),
+			"modifications", std::string()));
+	std::string logged = "{ ";
 
- return modification;
- }
+	logged += std::to_string(result.first = modification) + "; {";
+	for (auto old : olds) {
+		logged += "\n\t" + old.first + ": { " + old.second + "; " + attributing.at(old.first) + " },";
+		result.second[old.first] = std::make_pair(old.second,
+				attributing.at(old.first));
+	}
+	if (logged.back() == ',')
+		logged.back() = '\n';
+	logged += "} }";
+	log.returned(logged.c_str());
+
+	return result;
+
+}
+/*
  bool Object::operator ==(const Object& than) const {
  auto result = false;
  Log track;
