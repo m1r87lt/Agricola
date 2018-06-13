@@ -264,7 +264,7 @@ void Log::db(std::type_index object, Log* instance, std::string function,
 
 		values.clear();
 		values.emplace_front(typeid(std::string), std::get<0>(arg));
-		values.emplace_front(typeid(std::string), std::get<1>(arg));
+		values.emplace_front(typeid(std::string), std::get<1>(arg).name());
 		values.emplace_front(typeid(unsigned), std::to_string(a++));
 		values.emplace_front(typeid(code), code);
 		values.emplace_front(typeid(long long unsigned),
@@ -326,7 +326,8 @@ Log::~Log() {
 		log << "=" << returning;
 	std::clog << log.str() << std::endl;
 }
-Log::Log(Log&& moved): type(moved.type) {
+Log::Log(Log&& moved) :
+		type(moved.type) {
 	caller = moved.caller;
 	track = moved.track;
 	open = moved.open;
@@ -340,38 +341,28 @@ Log::Log(Log&& moved): type(moved.type) {
 
 //Object
 std::set<Log*> Object::everything;
-Object::Object(Object* position, std::map<std::string, std::string> attributes,
-		Log* caller) :
-		Log(caller, "", "base", "position", position, "attributes",
-				mapper(attributes)) {
-	modification = creation = std::chrono::system_clock::to_time_t(
-			std::chrono::system_clock::now());
-	this->position = position;
-	attributing = attributes;
-	everything.emplace(this);
-}
 
 time_t Object::when() const {
-	method("", const_cast<Object*>(this), false, typeid(time_t), "when",
-			creation);
+	method("", nullptr, false, typeid(time_t), "when", creation);
 
 	return creation;
 }
 Object* Object::where() const {
-	method("", const_cast<Object*>(this), false, typeid(Object*), "where",
-			position);
+	method("", nullptr, false, typeid(Object*), "where", position);
 
 	return position;
 }
-/*std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> Object::modifications() const {
+std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> Object::modifications() const {
 	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> result;
-	Log log(method("", const_cast<Object*>(this), true, typeid(result),
-			"modifications", std::string()));
+	Log log(
+			method("", nullptr, true, typeid(result), "modifications",
+					std::string()));
 	std::string logged = "{ ";
 
 	logged += std::to_string(result.first = modification) + "; {";
 	for (auto old : olds) {
-		logged += "\n\t" + old.first + ": { " + old.second + "; " + attributing.at(old.first) + " },";
+		logged += "\n\t" + old.first + ": { " + old.second + "; "
+				+ attributing.at(old.first) + " },";
 		result.second[old.first] = std::make_pair(old.second,
 				attributing.at(old.first));
 	}
@@ -383,57 +374,59 @@ Object* Object::where() const {
 	return result;
 
 }
+bool Object::operator ==(const Object& than) const {
+	auto result = attributing == than.attributing;
+
+	binary(nullptr, "", false, typeid(bool), result, "base", typeid(Object),
+			std::to_string(track), "==", "base", typeid(Object),
+			std::to_string(track));
+
+	return result;
+}
+bool Object::operator !=(const Object& than) const {
+	auto result = attributing != than.attributing;
+
+	binary(nullptr, "", false, typeid(bool), result, "base", typeid(Object),
+			std::to_string(track), "!=", "base", typeid(Object),
+			std::to_string(track));
+
+	return result;
+}
+
+std::set<Object*>& Object::all() {
+	Log("", nullptr, false, typeid(std::set<Object*>&), "base", typeid(Object),
+			"all", base::lister(everything));
+
+	return everything;
+}
+std::set<Object*> Object::root() {
+	std::set<Object*> result;
+	Log log("", nullptr, true, typeid(result), "base", typeid(Object), "root");
+
+	for (auto object : everything)
+		if (!object->position)
+			result.insert(object);
+	log.returned(base::lister(result));
+
+	return result;
+}
+
+Object::Object(Object* position, std::map<std::string, std::string> attributes,
+		const Log* caller) :
+		Log(caller, "", "base", "position", position, "attributes",
+				mapper(attributes)) {
+	modification = creation = std::chrono::system_clock::to_time_t(
+			std::chrono::system_clock::now());
+	this->position = position;
+	attributing = attributes;
+	everything.emplace(this);
+}
+Object::~Object() {
+	if (run)
+		everything.erase(this);
+	unary(nullptr, "destruction", false, typeid(void), "", "~", );
+}
 /*
- bool Object::operator ==(const Object& than) const {
- auto result = false;
- Log track;
-
- std::clog << track.tracker() << "bool base::Object{" << this << "} == "
- << &than << "{" << std::endl;
- result = what() == than.what();
- std::clog << track() << "}=" << (result ? "true" : "false") << std::endl;
-
- return result;
- }
- bool Object::operator !=(const Object& than) const {
- auto result = false;
- Log track;
-
- std::clog << track.tracker() << ": bool base::Object{" << this << "} != "
- << &than << "{" << std::endl;
- result = what() != than.what();
- std::clog << track() << "}=" << (result ? "true" : "false") << std::endl;
-
- return result;
- }
-
- std::set<const Object*>& Object::all() {
- std::clog << Log().tracker()
- << ": std::set<const base::Object*> base::Object::all()="
- << list(everything) << std::endl;
-
- return everything;
- }
- std::set<const Object*> Object::root() {
- std::set<const Object*> result;
-
- std::clog << Log().tracker()
- << ": std::set<const base::Object*> base::Object::root()";
- for (auto object : everything)
- if (!object->position)
- result.insert(object);
- std::clog << "=" << list(result) << std::endl;
-
- return result;
- }
-
- Object::~Object() {
- if (run)
- everything.erase(this);
- std::clog << Log().tracker() << "base::Object::~Object(){" << this << "}"
- << std::endl;
- }
-
  //Location
  std::string Location::list_contained() const {
  auto content = contained.begin();
