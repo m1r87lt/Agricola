@@ -192,7 +192,7 @@ void Log::logger(std::type_index object, Log* instance, std::string function,
 	log << ns << "::";
 	if (instance) {
 		log << typeid(*instance).name() << "{" << instance->track << "}";
-		if (object.name() == function)
+		if (function == object.name())
 			log << "::";
 		else
 			log << ".";
@@ -211,6 +211,26 @@ void Log::logger(std::type_index object, Log* instance, std::string function,
 	}
 	std::clog << log.str() << std::endl;
 }
+void Log::logger(std::string operation, std::type_index object,
+		std::string instance, std::string message) {
+	std::ostringstream log;
+
+	log << track << ": " << type.name() << " " << operation << ns << "::"
+			<< object.name() << "{" << instance << "}";
+	logging = log.str();
+	db(object, nullptr, function, params, message);
+	if (message.length())
+		log << " '" + message + "'";
+	if (open)
+		log << " {";
+	else if (param0) {
+		log << "=" << returning;
+		param0 = 0;
+	}
+	std::clog << log.str() << std::endl;
+}
+void logger(std::type_index, std::string, std::string, std::type_index,
+		std::string, std::string);
 void Log::db(std::type_index object, Log* instance, std::string function,
 		list args, std::string message) {
 	std::forward_list<std::pair<std::type_index, std::string>> values;
@@ -352,7 +372,7 @@ Object* Object::where() const {
 
 	return position;
 }
-std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> Object::modifications() const {
+std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>>Object::modifications() const {
 	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> result;
 	Log log(
 			method("", nullptr, true, typeid(result), "modifications",
@@ -362,12 +382,12 @@ std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> Ob
 	logged += std::to_string(result.first = modification) + "; {";
 	for (auto old : olds) {
 		logged += "\n\t" + old.first + ": { " + old.second + "; "
-				+ attributing.at(old.first) + " },";
+		+ attributing.at(old.first) + " },";
 		result.second[old.first] = std::make_pair(old.second,
 				attributing.at(old.first));
 	}
 	if (logged.back() == ',')
-		logged.back() = '\n';
+	logged.back() = '\n';
 	logged += "} }";
 	log.returned(logged.c_str());
 
@@ -424,7 +444,8 @@ Object::Object(Object* position, std::map<std::string, std::string> attributes,
 Object::~Object() {
 	if (run)
 		everything.erase(this);
-	unary(nullptr, "destruction", false, typeid(void), "", "~", );
+	unary(nullptr, "destruction", false, typeid(void), "", "~", "base",
+			typeid(Object), std::to_string(track));
 }
 /*
  //Location

@@ -173,9 +173,9 @@ class Log {
 		param0 = 0;
 		logger(object, instance, function, params, message);
 	}
-	Log(const Log* caller, std::string message, bool open, std::type_index type,
+	template<typename Return> Log(const Log* caller, std::string message, bool open, std::type_index type,
 			std::string returning, std::string operation, std::string ns,
-			std::type_index object, std::string instance) :
+			Return&& instance) :
 			type(type) {
 		this->caller = caller;
 		track = ++tracking;
@@ -389,7 +389,8 @@ public:
 
 	time_t when() const;
 	Object* where() const;
-	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> modifications() const;
+	std::pair<time_t,
+			std::map<std::string, std::pair<std::string, std::string>>>modifications() const;
 	bool operator ==(const Object&) const;
 	bool operator !=(const Object&) const;
 	static std::set<Object*>& all();
