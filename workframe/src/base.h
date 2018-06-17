@@ -9,84 +9,47 @@
 #define BASE_H_
 
 #include <string>
-#include <forward_list>
-#include <utility>
-#include <typeindex>
 #include <sstream>
 #include <cmath>
-#include <tuple>
+#include <utility>
+#include <typeindex>
+#include <forward_list>///
 #include <type_traits>
 #include <set>
-#include <map>/////
+#include <map>
 #include <iostream>
 #include <vector>
 #include <memory>
 #include <list>
 #include <functional>
 
-namespace dpi {
-int initialize();
-int log_insert(std::string,
-		std::forward_list<std::pair<std::type_index, std::string>>);
-}
-
 namespace base {
 bool running();
 void end();
 
-template<typename Class> Class nillable(Class&& object, Class&& otherwise) {
+template<typename Class> Class nillable(Class* object, Class&& otherwise) {
+	return object ? *object : otherwise;
+}
+template<typename Class> Class truth(Class&& object, Class&& otherwise) {
 	return object ? object : otherwise;
 }
-template<typename Container> std::string lister(Container&& container,
-		std::string separator = ",", bool cascading = false, bool embracing =
+template<typename Container, typename Function> std::string lister(
+		Container&& container, Function function = [](auto content) {
+			return content;
+		}, std::string separator = ",", bool cascading = false, bool embracing =
 				false, bool enumerating = false) {
 	std::ostringstream result;
 	size_t i = 0;
-	auto length = log10(nillable(container.size(), (size_t) 1));
+	auto length = log10(truth(container.size(), (size_t) 1));
 	std::string space = cascading ? "\n\t" : " ";
 
 	for (auto content : container) {
 		result << space << separator;
 		if (enumerating)
 			result << std::string(length, ' ') << ++i << ":\t";
-		result << content;
+		if (function)
+			result << function(content);
 	}
-	result.str(
-			"{" + result.str().substr(separator.length())
-					+ (cascading ? "\n" : " ") + "}");
-
-	return result.str();
-}
-template<typename Container> std::string textual(Container&& container,
-		std::string separator = ",", bool cascading = false, bool embracing =
-				false, bool enumerating = false) {
-	std::ostringstream result;
-	size_t i = 0;
-	auto length = log10(nillable(container.size(), (size_t) 1));
-	std::string space = cascading ? "\n\t" : " ";
-
-	for (auto content : container) {
-		result << space << separator;
-		if (enumerating)
-			result << std::string(length, ' ') << ++i << ":\t";
-		result << (std::string) content;
-	}
-	result.str(
-			"{" + result.str().substr(separator.length())
-					+ (cascading ? "\n" : " ") + "}");
-
-	return result.str();
-}
-template<typename Mapper> std::string mapper(Mapper&& map,
-		std::string separator = ",", bool cascading = false, bool embracing =
-				false) {
-	std::ostringstream result;
-	auto length = log10(nillable(map.size(), (size_t) 1));
-	std::string space = cascading ? "\n\t" : " ";
-
-	for (auto content : map)
-		result << space << separator << std::string(length, ' ')
-				<< content.first << ":\t" << content.second;
 	result.str(
 			"{" + result.str().substr(separator.length())
 					+ (cascading ? "\n" : " ") + "}");
@@ -95,119 +58,91 @@ template<typename Mapper> std::string mapper(Mapper&& map,
 }
 
 class Log {
-	using list = std::forward_list<
-	std::tuple<std::string, std::type_index, std::string>>;
+	using variable = std::pair<std::pair<
+	std::type_index, std::string>, std::string>;
+	using list = std::forward_list<variable>;
 
-	const Log* caller;
+	std::string legacy;
 	long long unsigned track;
-	bool open;
 	std::string ns;
-	std::string logging;
-	std::string returning;
-	std::type_index type;
-	long long unsigned param0;
-	static long long unsigned tracking;
+	bool open;
+	variable returning;
+	static long long unsigned tracker;
 
-	void logger(std::type_index, Log*, std::string, list, std::string);
-	void logger(std::string, std::type_index, std::string, std::string);
-	void logger(std::type_index, std::string, std::string, std::type_index,
-			std::string, std::string);
-	void db(std::type_index, Log*, std::string, list, std::string);
+	static std::string tracking(const Log*);
+	static std::string messaging(std::string);
+	template<typename Type> static std::string type(Type&& object) {
+		std::ostringstream result;
+
+		if (std::is_pointer<Type>::value && std::is_base_of<Log*, Type>::value)
+			result
+					<< typeid(std::decay<
+									typename std::remove_pointer<Type>::type>::type).name()
+					<< "{" << static_cast<Log*>(object)->track << "}";
+		else if (std::is_same<typename std::decay<Type>::type, std::string>::value)
+			result << "\"" << object << "\"";
+		else
+			result << object;
+
+		return result.str();
+	}
+	template<typename Type, typename Return> static std::string returnType(
+			Return&& returning) {
+		return typeid(Return).name();
+	}
+	template<std::type_index> static std::string returnType<std::type_index>(
+			std::type_index&& returning) {
+		return returning.name();
+	}
+	template<std::type_index&> static std::string returnType<std::type_index>(
+			std::type_index& returning) {
+		return returning.name();
+	}
+	template<typename Type, typename Return> static std::string returnValue(
+			Return&& returning) {
+		return "=" + argument(returning);
+	}
+	template<std::type_index> static std::string returnValue<std::type_index>(
+			std::type_index&& returning) {
+		return " {";
+	}
+	template<std::type_index&> static std::string returnValue<std::type_index>(
+			std::type_index& returning) {
+		return " {";
+	}
 	template<typename Argument, typename ... Arguments> static list arguments(
 			std::string name, Argument&& argument, Arguments&& ... rest) {
-		std::ostringstream text;
 		list result = arguments(rest ...);
 
-		if (std::is_same<Argument, std::string>::value)
-			text << "\"" << argument << "\"";
-		else
-			text << argument;
-		result.emplace_front(name, typeid(Argument), text.str());
-
-		return result;
-	}
-	template<typename Parameter, typename ... Parameters> static list parameters(
-			Parameter& parameter, Parameters& ... rest) {
-		std::ostringstream text;
-		auto result = parameters(rest ...);
-
-		if (std::is_same<Parameter, std::string>::value)
-			text << "\"" << parameter << "\"";
-		else
-			text << parameter;
-		result.emplace_front("", typeid(Parameter), text.str());
+		result.emplace_front(name, typeid(Argument), type(argument));
 
 		return result;
 	}
 	static list arguments();
-	static list parameters();
-	static std::string lister(list);
 
-	template<typename ... Arguments> Log(const Log* caller, std::string message,
-			bool open, std::type_index type, std::string ns,
-			std::type_index object, const Log* instance, std::string function,
-			std::string returning, std::string name1, Arguments&& ... args) :
-			type(type) {
-		auto params = arguments(name1, args ...);
-
-		this->caller = caller;
-		track = ++tracking;
-		this->open = open;
-		this->ns = ns;
-		this->returning = returning;
-		param0 = 0;
-		logger(object, instance, function, params, message);
-	}
-	template<typename ... Arguments> Log(std::string message, const Log* caller,
-			bool open, std::type_index type, std::string ns,
-			std::type_index object, const Log* instance, std::string function,
-			std::string returning, Arguments&& ... args) :
-			type(type) {
-		auto params = parameters(args ...);
-
-		this->caller = caller;
-		track = ++tracking;
-		this->open = open;
-		this->ns = ns;
-		this->returning = returning;
-		param0 = 0;
-		logger(object, instance, function, params, message);
-	}
-	template<typename Return> Log(const Log* caller, std::string message, bool open, std::type_index type,
-			std::string returning, std::string operation, std::string ns,
-			Return&& instance) :
-			type(type) {
-		this->caller = caller;
-		track = ++tracking;
-		this->open = open;
-		this->ns = ns;
-		this->returning = returning;
-		param0 = 0;
-		logger(operation, object, instance, message);
-	}
-	Log(const Log* caller, std::string message, bool open, std::type_index type,
-			std::string returning, std::string lns, std::type_index lObject,
-			std::string lInstance, std::string operation, std::string rns,
-			std::type_index rObject, std::string rInstance) :
-			type(type) {
-		this->caller = caller;
-		track = ++tracking;
-		this->open = open;
-		this->ns = ns;
-		this->returning = returning;
-		param0 = 0;
-		logger(lObject, lInstance, operation, rObject, rInstance, message);
-	}
+	Log(const Log&);
+	Log(Log&&);
 protected:
-	template<typename Return, typename ... Arguments> Log method(
-			const Log* caller, std::string message, bool open,
-			std::type_index type, std::string function, Return&& returning,
-			std::string name1, Arguments&& ... args) const {
-		auto param = arguments(returning);
+	template<typename Type, typename Return> void unary(const Log* caller,
+			Return&& returning, std::string operation, std::string message) {
+		std::clog
+				<< tracking(caller) + returnType<Type>(returning) + " "
+						+ operation + caller->ns + "::" + type(this)
+						+ messaging(message) + returnValue<Type>(returning)
+				<< std::endl;
+	}
+	template<typename Type, typename Return, typename Righthand> void binary(
+			const Log* caller, Return&& returning, std::string operation,
+			std::string ns, Righthand&& righthand, std::string message) {
+		auto logging = type(righthand);
 
-		return std::forward<Log&&>(
-				Log(caller, message, open, type, "", typeid(*this), this,
-						function, std::get<2>(param.front()), name1, args ...));
+		if (logging.back() == '}' && ns.empty())
+			logging = ns + "::" + logging;
+		std::clog
+				<< tracking(caller) + returnType<Type>(returning) + " "
+						+ caller->ns + "::" + type(this) + operation + logging
+						+ messaging(message) + returnValue<Type>(returning)
+				<< std::endl;
 	}
 	template<typename ... Arguments> Log method(std::string message,
 			const Log* caller, bool open, std::type_index type,
@@ -389,8 +324,7 @@ public:
 
 	time_t when() const;
 	Object* where() const;
-	std::pair<time_t,
-			std::map<std::string, std::pair<std::string, std::string>>>modifications() const;
+	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> modifications() const;
 	bool operator ==(const Object&) const;
 	bool operator !=(const Object&) const;
 	static std::set<Object*>& all();
