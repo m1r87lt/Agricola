@@ -13,8 +13,8 @@
 #include <cmath>
 #include <utility>
 #include <typeindex>
-#include <forward_list>///
-#include <type_traits>
+#include <forward_list>
+#include <type_traits>////
 #include <set>
 #include <map>
 #include <iostream>
@@ -124,7 +124,8 @@ class Log {
 	Log(Log&&);
 protected:
 	template<typename Type, typename Return> void unary(const Log* caller,
-			Return&& returning, std::string operation, std::string message) {
+			Return&& returning, std::string operation,
+			std::string message) const {
 		std::clog
 				<< tracking(caller) + returnType<Type>(returning) + " "
 						+ operation + caller->ns + "::" + type(this)
@@ -133,7 +134,7 @@ protected:
 	}
 	template<typename Type, typename Return, typename Righthand> void binary(
 			const Log* caller, Return&& returning, std::string operation,
-			std::string ns, Righthand&& righthand, std::string message) {
+			std::string ns, Righthand&& righthand, std::string message) const {
 		auto logging = type(righthand);
 
 		if (logging.back() == '}' && ns.empty())
@@ -144,12 +145,21 @@ protected:
 						+ messaging(message) + returnValue<Type>(returning)
 				<< std::endl;
 	}
-	template<typename ... Arguments> Log method(std::string message,
-			const Log* caller, bool open, std::type_index type,
-			std::string function, Arguments&& ... args) const {
-		return std::forward<Log&&>(
-				Log(message, caller, open, type, "", typeid(*this), this,
-						function, args ...));
+	template<typename Type, typename Return, typename ... Arguments> void method(
+			const Log* caller, std::string message, Return&& returning,
+			Arguments&& ... arguments) const {
+		list parameters;
+
+		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
+			parameters = arguments(returning, arguments ...);
+		else
+			parameters = arguments("", returning, arguments ...);
+
+		std::clog
+				<< tracking(caller) + parameters.front().first.first.name() + " "
+						+ caller->ns + "::" + type(this) + operation + logging
+						+ messaging(message) + returnValue<Type>(returning)
+				<< std::endl;
 	}
 
 	template<typename ... Arguments> Log(const Log* caller, std::string message,
@@ -324,7 +334,8 @@ public:
 
 	time_t when() const;
 	Object* where() const;
-	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> modifications() const;
+	std::pair<time_t,
+			std::map<std::string, std::pair<std::string, std::string>>>modifications() const;
 	bool operator ==(const Object&) const;
 	bool operator !=(const Object&) const;
 	static std::set<Object*>& all();
