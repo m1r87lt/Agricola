@@ -33,11 +33,9 @@ template<typename Class> Class truth(Class&& object, Class&& otherwise) {
 	return object ? object : otherwise;
 }
 template<typename Container, typename Function> std::string lister(
-		Container&& container, Function function =
-				[](typename Container::T content) {
-					return content;
-				}, std::string separator = ",", bool cascading = false,
-		bool embracing = false, bool enumerating = false) {
+		Container&& container, Function function, std::string separator = ",",
+		bool cascading = false, bool embracing = false,
+		bool enumerating = false) {
 	std::ostringstream result;
 	size_t i = 0;
 	auto length = log10(truth(container.size(), (size_t) 1));
@@ -46,9 +44,27 @@ template<typename Container, typename Function> std::string lister(
 	for (auto content : container) {
 		result << space << separator;
 		if (enumerating)
-			result << std::string(length, ' ') << ++i << ":\t";
-		if (function)
-			result << function(content);
+			result << std::string(length, ' ') << ++i << ":\t"
+					<< function(content);
+	}
+	result.str(
+			"{" + result.str().substr(separator.length())
+					+ (cascading ? "\n" : " ") + "}");
+
+	return result.str();
+}
+template<typename Container> std::string lister(Container&& container,
+		std::string separator = ",", bool cascading = false, bool embracing =
+				false, bool enumerating = false) {
+	std::ostringstream result;
+	size_t i = 0;
+	auto length = log10(truth(container.size(), (size_t) 1));
+	std::string space = cascading ? "\n\t" : " ";
+
+	for (auto content : container) {
+		result << space << separator;
+		if (enumerating)
+			result << std::string(length, ' ') << ++i << ":\t" << content;
 	}
 	result.str(
 			"{" + result.str().substr(separator.length())
@@ -218,7 +234,7 @@ public:
 		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
 			result.returning.second = "\"\"";
 		result.logger =
-				t.name() + " " + result.ns + "::" + o + name + "("
+				std::string(t.name()) + " " + result.ns + "::" + o + name + "("
 						+ lister(p,
 								[](variable v) {
 									return std::string(v.first.first.name()) + " " + v.first.second + "=" + v.second;
@@ -328,7 +344,7 @@ protected:
 									return std::string(v.first.first.name()) + " " + v.first.second + "=" + v.second;
 								}) + ")";
 		std::clog
-				<< log() + (this->open = open ? " {" : "") + messaging(message)
+				<< log() + ((this->open = open) ? " {" : "") + messaging(message)
 				<< std::endl;
 	}
 	template<typename ... Parameters> Log(std::string message,
@@ -345,7 +361,7 @@ protected:
 					return std::string(v.first.first.name()) + "=" + v.second;
 				}) + ")";
 		std::clog
-				<< log() + (this->open = open ? " {" : "") + messaging(message)
+				<< log() + ((this->open = open) ? " {" : "") + messaging(message)
 				<< std::endl;
 	}
 };
@@ -366,8 +382,7 @@ public:
 	time_t when() const;
 	Object* where() const;
 	long long unsigned who() const;
-	std::pair<time_t,
-			std::map<std::string, std::pair<std::string, std::string>>>what();
+	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> what();
 	bool operator ==(const Object&) const;
 	bool operator !=(const Object&) const;
 	static std::set<Object*>& all();

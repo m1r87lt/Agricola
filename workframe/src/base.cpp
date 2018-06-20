@@ -33,10 +33,12 @@ std::string Log::messaging(std::string message) {
 
 	return message;
 }
-template<> std::string Log::type<const std::type_info>(const std::type_info&& object) {
+template<> std::string Log::type<const std::type_info>(
+		const std::type_info&& object) {
 	return object.name();
 }
-template<> std::string Log::type<const std::type_info&>(const std::type_info& object) {
+template<> std::string Log::type<const std::type_info&>(
+		const std::type_info& object) {
 	return object.name();
 }
 template<> std::type_index Log::returnType<std::type_index, std::type_index>(
@@ -123,21 +125,23 @@ long long unsigned Object::who() const {
 
 	return track;
 }
-std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>>Object::what() {
+std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> Object::what() {
 	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> result;
 	auto log = method<std::type_index>("", nullptr, "what", typeid(result));
 	std::string logging = "{" + std::to_string(modification) + ";\n\t{";
 
 	result.first = modification;
 	for (auto change : changes) {
-		result.second[change.first] = std::make_pair(change.second, attributing.at(change.first));
-		logging += "\n\t\t" + change.first + ": " + change.second + "->" + attributing.at(change.first) + ",";
+		result.second[change.first] = std::make_pair(change.second,
+				attributing.at(change.first));
+		logging += "\n\t\t" + change.first + ": " + change.second + "->"
+				+ attributing.at(change.first) + ",";
 	}
 	if (logging.back() == ',') {
 		logging.pop_back();
 		logging += "\n\t";
 	} else
-	logging += " ";
+		logging += " ";
 	logging += "}\n}";
 	log.returned(logging);
 
@@ -157,42 +161,48 @@ bool Object::operator !=(const Object& than) const {
 
 	return result;
 }
+std::set<Object*>& Object::all() {
+	function<std::type_index>("", nullptr, typeid(everything), "base",
+			typeid(Object), "all").returned(
+			lister(everything, ";", true, true));
+
+	return everything;
+}
+std::set<Object*> Object::root() {
+	std::set<Object*> result;
+	auto log = function<std::type_index>("", nullptr, typeid(result), "base",
+			typeid(Object), "root");
+
+	for (auto object : everything)
+		if (!object->position)
+			result.insert(object);
+	log.returned(lister(result, ";", true, true));
+
+	return result;
+}
+Object::Object(Object* position, std::map<std::string, std::string> attributes,
+		const Log* caller) :
+		Log(caller, "", false, "base", "position", position, "attributes",
+				lister(attributes,
+						[](std::pair<const std::string, std::string> attribute) {
+							return attribute.first + "=" + attribute.second;
+						}, ",", true, true).c_str()) {
+	modification = creation = std::chrono::system_clock::to_time_t(
+			std::chrono::system_clock::now());
+	this->position = position;
+	attributing = attributes;
+	everything.emplace(this);
+}
+Object::~Object() {
+	std::ostringstream log;
+
+	if (run)
+		everything.erase(this);
+	log << "base::" << typeid(Object).name() << "{" << this
+			<< "} is being destroyed";
+	message(log.str());
+}
 /*
- std::set<Object*>& Object::all() {
- Log("", nullptr, false, typeid(std::set<Object*>&), "base", typeid(Object),
- "all", base::lister(everything));
-
- return everything;
- }
- std::set<Object*> Object::root() {
- std::set<Object*> result;
- Log log("", nullptr, true, typeid(result), "base", typeid(Object), "root");
-
- for (auto object : everything)
- if (!object->position)
- result.insert(object);
- log.returned(base::lister(result));
-
- return result;
- }
-
- Object::Object(Object* position, std::map<std::string, std::string> attributes,
- const Log* caller) :
- Log(caller, "", "base", "position", position, "attributes",
- mapper(attributes)) {
- modification = creation = std::chrono::system_clock::to_time_t(
- std::chrono::system_clock::now());
- this->position = position;
- attributing = attributes;
- everything.emplace(this);
- }
- Object::~Object() {
- if (run)
- everything.erase(this);
- unary(nullptr, "destruction", false, typeid(void), "", "~", "base",
- typeid(Object), std::to_string(track));
- }
- /*
  //Location
  std::string Location::list_contained() const {
  auto content = contained.begin();
