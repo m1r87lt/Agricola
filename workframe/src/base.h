@@ -13,14 +13,13 @@
 #include <cmath>
 #include <utility>
 #include <typeindex>
-#include <forward_list>
+#include <list>
 #include <type_traits>////
 #include <set>
 #include <map>
 #include <iostream>
 #include <vector>
 #include <memory>
-#include <list>
 #include <functional>
 
 namespace base {
@@ -34,10 +33,11 @@ template<typename Class> Class truth(Class&& object, Class&& otherwise) {
 	return object ? object : otherwise;
 }
 template<typename Container, typename Function> std::string lister(
-		Container&& container, Function function = [](auto content) {
-			return content;
-		}, std::string separator = ",", bool cascading = false, bool embracing =
-				false, bool enumerating = false) {
+		Container&& container, Function function =
+				[](typename Container::T content) {
+					return content;
+				}, std::string separator = ",", bool cascading = false,
+		bool embracing = false, bool enumerating = false) {
 	std::ostringstream result;
 	size_t i = 0;
 	auto length = log10(truth(container.size(), (size_t) 1));
@@ -60,7 +60,7 @@ template<typename Container, typename Function> std::string lister(
 class Log {
 	using variable = std::pair<std::pair<
 	std::type_index, std::string>, std::string>;
-	using list = std::forward_list<variable>;
+	using list = std::list<variable>;
 
 	std::string legacy;
 	long long unsigned track;
@@ -69,19 +69,14 @@ class Log {
 	variable returning;
 	std::string logger;
 	static long long unsigned tracker;
+	friend class Object;
 
-	std::string tracking() const;
 	static std::string tracking(const Log*);
 	static std::string messaging(std::string);
 	template<typename Type> static std::string type(Type&& object) {
 		std::ostringstream result;
 
-		if (std::is_pointer<Type>::value && std::is_base_of<Log*, Type>::value)
-			result
-					<< typeid(std::decay<
-									typename std::remove_pointer<Type>::type>::type).name()
-					<< "{" << static_cast<Log*>(object)->track << "}";
-		else if (std::is_same<typename std::decay<Type>::type, std::string>::value)
+		if (std::is_same<typename std::decay<Type>::type, std::string>::value)
 			result << "\"" << object << "\"";
 		else
 			result << object;
@@ -92,25 +87,9 @@ class Log {
 			Return&& returning) {
 		return typeid(Return);
 	}
-	template<std::type_index> static std::type_index returnType<std::type_index>(
-			std::type_index&& returning) {
-		return returning;
-	}
-	template<std::type_index&> static std::type_index returnType<std::type_index>(
-			std::type_index& returning) {
-		return returning;
-	}
 	template<typename Type, typename Return> static std::string returnValue(
 			Return&& returning) {
-		return "=" + argument(returning);
-	}
-	template<std::type_index> static std::string returnValue<std::type_index>(
-			std::type_index&& returning) {
-		return " {";
-	}
-	template<std::type_index&> static std::string returnValue<std::type_index>(
-			std::type_index& returning) {
-		return " {";
+		return "=" + type(returning);
 	}
 	template<typename Argument, typename ... Arguments> static list arguments(
 			std::string name, Argument&& argument, Arguments&& ... rest) {
@@ -132,15 +111,18 @@ class Log {
 	static list parameters();
 
 	Log(std::type_index);
-	Log(const Log&);
+	Log(Log&);
 	Log(Log&&);
 public:
 	std::string log() const;
 	template<typename Return> void returned(Return&& returning) {
 		std::ostringstream result;
 
-		result << returning;
-		this->returning = result.str();
+		if (this->returning.second == "\"\"")
+			result << "\"" << returning << "\"";
+		else
+			result << returning;
+		this->returning.second = result.str();
 	}
 	void message(std::string) const;
 	template<typename Type, typename Return, typename Instance> static Log unary(
@@ -152,7 +134,9 @@ public:
 
 		result.legacy = tracking(caller);
 		if ((result.open = r == " {"))
-			result.returning.first.second = operation;
+			result.returning.first = std::make_pair(t, operation);
+		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
+			result.returning.second = "\"\"";
 		if ((result.logger = type(&object)).back() == '}' && ns.empty())
 			result.logger = ns + "::" + result.logger;
 		result.logger = t.name() + " " + operation + result.logger;
@@ -173,7 +157,9 @@ public:
 
 		result.legacy = tracking(caller);
 		if ((result.open = r == " {"))
-			result.returning.first.second = operation;
+			result.returning.first = std::make_pair(t, operation);
+		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
+			result.returning.second = "\"\"";
 		if (L.back() == '}' && lns.empty())
 			L = lns + "::" + L;
 		if (R.back() == '}' && rns.empty())
@@ -184,8 +170,8 @@ public:
 		return result;
 	}
 	template<typename Type, typename Return, typename ... Arguments> static Log function(
-			std::string message, const Log* caller, Return&& returning, std::string ns,
-			std::type_index object, std::string name,
+			const Log* caller, std::string message, Return&& returning,
+			std::string ns, std::type_index object, std::string name,
 			std::string argname, Arguments&& ... args) {
 		auto t = returnType<Type>(returning);
 		Log result(t);
@@ -199,20 +185,22 @@ public:
 		else
 			o = std::string(object.name()) + "::";
 		if ((result.open = r == " {"))
-			result.returning.first.second = name;
+			result.returning.first = std::make_pair(t, name);
+		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
+			result.returning.second = "\"\"";
 		result.logger =
 				t.name() + " " + result.ns + "::" + o + name + "("
 						+ lister(a,
 								[](variable v) {
-									return v.first.first + " " + v.first.second + "=" + v.second;
+									return std::string(v.first.first.name()) + " " + v.first.second + "=" + v.second;
 								}) + ")";
 		std::clog << result.log() + r + messaging(message) << std::endl;
 
 		return result;
 	}
 	template<typename Type, typename Return, typename ... Parameters> static Log function(
-			std::string message, const Log* caller, Return&& returning, std::string ns,
-			std::type_index object, std::string name,
+			std::string message, const Log* caller, Return&& returning,
+			std::string ns, std::type_index object, std::string name,
 			Parameters&& ... params) {
 		auto t = returnType<Type>(returning);
 		Log result(t);
@@ -226,12 +214,14 @@ public:
 		else
 			o = std::string(object.name()) + "::";
 		if ((result.open = r == " {"))
-			result.returning.first.second = name;
+			result.returning.first = std::make_pair(t, name);
+		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
+			result.returning.second = "\"\"";
 		result.logger =
 				t.name() + " " + result.ns + "::" + o + name + "("
 						+ lister(p,
 								[](variable v) {
-									return v.first.first + " " + v.first.second + "=" + v.second;
+									return std::string(v.first.first.name()) + " " + v.first.second + "=" + v.second;
 								}) + ")";
 		std::clog << result.log() + r + messaging(message) << std::endl;
 
@@ -249,7 +239,9 @@ protected:
 
 		result.legacy = tracking(caller);
 		if ((result.open = r == " {"))
-			result.returning.first.second = operation;
+			result.returning.first = std::make_pair(t, operation);
+		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
+			result.returning.second = "\"\"";
 		result.logger = t.name() + " " + operation + ns + "::" + type(this);
 		std::clog << result.log() + r + messaging(message) << std::endl;
 
@@ -265,18 +257,20 @@ protected:
 
 		result.legacy = tracking(caller);
 		if ((result.open = r == " {"))
-			result.returning.first.second = operation;
+			result.returning.first = std::make_pair(t, operation);
+		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
+			result.returning.second = "\"\"";
 		if (R.back() == '}' && ns.empty())
 			R = ns + "::" + R;
-		result.logger = t.name() + " " + ns + "::" + type(this) + " "
-				+ operation + " " + R;
+		result.logger = std::string(t.name()) + " " + ns + "::" + type(this)
+				+ " " + operation + " " + R;
 		std::clog << result.log() + r + messaging(message) << std::endl;
 
 		return result;
 	}
 	template<typename Type, typename Return, typename ... Arguments> Log method(
-			std::string message, const Log* caller, std::string function,
-			Return&& returning, std::string name, Arguments&& ... args) const {
+			const Log* caller, std::string function, Return&& returning,
+			std::string message, std::string name, Arguments&& ... args) const {
 		auto t = returnType<Type>(returning);
 		Log result(t);
 		auto r = returnValue<Type>(returning);
@@ -284,20 +278,22 @@ protected:
 
 		result.legacy = tracking(caller);
 		if ((result.open = r == " {"))
-			result.returning.first.second = function;
+			result.returning.first = std::make_pair(t, function);
+		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
+			result.returning.second = "\"\"";
 		result.logger =
 				t.name() + " " + ns + "::" + type(this) + "." + function + "("
 						+ lister(a,
 								[](variable v) {
-									return v.first.first + " " + v.first.second + "=" + v.second;
+									return std::string(v.first.first.name()) + " " + v.first.second + "=" + v.second;
 								}) + ")";
 		std::clog << result.log() + r + messaging(message) << std::endl;
 
 		return result;
 	}
 	template<typename Type, typename Return, typename ... Parameters> Log method(
-			const Log* caller, std::string function, Return&& returning,
-			std::string message, Parameters&& ... params) const {
+			std::string message, const Log* caller, std::string function,
+			Return&& returning, Parameters&& ... params) const {
 		auto t = returnType<Type>(returning);
 		Log result(t);
 		auto r = returnValue<Type>(returning);
@@ -305,10 +301,12 @@ protected:
 
 		result.legacy = tracking(caller);
 		if ((result.open = r == " {"))
-			result.returning.first.second = function;
-		result.logger = t.name() + " " + ns + "::" + type(this) + "." + function
-				+ "(" + lister(p, [](variable v) {
-					return v.first.first + "=" + v.second;
+			result.returning.first = std::make_pair(t, function);
+		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
+			result.returning.second = "\"\"";
+		result.logger = std::string(t.name()) + " " + ns + "::" + type(this)
+				+ "." + function + "(" + lister(p, [](variable v) {
+					return std::string(v.first.first.name()) + "=" + v.second;
 				}) + ")";
 		std::clog << result.log() + r + messaging(message) << std::endl;
 
@@ -317,7 +315,7 @@ protected:
 
 	template<typename ... Arguments> Log(const Log* caller, std::string message,
 			bool open, std::string ns, std::string name, Arguments&& ... args) :
-			returning(std::make_pair(typeid(void), ""), "") {
+			returning(std::make_pair(std::make_pair(typeid(void), ""), "")) {
 		auto result = arguments(name, args...);
 
 		legacy = tracking(caller);
@@ -327,7 +325,7 @@ protected:
 						+ typeid(*this).name() + "("
 						+ lister(result,
 								[](variable v) {
-									return v.first.first + " " + v.first.second + "=" + v.second;
+									return std::string(v.first.first.name()) + " " + v.first.second + "=" + v.second;
 								}) + ")";
 		std::clog
 				<< log() + (this->open = open ? " {" : "") + messaging(message)
@@ -336,15 +334,16 @@ protected:
 	template<typename ... Parameters> Log(std::string message,
 			const Log* caller, bool open, std::string ns,
 			Parameters&& ... params) :
-			returning(std::make_pair(typeid(void), ""), "") {
+			returning(std::make_pair(std::make_pair(typeid(void), ""), "")) {
 		auto result = parameters(params...);
 
 		legacy = tracking(caller);
 		track = ++tracker;
 		logger = (this->ns = ns) + "::" + type(this) + "::"
-				+ typeid(*this).name() + "(" + lister(result, [](variable v) {
-							return v.first.first + "=" + v.second;
-						}) + ")";
+				+ typeid(*this).name() + "("
+				+ lister(result, [](variable v) {
+					return std::string(v.first.first.name()) + "=" + v.second;
+				}) + ")";
 		std::clog
 				<< log() + (this->open = open ? " {" : "") + messaging(message)
 				<< std::endl;
@@ -358,7 +357,7 @@ class Object: public Log {
 	friend class Location;
 protected:
 	time_t modification;
-	std::map<std::string, std::string> olds;
+	std::map<std::string, std::string> changes;
 
 	Object(Object*, std::map<std::string, std::string>, const Log*);
 public:
@@ -366,7 +365,9 @@ public:
 
 	time_t when() const;
 	Object* where() const;
-	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> modifications() const;
+	long long unsigned who() const;
+	std::pair<time_t,
+			std::map<std::string, std::pair<std::string, std::string>>>what();
 	bool operator ==(const Object&) const;
 	bool operator !=(const Object&) const;
 	static std::set<Object*>& all();
