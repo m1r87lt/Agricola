@@ -6,7 +6,7 @@
  */
 
 #include "base.h"
-#include <stdexcept> ///
+#include <stdexcept>
 #include <chrono>///
 #include <fstream>
 #include <random>
@@ -25,7 +25,10 @@ void end() {
 long long unsigned Log::tracker = 0;
 
 std::string Log::tracking(const Log* caller) {
-	return caller->legacy + "." + std::to_string(caller->track);
+	if (caller)
+		return caller->legacy + "." + std::to_string(caller->track);
+	else
+		return "";
 }
 std::string Log::messaging(std::string message) {
 	if (message.length())
@@ -125,7 +128,7 @@ long long unsigned Object::who() const {
 
 	return track;
 }
-std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> Object::what() {
+std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>>Object::what() {
 	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> result;
 	auto log = method<std::type_index>("", nullptr, "what", typeid(result));
 	std::string logging = "{" + std::to_string(modification) + ";\n\t{";
@@ -135,13 +138,13 @@ std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> Ob
 		result.second[change.first] = std::make_pair(change.second,
 				attributing.at(change.first));
 		logging += "\n\t\t" + change.first + ": " + change.second + "->"
-				+ attributing.at(change.first) + ",";
+		+ attributing.at(change.first) + ",";
 	}
 	if (logging.back() == ',') {
 		logging.pop_back();
 		logging += "\n\t";
 	} else
-		logging += " ";
+	logging += " ";
 	logging += "}\n}";
 	log.returned(logging);
 
@@ -202,110 +205,92 @@ Object::~Object() {
 			<< "} is being destroyed";
 	message(log.str());
 }
+
+//Location
+std::string Location::naming(std::string name) {
+	auto log = method<std::type_index>(nullptr, "naming", typeid(std::string), "", "name", name);
+	std::string candidate = name;
+
+	if (candidate.empty())
+		candidate = name = "content";
+	for (auto suffix = 0; operator ()(candidate).size(); ++suffix)
+		candidate = name + "_" + std::to_string(suffix);
+	log.returned(candidate);
+
+	return candidate;
+}
+Location::container::iterator Location::locate(size_t offset) const {
+	auto result = const_cast<container&>(contained).begin();
+	auto end = contained.end();
+	size_t index = 0;
+	std::ostringstream log;
+	Log track;
+
+	log << track.tracker()
+			<< "base::Location::container::iterator base::Location{" << this
+			<< "}.locate(size_t offset=" << offset << ")";
+	std::clog << log.str() << " {" << std::endl;
+	while (result != end && index++ < offset)
+		++result;
+	if (result == end) {
+		std::ostringstream message;
+
+		message << "=0 WARNING invalid argument: offset >= size="
+				<< contained.size() << ".";
+		std::clog << track() << "}" << message.str() << std::endl;
+		std::cerr << log.str() << message.str() << std::endl;
+	} else
+		std::clog << track() << "}=" << result->second.get() << std::endl;
+
+	return result;
+}
+Location::container::iterator Location::locate(std::string name) const {
+	auto result = const_cast<container&>(contained).begin();
+	auto end = contained.end();
+	std::ostringstream log;
+	Log track;
+
+	log << track.tracker()
+			<< "base::Location::container::iterator base::Location{" << this
+			<< "}.locate(std::string name=\"" << name << "\")";
+	std::clog << log.str() << " {" << std::endl;
+	while (result != end && name != result->first)
+		++result;
+	if (result == end) {
+		std::ostringstream message;
+
+		message << "=0 WARNING no Object exists here with that name.";
+		std::clog << track() << "}" << message.str() << std::endl;
+		std::cerr << log.str() << message.str() << std::endl;
+	} else
+		std::clog << track() << "}=" << result->second.get() << std::endl;
+
+	return result;
+}
+Location::container::iterator Location::locate(const Object& instance) const {
+	auto result = const_cast<container&>(contained).begin();
+	auto end = contained.end();
+	std::ostringstream log;
+	Log track;
+
+	log << track.tracker()
+			<< "base::Location::container::iterator base::Location{" << this
+			<< "}.locate(const Object& instance=" << &instance << ")";
+	std::clog << log.str() << " {" << std::endl;
+	while (result != end && result->second.get() != &instance)
+		++result;
+	if (result == end) {
+		std::string message;
+
+		message = "=0 WARNING invalid argument: instance is not located here.";
+		std::clog << track() << "}" << message << std::endl;
+		std::cerr << log.str() << message << std::endl;
+	} else
+		std::clog << track() << "}=" << result->second.get() << std::endl;
+
+	return result;
+}
 /*
- //Location
- std::string Location::list_contained() const {
- auto content = contained.begin();
- std::ostringstream text;
- auto i = 0;
- std::string result;
-
- for (auto end = contained.end(); content != end; ++content)
- text << ",\n\t" << i++ << ": " << content->second.get();
- result = text.str().empty() ? "{ }" : "{" + text.str().substr(1) + "\n}";
-
- return result;
- }
- std::string Location::naming(std::string name) const {
- Log track;
-
- std::clog << track.tracker() << "std::string base::Location{" << this
- << "}.naming(std::string name=\"" << name << "\") {" << std::endl;
- if (name.empty())
- name = "content";
- if (operator ()(name)) {
- auto suffix = 0;
- std::string attempt;
-
- while (operator ()(attempt = name + "_" + std::to_string(suffix)))
- ++suffix;
- name = attempt;
- }
- std::clog << track() << "}=\"" << name << "\"" << std::endl;
-
- return name;
- }
- Location::container::iterator Location::locate(size_t offset) const {
- auto result = const_cast<container&>(contained).begin();
- auto end = contained.end();
- size_t index = 0;
- std::ostringstream log;
- Log track;
-
- log << track.tracker()
- << "base::Location::container::iterator base::Location{" << this
- << "}.locate(size_t offset=" << offset << ")";
- std::clog << log.str() << " {" << std::endl;
- while (result != end && index++ < offset)
- ++result;
- if (result == end) {
- std::ostringstream message;
-
- message << "=0 WARNING invalid argument: offset >= size="
- << contained.size() << ".";
- std::clog << track() << "}" << message.str() << std::endl;
- std::cerr << log.str() << message.str() << std::endl;
- } else
- std::clog << track() << "}=" << result->second.get() << std::endl;
-
- return result;
- }
- Location::container::iterator Location::locate(std::string name) const {
- auto result = const_cast<container&>(contained).begin();
- auto end = contained.end();
- std::ostringstream log;
- Log track;
-
- log << track.tracker()
- << "base::Location::container::iterator base::Location{" << this
- << "}.locate(std::string name=\"" << name << "\")";
- std::clog << log.str() << " {" << std::endl;
- while (result != end && name != result->first)
- ++result;
- if (result == end) {
- std::ostringstream message;
-
- message << "=0 WARNING no Object exists here with that name.";
- std::clog << track() << "}" << message.str() << std::endl;
- std::cerr << log.str() << message.str() << std::endl;
- } else
- std::clog << track() << "}=" << result->second.get() << std::endl;
-
- return result;
- }
- Location::container::iterator Location::locate(const Object& instance) const {
- auto result = const_cast<container&>(contained).begin();
- auto end = contained.end();
- std::ostringstream log;
- Log track;
-
- log << track.tracker()
- << "base::Location::container::iterator base::Location{" << this
- << "}.locate(const Object& instance=" << &instance << ")";
- std::clog << log.str() << " {" << std::endl;
- while (result != end && result->second.get() != &instance)
- ++result;
- if (result == end) {
- std::string message;
-
- message = "=0 WARNING invalid argument: instance is not located here.";
- std::clog << track() << "}" << message << std::endl;
- std::cerr << log.str() << message << std::endl;
- } else
- std::clog << track() << "}=" << result->second.get() << std::endl;
-
- return result;
- }
  bool Location::remove(container::const_iterator iterator, Log track) {
  auto result = true;
  std::ostringstream log;
