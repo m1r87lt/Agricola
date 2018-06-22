@@ -208,7 +208,7 @@ Object::~Object() {
 
 //Location
 std::string Location::naming(std::string name) {
-	auto log = method<std::type_index>(nullptr, "naming", typeid(std::string), "", "name", name);
+	Log log(method<std::type_index>(nullptr, "naming", typeid(std::string), "", "name", name));
 	std::string candidate = name;
 
 	if (candidate.empty())
@@ -218,7 +218,7 @@ std::string Location::naming(std::string name) {
 	log.returned(candidate);
 
 	return candidate;
-}
+}/*
 Location::container::iterator Location::locate(size_t offset) const {
 	auto result = const_cast<container&>(contained).begin();
 	auto end = contained.end();
