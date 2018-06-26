@@ -111,7 +111,9 @@ class Log {
 			std::string name, Argument&& argument, Arguments&& ... rest) {
 		list result = arguments(rest ...);
 
-		result.emplace_front(std::make_pair(std::type_index(typeid(Argument)), name), type(argument));
+		result.emplace_front(
+				std::make_pair(std::type_index(typeid(Argument)), name),
+				type(argument));
 
 		return result;
 	}
@@ -119,7 +121,9 @@ class Log {
 			Argument&& argument, Arguments&& ... rest) {
 		list result = parameters(rest ...);
 
-		result.emplace_front(std::make_pair(std::type_index(typeid(Argument), std::string()), type(argument));
+		result.emplace_front(
+				std::make_pair(std::type_index(typeid(Argument)),
+						std::string()), type(argument));
 
 		return result;
 	}
@@ -179,7 +183,11 @@ public:
 			L = lns + "::" + L;
 		if (R.back() == '}' && rns.empty())
 			R = rns + "::" + R;
-		result.logger = t.name() + " " + L + " " + operation + " " + R;
+		result.logger = t.name() + " " + L;
+		if (operation == "[]")
+			result.logger += "[" + R + "]";
+		else
+			result.logger += " " + operation + " " + R;
 		std::clog << result.log() + r + messaging(message) << std::endl;
 
 		return result;
@@ -278,8 +286,11 @@ protected:
 			result.returning.second = "\"\"";
 		if (R.back() == '}' && ns.empty())
 			R = ns + "::" + R;
-		result.logger = std::string(t.name()) + " " + ns + "::" + type(this)
-				+ " " + operation + " " + R;
+		result.logger = std::string(t.name()) + " " + ns + "::" + type(this);
+		if (operation == "[]")
+			result.logger += "[" + R + "]";
+		else
+			result.logger += " " + operation + " " + R;
 		std::clog << result.log() + r + messaging(message) << std::endl;
 
 		return result;
@@ -389,7 +400,8 @@ public:
 	time_t when() const;
 	Object* where() const;
 	long long unsigned who() const;
-	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> what();
+	std::pair<time_t,
+			std::map<std::string, std::pair<std::string, std::string>>>what();
 	bool operator ==(const Object&) const;
 	bool operator !=(const Object&) const;
 	static std::set<Object*>& all();
@@ -407,13 +419,15 @@ class Location: public Object {
 	using container = std::list<content>;
 
 	container containing;
+	friend Object;
 
 	std::string naming(std::string);
 	container::iterator locate(size_t) const;
-	container::iterator locate(std::string) const;
-	container::iterator locate(const Object&) const;
-	void remove(container::const_iterator, const Log*);
+	std::map<size_t, Location::container::iterator> locate(std::string) const;
+	std::map<size_t, Location::container::iterator> locate(std::type_index) const;
+	std::pair<size_t, Location::container::iterator> locate(const Object&) const;
 	std::unique_ptr<Object> extract(container::iterator, const Log*);
+	void remove(container::const_iterator, const Log*);
 protected:
 	Location(Location*, std::map<std::string, std::string>, const Log*);
 public:
@@ -459,8 +473,8 @@ public:
 	std::unique_ptr<Object> extract(const Object&, const Log*);
 	size_t size() const;
 
-	static size_t who(const Object&);
-	static std::string which(const Object&);
+	static size_t which(const Object&);
+	static std::string who(const Object&);
 	static std::list<const Object*> path(const Object&);
 
 	virtual ~Location() = default;
