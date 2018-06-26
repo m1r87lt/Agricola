@@ -439,31 +439,28 @@ public:
 	void insert_back(std::string, std::unique_ptr<Object>&&, const Log*);
 	template<typename ObjectDerived, typename ... Arguments> void emplace_front(
 			std::string name, const Log* caller, Arguments&& ... arguments) {
-		method<std::type_index>(
-				std::string("<") + typeid(ObjectDerived).name() + ">", caller,
-				"emplace_front", typeid(void), name, arguments...);
 		insert_front(name,
 				std::unique_ptr<Object>(new ObjectDerived(arguments ...)),
-				caller);
+				&method<std::type_index>(
+								std::string("<") + typeid(ObjectDerived).name() + ">", caller,
+								"emplace_front", typeid(void), name, arguments...));
 	}
 	template<typename ObjectDerived, typename ... Arguments> void emplace(
 			size_t offset, std::string name, const Log* caller,
 			Arguments&& ... arguments) {
-		method<std::type_index>(
-				std::string("<") + typeid(ObjectDerived).name() + ">", caller,
-				"emplace", typeid(void), offset, name, arguments...);
 		insert(offset, name,
 				std::unique_ptr<Object>(new ObjectDerived(arguments ...)),
-				caller);
+				&method<std::type_index>(
+						std::string("<") + typeid(ObjectDerived).name() + ">", caller,
+						"emplace", typeid(void), offset, name, arguments...));
 	}
 	template<typename ObjectDerived, typename ... Arguments> void emplace_back(
 			std::string name, const Log* caller, Arguments&& ... arguments) {
-		method<std::type_index>(
-				std::string("<") + typeid(ObjectDerived).name() + ">", caller,
-				"emplace_back", typeid(void), name, arguments...);
 		insert_back(name,
 				std::unique_ptr<Object>(new ObjectDerived(arguments ...)),
-				caller);
+				&method<std::type_index>(
+						std::string("<") + typeid(ObjectDerived).name() + ">", caller,
+						"emplace_back", typeid(void), name, arguments...));
 	}
 	bool remove(size_t, const Log*);
 	bool remove(std::string, const Log*);

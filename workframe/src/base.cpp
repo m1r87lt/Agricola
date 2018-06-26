@@ -134,7 +134,7 @@ long long unsigned Object::who() const {
 
 	return track;
 }
-std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>>Object::what() {
+std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> Object::what() {
 	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> result;
 	auto log = method<std::type_index>("", nullptr, "what", typeid(result));
 	std::string logging = "{" + std::to_string(modification) + ";\n\t{";
@@ -144,13 +144,13 @@ std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>>Obj
 		result.second[change.first] = std::make_pair(change.second,
 				attributing.at(change.first));
 		logging += "\n\t\t" + change.first + ": " + change.second + "->"
-		+ attributing.at(change.first) + ",";
+				+ attributing.at(change.first) + ",";
 	}
 	if (logging.back() == ',') {
 		logging.pop_back();
 		logging += "\n\t";
 	} else
-	logging += " ";
+		logging += " ";
 	logging += "}\n}";
 	log.returned(logging);
 
@@ -233,11 +233,14 @@ Location::container::iterator Location::locate(size_t offset) const {
 			method<std::type_index>(nullptr, "locate", typeid(result), "",
 					"offset", offset));
 	auto end = containing.end();
-	size_t index = 0;
+	size_t index = 1;
 	std::ostringstream message;
 
-	while (result != end && ++index < offset)
-		++result;
+	if (offset)
+		while (result != end && ++index < offset)
+			++result;
+	else
+		result = end;
 	if (result == end) {
 		message << "WARNING invalid argument: offset > size="
 				<< containing.size() << ".";
@@ -348,10 +351,11 @@ std::unique_ptr<Object> Location::extract(container::iterator iterator,
 
 	if (iterator == containing.end()) {
 		std::string message =
-				"ERROR invalid arguSment: iterator is out of range.";
+				"ERROR invalid argument: iterator is out of range.";
 
 		log.message(message);
 		std::cerr << log.log() << " " << message << std::endl;
+
 		throw std::invalid_argument(message);
 	}
 	iterator->second.swap(result);
@@ -371,15 +375,18 @@ void Location::remove(container::const_iterator iterator, const Log* caller) {
 							+ std::to_string(which(*iterator->second))
 							+ "]const"));
 
-	if (iterator != containing.end()) {
-		containing.erase(iterator);
-		modification = std::chrono::system_clock::to_time_t(
-				std::chrono::system_clock::now());
-	} else {
+	if (iterator == containing.end()) {
 		std::string message =
 				"WARNING invalid argument: iterator is out of range.";
 
+		log.message(message);
 		std::cerr << log.log() << " " << message << std::endl;
+
+		throw std::invalid_argument(message);
+	} else {
+		containing.erase(iterator);
+		modification = std::chrono::system_clock::to_time_t(
+				std::chrono::system_clock::now());
 	}
 }
 Object* Location::operator [](size_t offset) const {
@@ -440,90 +447,78 @@ void Location::insert_front(std::string name,
 			&method<void>(caller, "insert_front", typeid(void), "", "name",
 					name, "instance", instance.get()));
 }
-bool Location::insert(size_t offset, std::string name,
-		std::unique_ptr<Object>&& instance, Log track) {
-	std::ostringstream log;
+void Location::insert(size_t offset, std::string name,
+		std::unique_ptr<Object>&& instance, const Log* caller) {
+	Log log(
+			method<void>(caller, "insert", typeid(void), "", "offset", offset,
+					"name", name, "instance", instance.get()));
+	std::ostringstream message;
 
-	log << track.tracker() << "bool base::Location{" << this
-			<< "}.insert(size_t offset=" << offset << ", std::string name=\""
-			<< name << "\", std::unique_ptr<base::Object>&& instance="
-			<< instance.get() << ")";
-	std::clog << log.str() << " {" << std::endl;
 	if (instance.get()) {
-		if (offset <= contained.size()) {
+		if (offset > containing.size() + 1)
+			message << "WARNING invalid argument: offset > 1 + size="
+					<< containing.size() << ".";
+		else if (offset) {
 			auto result = locate(offset);
 
-			result = contained.emplace(result,
-					std::make_pair(naming(name), nullptr));
+			result = containing.emplace(result, naming(name), nullptr,
+					std::map<std::string, std::string>(), &log);
 			result->second.swap(instance);
 			result->second->position = this;
 			modification = result->second->modification =
 					std::chrono::system_clock::to_time_t(
 							std::chrono::system_clock::now());
-			std::clog << track() << "}=true" << std::endl;
+		} else
+			message << "WARNING invalid argument: offset > 1 + size="
+					<< containing.size() << ".";
+	} else
+		message = "ERROR invalid argument: instance cannot be undefined.";
+	if (message.str().length()) {
+		log.message(message.str());
+		std::cerr << log.log() << " " << message.str() << std::endl;
 
-			return true;
-		} else {
-			std::ostringstream message;
-
-			message << "=false WARNING invalid argument: offset >= size="
-					<< contained.size() << ".";
-			std::clog << track() << "}" << message.str() << std::endl;
-			std::cerr << log.str() << message.str() << std::endl;
-
-			return false;
-		}
-	} else {
-		std::string message =
-				"= ERROR invalid argument: instance cannot be undefined.";
-
-		std::clog << track() << "}" << message << std::endl;
-		std::cerr << log.str() << message << std::endl;
-		throw std::invalid_argument(log.str() + message);
+		throw std::invalid_argument(message.str());
 	}
 }
 void Location::insert_back(std::string name, std::unique_ptr<Object>&& instance,
-		Log track) {
-	std::clog << track.tracker() << "void base::Location{" << this
-			<< "}.insert_back(std::string name=\"" << name
-			<< "\", std::unique_ptr<base::Object>&& instance=" << instance.get()
-			<< ") {" << std::endl;
-	insert(contained.size(), name, std::move(instance), track);
-	std::clog << track() << "}" << std::endl;
+		const Log* caller) {
+	insert(++containing.size(), name, std::move(instance),
+			&method<void>(caller, "insert_back", typeid(void), "", "name", name,
+					"instance", instance.get()));
+}
+bool Location::remove(size_t offset, Log track) {
+	container::iterator iterator;
+	auto result = true;
+
+	std::clog << track.tracker() << "bool base::Location{" << this
+			<< "}.remove(size_t offset=" << offset << ") {" << std::endl;
+	std::clog << track() << "}=" << (result = remove(locate(offset), track))
+			<< std::endl;
+
+	return result;
+}
+bool Location::remove(std::string name, Log track) {
+	container::iterator iterator;
+	auto result = false;
+
+	std::clog << track.tracker() << "bool base::Location{" << this
+			<< "}.remove(std::string name=\"" << name << "\") {" << std::endl;
+	std::clog << track() << "}=" << (result = remove(locate(name), track))
+			<< std::endl;
+
+	return result;
+}
+bool Location::remove(const Object& instance, Log track) {
+	auto result = false;
+
+	std::clog << track.tracker() << "bool base::Location{" << this
+			<< "}.remove(const base::Object* instance=" << &instance << ") {"
+			<< std::endl;
+	std::clog << track() << "}=" << (result = remove(locate(instance), track))
+			<< std::endl;
+
+	return result;
 }/*
- bool Location::remove(size_t offset, Log track) {
- container::iterator iterator;
- auto result = true;
-
- std::clog << track.tracker() << "bool base::Location{" << this
- << "}.remove(size_t offset=" << offset << ") {" << std::endl;
- std::clog << track() << "}=" << (result = remove(locate(offset), track))
- << std::endl;
-
- return result;
- }
- bool Location::remove(std::string name, Log track) {
- container::iterator iterator;
- auto result = false;
-
- std::clog << track.tracker() << "bool base::Location{" << this
- << "}.remove(std::string name=\"" << name << "\") {" << std::endl;
- std::clog << track() << "}=" << (result = remove(locate(name), track))
- << std::endl;
-
- return result;
- }
- bool Location::remove(const Object& instance, Log track) {
- auto result = false;
-
- std::clog << track.tracker() << "bool base::Location{" << this
- << "}.remove(const base::Object* instance=" << &instance << ") {"
- << std::endl;
- std::clog << track() << "}=" << (result = remove(locate(instance), track))
- << std::endl;
-
- return result;
- }
  std::unique_ptr<Object> Location::extract(size_t offset, Log track) {
  std::unique_ptr<Object> result;
 
