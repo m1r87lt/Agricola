@@ -615,19 +615,32 @@ base::Object& Card::side(bool covered) const {
 			method<std::type_index>(nullptr, "side", typeid(result), "",
 					"covered", covered));
 
-	result = operator [](covered ? 0 : 1);
-	if ((result = covered ? operator [](0) : operator [](1))) {
-		std::clog << track() << "}=" << result << std::endl;
+	if ((result = operator [](covered ? 0 : 1))) {
+		log.returned(result);
 
-		return result;
+		return *result;
 	} else {
-		std::string message = "= ERROR a face is not instanced.";
+		std::string message = "ERROR the "
+				+ std::string(covered ? "cover" : "face")
+				+ " is not instanced.";
 
-		std::clog << track() << "}" << message << std::endl;
-		std::cerr << log.str() << message << std::endl;
-		throw std::length_error(log.str() + message);
+		log.message(message);
+		std::cerr << log.log() << " " << message << std::endl;
+
+		throw std::length_error(message);
 	}
 }
+long long unsigned Card::who() const {
+	Log log(method<std::type_index>(nullptr, "who", typeid(long long unsigned)))
+}
+	Location* where() const;
+	time_t when() const;
+	void attribute(std::map<std::string, std::string>, const Log*);
+	std::map<std::string, std::string> attributes();
+	std::pair<time_t,
+			std::map<std::string, std::pair<std::string, std::string>>>what();
+	bool operator ==(const Card&) const;
+	bool operator !=(const Card&) const;
 bool Card::facing() const {
 	std::clog << base::Log().tracker() << "bool game::Card{" << this
 			<< "}.facing()=" << !covered << std::endl;
@@ -674,160 +687,160 @@ Card::Card(std::unique_ptr<Location>&& cover, std::unique_ptr<Location>&& face,
 	Location::insert(1, "face", std::move(face), track);
 	std::clog << track() << "}=" << this << std::endl;
 }
+/*
+ //Deck
+ base::Object* Deck::enter(std::string content, size_t number,
+ unsigned derived) const {
+ return Location::enter(content, number, derived);
+ }
+ std::string Deck::field(std::string variable, unsigned derived) const {
+ if (variable == "name")
+ return name;
+ else
+ return Location::field(variable, derived);
+ }
+ void Deck::field(std::string variable, size_t position, std::string value,
+ unsigned derived) {
+ if (variable == "name")
+ name = value;
+ else
+ Location::field(variable, position, value, derived);
+ modification = std::chrono::system_clock::to_time_t(
+ std::chrono::system_clock::now());
+ }
+ std::string Deck::what() const {
+ std::clog << base::Log().tracker() << "std::string game::Deck{" << this
+ << "}.what()=" << typeid(*this).name() << std::endl;
 
-//Deck
-base::Object* Deck::enter(std::string content, size_t number,
-		unsigned derived) const {
-	return Location::enter(content, number, derived);
+ return typeid(*this).name();
+ }
+
+ const std::string& Deck::label() const {
+ std::clog << base::Log().tracker() << "game::Deck{" << this
+ << "}.label()=\"" << name << "\"" << std::endl;
+
+ return name;
+ }
+ std::unique_ptr<Card> Deck::draw(base::Log track) {
+ std::unique_ptr < Card > result;
+
+ std::clog << track.tracker()
+ << "std::unique_ptr<game::Card> game::Deck{" << this
+ << "}.draw() {" << std::endl;
+ result.reset(
+ dynamic_cast<Card*>(Location::extract((size_t) 0, track).release()));
+ std::clog << track() << "}=" << result.get() << std::endl;
+
+ return std::move(result);
+ }
+ std::unique_ptr<Card> Deck::extract(base::Log track) {
+ std::unique_ptr < Card > result;
+ std::default_random_engine generator;
+ size_t random = 0;
+
+ std::clog << track.tracker()
+ << "std::unique_ptr<game::Card> game::Deck{" << this
+ << "}.extract() {" << std::endl;
+ std::clog << track() << "random="
+ << (random = std::uniform_int_distribution < size_t
+ > (0, Location::size() - 1)(generator))
+ << std::endl;
+ result.reset(
+ dynamic_cast<Card*>(Location::extract(random, track).release()));
+ std::clog << track() << "}=" << result.get() << std::endl;
+
+ return std::move(result);
+ }
+ std::unique_ptr<Card> Deck::get_bottom(base::Log track) {
+ std::unique_ptr < Card > result;
+
+ std::clog << track.tracker()
+ << "std::unique_ptr<game::Card> game::Deck{" << this
+ << "}.get_bottom() {" << std::endl;
+ result.reset(
+ dynamic_cast<Card*>(Location::extract(Location::size() - 1,
+ track).release()));
+ std::clog << track() << "}=" << result.get() << std::endl;
+
+ return std::move(result);
+ }
+ void Deck::put_up(std::string name, std::unique_ptr<Card>&& card,
+ base::Log track) {
+ std::clog << track.tracker() << "void game::Deck{" << this
+ << "}.put_up(std::string name=\"" << name
+ << "\", std::unique_ptr< game::Card >&& card=" << card.get()
+ << ") {" << std::endl;
+ Location::insert(0, name,
+ std::unique_ptr < Object > (card.release()), track);
+ std::clog << track() << "}" << std::endl;
+ }
+ void Deck::insert(std::string name, std::unique_ptr<Card>&& card,
+ base::Log track) {
+ std::default_random_engine generator;
+ size_t random = 0;
+
+ std::clog << track.tracker() << "void game::Deck{" << this
+ << "}.insert(std::string name=\"" << name
+ << "\", std::unique_ptr< game::Card >&& card=" << card.get()
+ << ") {" << std::endl;
+ std::clog << track() << "random="
+ << (random = std::uniform_int_distribution < size_t
+ > (0, Location::size())(generator)) << std::endl;
+ Location::insert(random, name,
+ std::unique_ptr < Object > (card.release()), track);
+ std::clog << track() << "}" << std::endl;
+ }
+ void Deck::put_down(std::string name, std::unique_ptr<Card>&& card,
+ base::Log track) {
+ std::clog << track.tracker() << "void game::Deck{" << this
+ << "}.put_down(std::string name=\"" << name
+ << "\", std::unique_ptr< game::Card >&& card=" << card.get()
+ << ") {" << std::endl;
+ Location::insert_back(name,
+ std::unique_ptr < Object > (card.release()), track);
+ std::clog << track() << "}" << std::endl;
+ }
+ void Deck::shuffle(base::Log track) {
+ std::default_random_engine generator;
+ size_t current = 0;
+ size_t length = 0;
+ std::uniform_int_distribution < size_t > distribution;
+
+ std::clog << track.tracker() << "void game::Deck{" << this
+ << "}.shuffle() {" << std::endl;
+ length = Location::size();
+ distribution.param(
+ std::uniform_int_distribution < size_t
+ > (current, length ? length - 1 : current).param());
+ for (std::string card; length > 0; --length) {
+ std::clog << track() << "current="
+ << (current = distribution(generator)) << std::endl;
+ card = who(*Location::operator [](current));
+ Location::insert(0, card, Location::extract(current, track),
+ track);
+ }
+ std::clog << track() << "}" << std::endl;
+ }
+
+ Deck* Deck::construct(std::string label, base::Log track) {
+ Deck* result = nullptr;
+
+ std::clog << track.tracker()
+ << "game::Deck* game::Deck::construct(std::string label=\""
+ << label << "\") {" << std::endl;
+ result = new Deck(label, nullptr, track);
+ std::clog << track() << "}=" << result << std::endl;
+
+ return result;
+ }
+
+ Deck::Deck(std::string label, Location* position, base::Log track) :
+ Location(position, track) {
+ name = label;
+ std::clog << track.tracker()
+ << "game::Deck::Deck(std::string label=\"" << label
+ << "\", base::Location* position=" << position << ")="
+ << this << std::endl;
+ }
+ */
 }
-std::string Deck::field(std::string variable, unsigned derived) const {
-	if (variable == "name")
-		return name;
-	else
-		return Location::field(variable, derived);
-}
-void Deck::field(std::string variable, size_t position, std::string value,
-		unsigned derived) {
-	if (variable == "name")
-		name = value;
-	else
-		Location::field(variable, position, value, derived);
-	modification = std::chrono::system_clock::to_time_t(
-			std::chrono::system_clock::now());
-}
-std::string Deck::what() const {
-	std::clog << base::Log().tracker() << "std::string game::Deck{" << this
-			<< "}.what()=" << typeid(*this).name() << std::endl;
-
-	return typeid(*this).name();
-		}
-
-		const std::string& Deck::label() const {
-			std::clog << base::Log().tracker() << "game::Deck{" << this
-					<< "}.label()=\"" << name << "\"" << std::endl;
-
-			return name;
-		}
-		std::unique_ptr<Card> Deck::draw(base::Log track) {
-			std::unique_ptr < Card > result;
-
-			std::clog << track.tracker()
-					<< "std::unique_ptr<game::Card> game::Deck{" << this
-					<< "}.draw() {" << std::endl;
-			result.reset(
-					dynamic_cast<Card*>(Location::extract((size_t) 0, track).release()));
-			std::clog << track() << "}=" << result.get() << std::endl;
-
-			return std::move(result);
-		}
-		std::unique_ptr<Card> Deck::extract(base::Log track) {
-			std::unique_ptr < Card > result;
-			std::default_random_engine generator;
-			size_t random = 0;
-
-			std::clog << track.tracker()
-					<< "std::unique_ptr<game::Card> game::Deck{" << this
-					<< "}.extract() {" << std::endl;
-			std::clog << track() << "random="
-					<< (random = std::uniform_int_distribution < size_t
-							> (0, Location::size() - 1)(generator))
-					<< std::endl;
-			result.reset(
-					dynamic_cast<Card*>(Location::extract(random, track).release()));
-			std::clog << track() << "}=" << result.get() << std::endl;
-
-			return std::move(result);
-		}
-		std::unique_ptr<Card> Deck::get_bottom(base::Log track) {
-			std::unique_ptr < Card > result;
-
-			std::clog << track.tracker()
-					<< "std::unique_ptr<game::Card> game::Deck{" << this
-					<< "}.get_bottom() {" << std::endl;
-			result.reset(
-					dynamic_cast<Card*>(Location::extract(Location::size() - 1,
-							track).release()));
-			std::clog << track() << "}=" << result.get() << std::endl;
-
-			return std::move(result);
-		}
-		void Deck::put_up(std::string name, std::unique_ptr<Card>&& card,
-				base::Log track) {
-			std::clog << track.tracker() << "void game::Deck{" << this
-					<< "}.put_up(std::string name=\"" << name
-					<< "\", std::unique_ptr< game::Card >&& card=" << card.get()
-					<< ") {" << std::endl;
-			Location::insert(0, name,
-					std::unique_ptr < Object > (card.release()), track);
-			std::clog << track() << "}" << std::endl;
-		}
-		void Deck::insert(std::string name, std::unique_ptr<Card>&& card,
-				base::Log track) {
-			std::default_random_engine generator;
-			size_t random = 0;
-
-			std::clog << track.tracker() << "void game::Deck{" << this
-					<< "}.insert(std::string name=\"" << name
-					<< "\", std::unique_ptr< game::Card >&& card=" << card.get()
-					<< ") {" << std::endl;
-			std::clog << track() << "random="
-					<< (random = std::uniform_int_distribution < size_t
-							> (0, Location::size())(generator)) << std::endl;
-			Location::insert(random, name,
-					std::unique_ptr < Object > (card.release()), track);
-			std::clog << track() << "}" << std::endl;
-		}
-		void Deck::put_down(std::string name, std::unique_ptr<Card>&& card,
-				base::Log track) {
-			std::clog << track.tracker() << "void game::Deck{" << this
-					<< "}.put_down(std::string name=\"" << name
-					<< "\", std::unique_ptr< game::Card >&& card=" << card.get()
-					<< ") {" << std::endl;
-			Location::insert_back(name,
-					std::unique_ptr < Object > (card.release()), track);
-			std::clog << track() << "}" << std::endl;
-		}
-		void Deck::shuffle(base::Log track) {
-			std::default_random_engine generator;
-			size_t current = 0;
-			size_t length = 0;
-			std::uniform_int_distribution < size_t > distribution;
-
-			std::clog << track.tracker() << "void game::Deck{" << this
-					<< "}.shuffle() {" << std::endl;
-			length = Location::size();
-			distribution.param(
-					std::uniform_int_distribution < size_t
-							> (current, length ? length - 1 : current).param());
-			for (std::string card; length > 0; --length) {
-				std::clog << track() << "current="
-						<< (current = distribution(generator)) << std::endl;
-				card = who(*Location::operator [](current));
-				Location::insert(0, card, Location::extract(current, track),
-						track);
-			}
-			std::clog << track() << "}" << std::endl;
-		}
-
-		Deck* Deck::construct(std::string label, base::Log track) {
-			Deck* result = nullptr;
-
-			std::clog << track.tracker()
-					<< "game::Deck* game::Deck::construct(std::string label=\""
-					<< label << "\") {" << std::endl;
-			result = new Deck(label, nullptr, track);
-			std::clog << track() << "}=" << result << std::endl;
-
-			return result;
-		}
-
-		Deck::Deck(std::string label, Location* position, base::Log track) :
-				Location(position, track) {
-			name = label;
-			std::clog << track.tracker()
-					<< "game::Deck::Deck(std::string label=\"" << label
-					<< "\", base::Location* position=" << position << ")="
-					<< this << std::endl;
-		}
-		*/
-	}
