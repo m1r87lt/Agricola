@@ -836,7 +836,7 @@ Card::Card(std::unique_ptr<Location>&& cover, std::unique_ptr<Location>&& face,
 
  Deck::Deck(std::string label, Location* position, base::Log track) :
  Location(position, track) {
- name = label;
+ name = label;ddddd
  std::clog << track.tracker()
  << "game::Deck::Deck(std::string label=\"" << label
  << "\", base::Location* position=" << position << ")="

@@ -532,7 +532,7 @@ public:
 			size_t, std::string, base::Log, Arguments&& ...) = delete;
 	template<typename ObjectDerived, typename ... Arguments> void emplace_back(
 			std::string, base::Log, Arguments&& ...) = delete;
-	bool remove(size_t, base::Log) = delete;
+	bool remove(size_t, base::Log) = delete;ssss
 	bool remove(std::string, base::Log) = delete;
 	bool remove(const Object&, base::Log) = delete;
 	std::unique_ptr<Object> extract(size_t, base::Log) = delete;
