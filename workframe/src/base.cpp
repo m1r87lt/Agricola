@@ -117,10 +117,10 @@ Log::Log(Log&& moved) :
 }
 
 //Object
-Object::set Object::everything;
+std::set<Object*> Object::everything;
 
 long long unsigned Object::who() const {
-	method<long long unsigned>("", nullptr, "who", track);
+	method<long long unsigned>(nullptr, "", track, "who");
 
 	return track;
 }

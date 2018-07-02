@@ -13,15 +13,15 @@
 #include <cmath>
 #include <utility>
 #include <typeindex>
-#include <list>
-#include <type_traits>
+//#include <list>
+//#include <type_traits>
 #include <set>
 #include <map>
-#include <vector>////
+/*#include <vector>////
 #include <iostream>
 #include <vector>
 #include <memory>
-#include <functional>
+#include <functional>*/
 
 namespace base {
 bool running();
@@ -36,7 +36,7 @@ template<typename Class> Class truth(Class&& object, Class&& otherwise) {
 template<typename Container, typename Function> std::string lister(
 		Container&& container, std::string separator = ",", bool cascading =
 				false, bool embracing = false, bool enumerating = false,
-		Function function = [](typename Container::T content) {
+		Function function = [](typename Container::value_type content) {
 			return content;
 		}) {
 	std::ostringstream result;
@@ -60,7 +60,6 @@ template<typename Container, typename Function> std::string lister(
 class Log {
 	using variable = std::pair<std::pair<
 	std::type_index, std::string>, std::string>;
-	using list = std::list<variable>;
 
 	std::string legacy;
 	long long unsigned track;
@@ -282,8 +281,8 @@ protected:
 		return result;
 	}
 	template<typename Type, typename Return, typename ... Arguments> Log method(
-			const Log* caller, std::string function, Return&& returning,
-			std::string message, std::string name, Arguments&& ... args) const {
+			const Log* caller, std::string message, Return&& returning, std::string function,
+			Arguments&& ... args) const {
 		auto t = returnType<Type>(returning);
 		Log result(t);
 		auto r = returnValue<Type>(returning);
@@ -371,44 +370,41 @@ protected:
 	}
 };
 
-struct Object: public Log {
-	using structure = std::map<std::string, std::string>;
-	using set = std::set<Object*>;
+class Object: public Log {
+	Object* position;
+	time_t creation;
+	std::map<std::string, std::string> attributing;
+	std::map<std::string, std::string> changes;
+	static std::set<Object*> everything;
+	friend class Location;
+protected:
+	time_t modification;
+
+	Object(Object*, std::map<std::string, std::string>, const Log*);
+public:
+	using modifications = std::pair<time_t,
+	std::map<std::string, std::pair<std::string, std::string>>>;
 
 	long long unsigned who() const;
 	Object* where() const;
 	time_t when() const;
-	structure attributes() const;
-	void attribute(structure, const Log*);
-	std::pair<time_t,
-			std::map<std::string, std::pair<std::string, std::string>>>what();
+	std::map<std::string, std::string> attributes() const;
+	void attribute(std::map<std::string, std::string>, const Log*);
+	modifications what();
 	bool operator ==(const Object&) const;
 	bool operator !=(const Object&) const;
-	virtual structure evaluate(structure) const = 0;
-	static std::string lister(structure);
-	static std::string lister(set);
-	static set& all();
-	static set root();
+	virtual std::map<std::string, std::string> evaluate(std::map<std::string, std::string>) const = 0;
+	static std::string lister(std::map<std::string, std::string>);
+	static std::string lister(std::set<Object*>);
+	static std::string logging(modifications);
+	static std::set<Object*>& all();
+	static std::set<Object*> root();
 
 	virtual ~Object();
 	Object(const Object&) = delete;
 	Object(Object&&) = delete;
 	Object& operator =(const Object&) = delete;
 	Object& operator =(Object&&) = delete;
-private:
-	Object* position;
-	time_t creation;
-	structure attributing;
-	structure changes;
-	static set everything;
-	friend class Location;
-protected:
-	time_t modification;
-
-	static std::string logging(std::pair<time_t,
-			std::map<std::string, std::pair<std::string, std::string>>>);
-
-	Object(Object*, structure, const Log*);
 };
 
 class Location: public Object {
