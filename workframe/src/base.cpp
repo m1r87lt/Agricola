@@ -135,11 +135,8 @@ time_t Object::when() const {
 	return creation;
 }
 Object::structure Object::attributes() const {
-	Log log(
-			method<std::type_index>("", nullptr, "attributes",
-					typeid(attributing)));
-
-	log.returned(lister(attributing).c_str());
+	method<std::type_index>("", nullptr, "attributes", typeid(attributing)).returned(
+			lister(attributing).c_str());
 
 	return attributing;
 }
@@ -153,7 +150,7 @@ void Object::attribute(structure attributing, const Log* caller) {
 			this->attributing.insert(field);
 		else {
 			changes.insert(*substituting);
-			*substituting = field;
+			substituting->second = field.second;
 		}
 	}
 	modification = std::chrono::system_clock::to_time_t(
@@ -162,22 +159,12 @@ void Object::attribute(structure attributing, const Log* caller) {
 std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>>Object::what() {
 	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> result;
 	auto log = method<std::type_index>("", nullptr, "what", typeid(result));
-	std::string logging = "{" + std::to_string(modification) + ";\n\t{";
 
 	result.first = modification;
-	for (auto change : changes) {
-		result.second[change.first] = std::make_pair(change.second,
-				attributing.at(change.first));
-		logging += "\n\t\t" + change.first + ": " + change.second + "->"
-		+ attributing.at(change.first) + ",";
-	}
-	if (logging.back() == ',') {
-		logging.pop_back();
-		logging += "\n\t";
-	} else
-	logging += " ";
-	logging += "}\n}";
-	log.returned(logging);
+	for (auto change : changes)
+	result.second[change.first] = std::make_pair(change.second,
+			attributing.at(change.first));
+	log.returned(logging(result));
 
 	return result;
 }
@@ -196,15 +183,19 @@ bool Object::operator !=(const Object& than) const {
 	return result;
 }
 std::string Object::lister(structure s) {
-	return lister(s, ",", true, true, false,
+	return base::lister(s, ",", true, true, false,
 			[](std::pair<std::string, std::string> content) {
 				return content.first + "=" + content.second;
 			});
 }
+std::string Object::lister(set s) {
+	return base::lister(s, ";", false, true, false, [](Object* content) {
+		return content;
+	});
+}
 Object::set& Object::all() {
 	function<std::type_index>("", nullptr, typeid(everything), "base",
-			typeid(Object), "all").returned(
-			lister(everything, ";", true, true).c_str());
+			typeid(Object), "all").returned(lister(everything).c_str());
 
 	return everything;
 }
@@ -216,9 +207,26 @@ Object::set Object::root() {
 	for (auto object : everything)
 		if (!object->position)
 			result.insert(object);
-	log.returned(lister(result, ";", true, true).c_str());
+	log.returned(lister(result).c_str());
 
 	return result;
+}
+std::string Object::logging(
+		std::pair<time_t,
+				std::map<std::string, std::pair<std::string, std::string>>>w) {
+	std::string log = "{" + std::to_string(w.first) + ";\n\t{";
+
+	for (auto pair : w.second)
+	log += "\n\t\t" + pair.first + ": " + pair.second.first + "->"
+	+ pair.second.second + ",";
+	if (log.back() == ',') {
+		log.pop_back();
+		log+= "\n\t";
+	} else
+	log += " ";
+	log += "}\n}";
+
+	return log;
 }
 Object::Object(Object* position, structure attributes, const Log* caller) :
 		Log(caller, "", false, "base", "position", position, "attributes",
@@ -241,10 +249,10 @@ Object::~Object() {
 
 //Location
 std::string Location::naming(std::string name) {
-	Log log(
-			method<std::type_index>(nullptr, "naming", typeid(std::string), "",
-					"name", name));
 	std::string candidate = name;
+	Log log(
+			method<std::type_index>(nullptr, "naming", typeid(candidate), "",
+					"name", name));
 
 	if (candidate.empty())
 		candidate = name = "content";
@@ -302,8 +310,8 @@ std::map<size_t, Location::container::iterator> Location::locate(
 		std::cerr << log.log() << " " << message.str() << std::endl;
 	} else
 		log.returned(
-				lister(result, ",", false, true, false,
-						[](decltype(current) found) {
+				base::lister(result, ",", false, true, false,
+						[&message](decltype(current) found) {
 							message.clear();
 							message << "[" << found.first << "]" << found.second->second.get();
 
@@ -334,8 +342,8 @@ std::map<size_t, Location::container::iterator> Location::locate(
 		std::cerr << log.log() << " " << message.str() << std::endl;
 	} else
 		log.returned(
-				lister(result, ",", false, true, false,
-						[](decltype(current) found) {
+				base::lister(result, ",", false, true, false,
+						[&message](decltype(current) found) {
 							message.clear();
 							message << "[" << found.first << "]" << found.second->second.get();
 
@@ -439,7 +447,7 @@ std::map<size_t, Object*> Location::operator ()(std::string name) const {
 	for (auto found : located)
 		result.emplace(found.first, found.second->second.get());
 	log.returned(
-			lister(result, ",", true, true, false,
+			base::lister(result, ",", true, true, false,
 					[](std::pair<size_t, Object*> content) {
 						std::ostringstream text;
 
@@ -460,7 +468,7 @@ std::map<size_t, Object*> Location::operator ()(std::type_index type) const {
 	for (auto found : located)
 		result.emplace(found.first, found.second->second.get());
 	log.returned(
-			lister(result, ",", true, true, false,
+			base::lister(result, ",", true, true, false,
 					[](std::pair<size_t, Object*> content) {
 						std::ostringstream text;
 
@@ -605,16 +613,19 @@ std::string Location::who(const Object& instance) {
 
 	return result;
 }
-std::vector<const Object*> Location::path(const Object& instance) {
-	std::vector<const Object*> result;
+std::vector<Object*> Location::path(const Object& instance) {
+	std::vector<Object*> result;
 	Log log(
 			function<std::type_index>(nullptr, "", typeid(result), "base",
 					typeid(Location), "path", "instance", &instance));
 
 	if (instance.position)
 		result = path(*instance.position);
-	result.push_back(&instance);
-	log.returned(lister(result));
+	result.push_back(&const_cast<Object&>(instance));
+	log.returned(
+			base::lister(result, ",", false, true, false, [](Object* content) {
+				return content;
+			}).c_str());
 
 	return result;
 }
@@ -650,7 +661,7 @@ long long unsigned Card::who() const {
 	long long unsigned result = 0;
 	Log log(method<std::type_index>("", nullptr, "who", typeid(result)));
 
-	log.returned((result = Object::who()));
+	log.returned(result = Object::who());
 
 	return result;
 }
@@ -658,7 +669,7 @@ base::Location* Card::where() const {
 	base::Location* result = nullptr;
 	Log log(method<std::type_index>("", nullptr, "where", typeid(result)));
 
-	log.returned((result = Object::where()));
+	log.returned(result = dynamic_cast<Location*>(Object::where()));
 
 	return result;
 }
@@ -666,7 +677,7 @@ time_t Card::when() const {
 	time_t result;
 	Log log(method<std::type_index>("", nullptr, "when", typeid(result)));
 
-	log.returned((result = Object::when()));
+	log.returned(result = Object::when());
 
 	return result;
 }
@@ -677,11 +688,11 @@ void Card::attribute(structure attributing, const Log* caller) {
 
 	Object::attribute(attributing, &log);
 }
-base::Object::structure Card::attributes() {
+base::Object::structure Card::attributes() const {
 	structure result;
 	Log log(method<std::type_index>("", nullptr, "attributes", typeid(result)));
 
-	log.returned(lister((result = Object::attributes())).c_str());
+	log.returned(lister(result = Object::attributes()).c_str());
 
 	return result;
 }
@@ -697,17 +708,59 @@ std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>>Car
 }
 bool Card::operator ==(const Card& righthand) const {
 	bool result = false;
-	Log log(binary<std::type_index>(nullptr, typeid(result), "==", "game", &righthand, ""));
+	Log log(
+			binary<std::type_index>(nullptr, typeid(result), "==", "game",
+					&righthand, ""));
 
-	log.returned((result = Object::operator ==(righthand)));
+	log.returned(result = Object::operator ==(righthand));
 
 	return result;
 }
 bool Card::operator !=(const Card& righthand) const {
 	bool result = false;
-	Log log(binary<std::type_index>(nullptr, typeid(result), "==", "game", &righthand, ""));
+	Log log(
+			binary<std::type_index>(nullptr, typeid(result), "==", "game",
+					&righthand, ""));
 
-	log.returned((result = Object::operator !=(righthand)));
+	log.returned(result = Object::operator !=(righthand));
+
+	return result;
+}
+base::Object::structure Card::evaluate(structure attributing) const {
+	structure result;
+	Log log(
+			method<std::type_index>(nullptr, "evaluate", typeid(result), "",
+					"attributing", lister(attributing).c_str()));
+	auto c = attributing.find("covered");
+	auto f = attributing.find("faced");
+	auto C = attributing.find("cover");
+	auto F = attributing.find("face");
+	auto command = 0;
+
+	if (c != attributing.end())
+		++command;
+	if (f != attributing.end())
+		command += 2;
+	if (C != attributing.end())
+		command += 4;
+	if (F != attributing.end())
+		command += 8;
+	if ((command == 1 || command == 3) && c->second == "?")
+		result["covered"] = covered ? "true" : "false";
+	if ((command == 2 || command == 3) && c->second == "?")
+		result["faced"] = covered ? "false" : "true";
+	if (command == 4 || command == 8) {
+		result["error"] = "false";
+		if (c->second == "true")
+			covered = command == 4;
+		else if (c->second == "false")
+			covered = command == 8;
+		else
+			result["error"] = "true";
+	}
+	if (result.empty())
+		result["error"] = "true";
+	log.returned(lister(result));
 
 	return result;
 }
@@ -724,7 +777,7 @@ bool Card::facing() const {
 
 	return !covered;
 }
-void Card::facing(const base::Log* caller) {
+void Card::facing(const Log* caller) {
 	Log log(method<void>("", caller, "facing", typeid(void)));
 
 	covered = false;
@@ -736,191 +789,232 @@ bool Card::covering() const {
 
 	return covered;
 }
-void Card::covering(const base::Log* caller) {
+void Card::covering(const Log* caller) {
 	Log log(method<void>("", caller, "covering", typeid(void)));
 
 	covered = true;
 	modification = std::chrono::system_clock::to_time_t(
 			std::chrono::system_clock::now());
 }
-bool Card::flip(const base::Log* caller) {
-	Log log(method<std::type_index>("", caller, "flip", typeid(bool)));
+void Card::flip(const Log* caller) {
+	Log log(method<void>("", caller, "flip", typeid(void)));
 
 	covered = !covered;
 	modification = std::chrono::system_clock::to_time_t(
 			std::chrono::system_clock::now());
-	log.returned(covered);
+}
+std::unique_ptr<Card> Card::construct(std::unique_ptr<Object>&& cover,
+		std::unique_ptr<Object>&& face, bool covered, Location* position,
+		structure attributing, const Log* caller) {
+	std::unique_ptr<Card> result;
+	Log log(
+			function<std::type_index>(caller, "", typeid(result), "game",
+					typeid(Card), "construct", "cover", cover.get(), "face",
+					face.get(), "covered", covered, "position", position,
+					"structure", lister(attributing).c_str()));
 
-	return covered;
+	result.reset(
+			new Card(std::move(cover), std::move(face), covered, position,
+					attributing, &log));
+	log.returned(result.get());
+
+	return std::move(result);
 }
 
 Card::Card(std::unique_ptr<Object>&& cover, std::unique_ptr<Object>&& face,
-		Location* position, structure attributing, const Log* caller) :
+		bool covered, Location* position, structure attributing,
+		const Log* caller) :
 		Location(position, attributing, caller) {
-	std::clog << track.tracker()
-			<< "game::Card::Card(std::unique_ptr<base::Location>&& cover="
-			<< cover.get() << ", std::unique_ptr<base::Location>&& face="
-			<< face.get() << ", base::Location* position=" << position << ") {"
-			<< std::endl;
-	covered = false;
-	Location::insert(0, "cover", std::move(cover), track);
-	Location::insert(1, "face", std::move(face), track);
-	std::clog << track() << "}=" << this << std::endl;
+	std::ostringstream log;
+
+	log << "+arguments: std::unique_ptr<Object>&& cover=" << cover.get()
+			<< ", std::unique_ptr<Object>&& face=" << face.get()
+			<< ", bool covered=" << covered;
+	message(log.str());
+	this->covered = covered;
+	insert_front("cover", std::move(cover), this);
+	insert_back("face", std::move(face), this);
 }
-/*
- //Deck
- base::Object* Deck::enter(std::string content, size_t number,
- unsigned derived) const {
- return Location::enter(content, number, derived);
- }
- std::string Deck::field(std::string variable, unsigned derived) const {
- if (variable == "name")
- return name;
- else
- return Location::field(variable, derived);
- }
- void Deck::field(std::string variable, size_t position, std::string value,
- unsigned derived) {
- if (variable == "name")
- name = value;
- else
- Location::field(variable, position, value, derived);
- modification = std::chrono::system_clock::to_time_t(
- std::chrono::system_clock::now());
- }
- std::string Deck::what() const {
- std::clog << base::Log().tracker() << "std::string game::Deck{" << this
- << "}.what()=" << typeid(*this).name() << std::endl;
 
- return typeid(*this).name();
- }
+//Deck
+long long unsigned Deck::who() const {
+	long long unsigned result = 0;
+	Log log(method<std::type_index>("", nullptr, "who", typeid(result)));
 
- const std::string& Deck::label() const {
- std::clog << base::Log().tracker() << "game::Deck{" << this
- << "}.label()=\"" << name << "\"" << std::endl;
+	log.returned(result = Object::who());
 
- return name;
- }
- std::unique_ptr<Card> Deck::draw(base::Log track) {
- std::unique_ptr < Card > result;
+	return result;
+}
+base::Location* Deck::where() const {
+	base::Location* result = nullptr;
+	Log log(method<std::type_index>("", nullptr, "where", typeid(result)));
 
- std::clog << track.tracker()
- << "std::unique_ptr<game::Card> game::Deck{" << this
- << "}.draw() {" << std::endl;
- result.reset(
- dynamic_cast<Card*>(Location::extract((size_t) 0, track).release()));
- std::clog << track() << "}=" << result.get() << std::endl;
+	log.returned(result = dynamic_cast<Location*>(Object::where()));
 
- return std::move(result);
- }
- std::unique_ptr<Card> Deck::extract(base::Log track) {
- std::unique_ptr < Card > result;
- std::default_random_engine generator;
- size_t random = 0;
+	return result;
+}
+time_t Deck::when() const {
+	time_t result;
+	Log log(method<std::type_index>("", nullptr, "when", typeid(result)));
 
- std::clog << track.tracker()
- << "std::unique_ptr<game::Card> game::Deck{" << this
- << "}.extract() {" << std::endl;
- std::clog << track() << "random="
- << (random = std::uniform_int_distribution < size_t
- > (0, Location::size() - 1)(generator))
- << std::endl;
- result.reset(
- dynamic_cast<Card*>(Location::extract(random, track).release()));
- std::clog << track() << "}=" << result.get() << std::endl;
+	log.returned(result = Object::when());
 
- return std::move(result);
- }
- std::unique_ptr<Card> Deck::get_bottom(base::Log track) {
- std::unique_ptr < Card > result;
+	return result;
+}
+void Deck::attribute(structure attributing, const Log* caller) {
+	Log log(
+			method<std::type_index>(nullptr, "attribute", typeid(void), "",
+					"attributing", lister(attributing)));
 
- std::clog << track.tracker()
- << "std::unique_ptr<game::Card> game::Deck{" << this
- << "}.get_bottom() {" << std::endl;
- result.reset(
- dynamic_cast<Card*>(Location::extract(Location::size() - 1,
- track).release()));
- std::clog << track() << "}=" << result.get() << std::endl;
+	Object::attribute(attributing, &log);
+}
+base::Object::structure Deck::attributes() const {
+	structure result;
+	Log log(method<std::type_index>("", nullptr, "attributes", typeid(result)));
 
- return std::move(result);
- }
- void Deck::put_up(std::string name, std::unique_ptr<Card>&& card,
- base::Log track) {
- std::clog << track.tracker() << "void game::Deck{" << this
- << "}.put_up(std::string name=\"" << name
- << "\", std::unique_ptr< game::Card >&& card=" << card.get()
- << ") {" << std::endl;
- Location::insert(0, name,
- std::unique_ptr < Object > (card.release()), track);
- std::clog << track() << "}" << std::endl;
- }
- void Deck::insert(std::string name, std::unique_ptr<Card>&& card,
- base::Log track) {
- std::default_random_engine generator;
- size_t random = 0;
+	log.returned(lister(result = Object::attributes()).c_str());
 
- std::clog << track.tracker() << "void game::Deck{" << this
- << "}.insert(std::string name=\"" << name
- << "\", std::unique_ptr< game::Card >&& card=" << card.get()
- << ") {" << std::endl;
- std::clog << track() << "random="
- << (random = std::uniform_int_distribution < size_t
- > (0, Location::size())(generator)) << std::endl;
- Location::insert(random, name,
- std::unique_ptr < Object > (card.release()), track);
- std::clog << track() << "}" << std::endl;
- }
- void Deck::put_down(std::string name, std::unique_ptr<Card>&& card,
- base::Log track) {
- std::clog << track.tracker() << "void game::Deck{" << this
- << "}.put_down(std::string name=\"" << name
- << "\", std::unique_ptr< game::Card >&& card=" << card.get()
- << ") {" << std::endl;
- Location::insert_back(name,
- std::unique_ptr < Object > (card.release()), track);
- std::clog << track() << "}" << std::endl;
- }
- void Deck::shuffle(base::Log track) {
- std::default_random_engine generator;
- size_t current = 0;
- size_t length = 0;
- std::uniform_int_distribution < size_t > distribution;
+	return result;
+}
+std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>>Deck::what() {
+	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> result;
+	Log log(
+			method<std::type_index>("", nullptr, "what", typeid(result)));
 
- std::clog << track.tracker() << "void game::Deck{" << this
- << "}.shuffle() {" << std::endl;
- length = Location::size();
- distribution.param(
- std::uniform_int_distribution < size_t
- > (current, length ? length - 1 : current).param());
- for (std::string card; length > 0; --length) {
- std::clog << track() << "current="
- << (current = distribution(generator)) << std::endl;
- card = who(*Location::operator [](current));
- Location::insert(0, card, Location::extract(current, track),
- track);
- }
- std::clog << track() << "}" << std::endl;
- }
+	result = Object::what();
+	log.returned("...");
 
- Deck* Deck::construct(std::string label, base::Log track) {
- Deck* result = nullptr;
+	return result;
+}
+bool Deck::operator ==(const Deck& righthand) const {
+	bool result = false;
+	Log log(
+			binary<std::type_index>(nullptr, typeid(result), "==", "game",
+					&righthand, ""));
 
- std::clog << track.tracker()
- << "game::Deck* game::Deck::construct(std::string label=\""
- << label << "\") {" << std::endl;
- result = new Deck(label, nullptr, track);
- std::clog << track() << "}=" << result << std::endl;
+	log.returned(result = Object::operator ==(righthand));
 
- return result;
- }
+	return result;
+}
+bool Deck::operator !=(const Deck& righthand) const {
+	bool result = false;
+	Log log(
+			binary<std::type_index>(nullptr, typeid(result), "==", "game",
+					&righthand, ""));
 
- Deck::Deck(std::string label, Location* position, base::Log track) :
- Location(position, track) {
- name = label;ddddd
- std::clog << track.tracker()
- << "game::Deck::Deck(std::string label=\"" << label
- << "\", base::Location* position=" << position << ")="
- << this << std::endl;
- }
- */
+	log.returned(result = Object::operator !=(righthand));
+
+	return result;
+}
+size_t Deck::size() const {
+	size_t result = 0;
+	Log log(method<std::type_index>("", nullptr, "size", typeid(result)));
+
+	log.returned(result = Location::size());
+
+	return result;
+}
+std::unique_ptr<Card> Deck::draw(const Log* caller) {
+	std::unique_ptr<Card> result;
+	Log log(method<std::type_index>("", caller, "draw", typeid(result)));
+
+	result.reset(dynamic_cast<Card*>(Location::extract(1, &log).release()));
+	log.returned(result.get());
+
+	return std::move(result);
+}
+std::unique_ptr<Card> Deck::extract(const Log* caller) {
+	std::unique_ptr<Card> result;
+	Log log(method<std::type_index>("", caller, "extract", typeid(result)));
+	std::default_random_engine generator;
+	auto size = Location::size();
+	size_t random = std::uniform_int_distribution<size_t>(size ? 1 : 0, size)(
+			generator);
+
+	result.reset(
+			dynamic_cast<Card*>(Location::extract(random, &log).release()));
+	log.returned(result.get());
+
+	return std::move(result);
+}
+std::unique_ptr<Card> Deck::get_bottom(const Log* caller) {
+	std::unique_ptr<Card> result;
+	Log log(method<std::type_index>("", caller, "get_bottom", typeid(result)));
+
+	result.reset(
+			dynamic_cast<Card*>(Location::extract(Location::size(), &log).release()));
+	log.returned(result.get());
+
+	return std::move(result);
+}
+void Deck::put_up(std::string name, std::unique_ptr<Card>&& card,
+		const Log* caller) {
+	Log log(
+			method<std::type_index>(caller, "", typeid(void), "put_up", "name",
+					name, "card", card.get()));
+
+	Location::insert_front(name, card.release(), &log);
+}
+void Deck::insert(std::string name, std::unique_ptr<Card>&& card,
+		const Log* caller) {
+	Log log(
+			method<std::type_index>(caller, "", typeid(void), "insert", "name",
+					name, "card", card.get()));
+	std::default_random_engine generator;
+
+	Location::insert(
+			std::uniform_int_distribution<size_t>(1, Location::size() + 1)(
+					generator), name, card.release(), &log);
+}
+void Deck::put_down(std::string name, std::unique_ptr<Card>&& card,
+		base::Log track) {
+	Log log(
+			method<std::type_index>(caller, "", typeid(void), "put_down",
+					"name", name, "card", card.get()));
+
+	Location::insert_back(name, card.release(), &log);
+}
+void Deck::shuffle(base::Log track) {
+	std::default_random_engine generator;
+	size_t current = 0;
+	size_t length = 0;
+	std::uniform_int_distribution<size_t> distribution;
+
+	std::clog << track.tracker() << "void game::Deck{" << this
+			<< "}.shuffle() {" << std::endl;
+	length = Location::size();
+	distribution.param(
+			std::uniform_int_distribution<size_t>(current,
+					length ? length - 1 : current).param());
+	for (std::string card; length > 0; --length) {
+		std::clog << track() << "current="
+				<< (current = distribution(generator)) << std::endl;
+		card = who(*Location::operator [](current));
+		Location::insert(0, card, Location::extract(current, track), track);
+	}
+	std::clog << track() << "}" << std::endl;
+}
+
+Deck* Deck::construct(std::string label, base::Log track) {
+	Deck* result = nullptr;
+
+	std::clog << track.tracker()
+			<< "game::Deck* game::Deck::construct(std::string label=\"" << label
+			<< "\") {" << std::endl;
+	result = new Deck(label, nullptr, track);
+	std::clog << track() << "}=" << result << std::endl;
+
+	return result;
+}
+
+Deck::Deck(std::string label, Location* position, base::Log track) :
+		Location(position, track) {
+	name = label;
+	ddddd std::clog
+<< track.tracker()
+<< "game::Deck::Deck(std::string label=\"" << label
+<< "\", base::Location* position=" << position << ")="
+<< this << std::endl;
+}
+*/
 }

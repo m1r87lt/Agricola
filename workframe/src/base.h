@@ -41,7 +41,7 @@ template<typename Container, typename Function> std::string lister(
 		}) {
 	std::ostringstream result;
 	size_t i = 0;
-	auto length = log10(truth(container.size(), (size_t) 1));
+	auto length = log10(truth(container.size(), 1));
 	std::string space = cascading ? "\n\t" : " ";
 
 	for (auto content : container) {
@@ -199,7 +199,7 @@ public:
 			result.returning.second = "\"\"";
 		result.logger =
 				std::string(t.name()) + " " + result.ns + "::" + o + name + "("
-						+ lister(a,
+						+ lister(a, ",", false, false, false,
 								[](variable v) {
 									return std::string(v.first.first.name()) + " " + v.first.second + "=" + v.second;
 								}) + ")";
@@ -228,7 +228,7 @@ public:
 			result.returning.second = "\"\"";
 		result.logger =
 				std::string(t.name()) + " " + result.ns + "::" + o + name + "("
-						+ lister(p,
+						+ lister(p, ",", false, false, false,
 								[](variable v) {
 									return std::string(v.first.first.name()) + " " + v.first.second + "=" + v.second;
 								}) + ")";
@@ -297,7 +297,7 @@ protected:
 		result.logger =
 				std::string(t.name()) + " " + ns + "::" + type(this) + "."
 						+ function + "("
-						+ lister(a,
+						+ lister(a, ",", false, false, false,
 								[](variable v) {
 									return std::string(v.first.first.name()) + " " + v.first.second + "=" + v.second;
 								}) + ")";
@@ -319,7 +319,8 @@ protected:
 		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
 			result.returning.second = "\"\"";
 		result.logger = std::string(t.name()) + " " + ns + "::" + type(this)
-				+ "." + function + "(" + lister(p, [](variable v) {
+				+ "." + function + "("
+				+ lister(p, ",", false, false, false, [](variable v) {
 					return std::string(v.first.first.name()) + "=" + v.second;
 				}) + ")";
 		std::clog << result.log() + r + messaging(message) << std::endl;
@@ -340,7 +341,7 @@ protected:
 		logger =
 				(this->ns = ns) + "::" + type(this) + "::"
 						+ typeid(*this).name() + "("
-						+ lister(result,
+						+ lister(result, ",", false, false, false,
 								[](variable v) {
 									return std::string(v.first.first.name()) + " " + v.first.second + "=" + v.second;
 								}) + ")";
@@ -383,7 +384,9 @@ struct Object: public Log {
 			std::map<std::string, std::pair<std::string, std::string>>>what();
 	bool operator ==(const Object&) const;
 	bool operator !=(const Object&) const;
+	virtual structure evaluate(structure) const = 0;
 	static std::string lister(structure);
+	static std::string lister(set);
 	static set& all();
 	static set root();
 
@@ -401,6 +404,9 @@ private:
 	friend class Location;
 protected:
 	time_t modification;
+
+	static std::string logging(std::pair<time_t,
+			std::map<std::string, std::pair<std::string, std::string>>>);
 
 	Object(Object*, structure, const Log*);
 };
@@ -468,7 +474,7 @@ public:
 
 	static size_t which(const Object&);
 	static std::string who(const Object&);
-	static std::vector<const Object*> path(const Object&);
+	static std::vector<Object*> path(const Object&);
 
 	virtual ~Location() = default;
 };
@@ -479,93 +485,77 @@ class Card: private base::Location {
 
 	Object& side(bool) const;
 protected:
-	Card(std::unique_ptr<base::Object>&&, std::unique_ptr<base::Object>&&,
-			base::Location*, structure, const base::Log*);
+	Card(std::unique_ptr<Object>&&, std::unique_ptr<Object>&&, bool, Location*,
+			structure, const Log*);
 public:
 	long long unsigned who() const;
 	Location* where() const;
 	time_t when() const;
 	void attribute(structure, const Log*);
-	structure attributes();
+	structure attributes() const;
 	std::pair<time_t,
 			std::map<std::string, std::pair<std::string, std::string>>>what();
 	bool operator ==(const Card&) const;
 	bool operator !=(const Card&) const;
+	virtual structure evaluate(structure) const;
 	Object& operator ()() const;
 	bool facing() const;
 	void facing(const Log*);
 	bool covering() const;
 	void covering(const Log*);
-	bool flip(const Log*);
-};/*
- class Deck: public base::Location {
- std::string name;
- protected:
- Deck(std::string, Location*, base::Log);
- public:
- virtual Object* enter(std::string, size_t, unsigned) const;
- virtual std::string field(std::string, unsigned) const;
- virtual void field(std::string, size_t, std::string, unsigned);
- virtual std::string what() const;
+	void flip(const Log*);
+	static std::unique_ptr<Card> construct(std::unique_ptr<Object>&&,
+			std::unique_ptr<Object>&&, bool, Location*,
+			structure, const Log*);
 
- Object* operator [](size_t) const = delete;
- Object* operator ()(std::string) const = delete;
- Object* find_former(std::string) const = delete;
- std::list<Object*> find_each(std::string) const = delete;
- Object* find_former(std::function<bool(Object&)>) const = delete;
- std::list<Object*> find_each(std::function<bool(Object&)>) const = delete;
- bool insert(size_t, std::string, std::unique_ptr<Object>&&, base::Log) = delete;
- void insert_back(std::string, std::unique_ptr<Object>&&, base::Log) = delete;
- template<typename ObjectDerived, typename ... Arguments> void emplace(
- size_t, std::string, base::Log, Arguments&& ...) = delete;
- template<typename ObjectDerived, typename ... Arguments> void emplace_back(
- std::string, base::Log, Arguments&& ...) = delete;
- bool remove(size_t, base::Log) = delete;ssss
- bool remove(std::string, base::Log) = delete;
- bool remove(const Object&, base::Log) = delete;
- std::unique_ptr<Object> extract(size_t, base::Log) = delete;
- std::unique_ptr<Object> extract(std::string, base::Log) = delete;
- std::unique_ptr<Object> extract(const Object&, base::Log) = delete;
- size_t which(const Object*) const = delete;
- const std::string& label() const;
- std::unique_ptr<Card> draw(base::Log);
- std::unique_ptr<Card> extract(base::Log);
- std::unique_ptr<Card> get_bottom(base::Log);
- void put_up(std::string, std::unique_ptr<Card>&&, base::Log);
- void insert(std::string, std::unique_ptr<Card>&&, base::Log);
- void put_down(std::string, std::unique_ptr<Card>&&, base::Log);
- template<typename CardDerived, typename ... Arguments> void emplace_up(
- std::string name, base::Log track, Arguments&& ... arguments) {
- std::clog << track.tracker() << "void game::Deck::emplace_up< "
- << typeid(CardDerived).name() << " >(std::string name=" << name;
- base::Log::parameters(arguments ...);
- std::clog << ") {" << std::endl;
- Location::emplace(0, name, track, arguments ...);
- std::clog << track() << " }" << std::endl;
- }
- template<typename CardDerived, typename ... Arguments> void emplace(
- std::string name, base::Log track, Arguments&& ... arguments) {
- std::clog << track.tracker() << "void game::Deck::emplace< "
- << typeid(CardDerived).name() << " >(std::string name=" << name;
- base::Log::parameters(arguments ...);
- std::clog << ") {" << std::endl;
- insert(name, std::unique_ptr<Card>(new CardDerived(arguments ...)),
- track);
- std::clog << track() << "}" << std::endl;
- }
- template<typename CardDerived, typename ... Arguments> void emplace_down(
- std::string name, base::Log track, Arguments&& ... arguments) {
- std::clog << track.tracker() << "void game::Deck::emplace_down< "
- << typeid(CardDerived).name() << " >(std::string name=" << name;
- base::Log::parameters(arguments ...);
- std::clog << ") {" << std::endl;
- Location::emplace_back(name, track, arguments ...);
- std::clog << track() << "}" << std::endl;
- }
- void shuffle(base::Log);
+	virtual ~Card() = default;
+};
+class Deck: private base::Location {
+	std::string name;
+protected:
+	Deck(std::string, Location*, structure, const Log*);
+public:
+	long long unsigned who() const;
+	Location* where() const;
+	time_t when() const;
+	structure attributes() const;
+	void attribute(structure, const Log*);
+	std::pair<time_t,
+			std::map<std::string, std::pair<std::string, std::string>>>what();
+	bool operator ==(const Deck&) const;
+	bool operator !=(const Deck&) const;
+	size_t size() const;
+	virtual structure evaluate(structure) const;
+	const std::string& label() const;
+	std::unique_ptr<Card> draw(const Log*);
+	std::unique_ptr<Card> extract(const Log*);
+	std::unique_ptr<Card> get_bottom(const Log*);
+	void put_up(std::string, std::unique_ptr<Card>&&, const Log*);
+	void insert(std::string, std::unique_ptr<Card>&&, const Log*);
+	void put_down(std::string, std::unique_ptr<Card>&&, const Log*);
+	template<typename CardDerived, typename ... Arguments> void emplace_up(
+			std::string name, const Log* caller, Arguments&& ... arguments) {
+		Log log(method<std::type_index>("", caller, "emplace_up", typeid(void), name, arguments...));
 
- static Deck* construct(std::string, base::Log);
- };*/
+		Location::emplace_front<CardDerived>(name, &log, arguments ...);
+	}
+	template<typename CardDerived, typename ... Arguments> void emplace(size_t offset,
+			std::string name, const Log* caller, Arguments&& ... arguments) {
+		Log log(method<std::type_index>("", caller, "emplace",
+						typeid(void), offset, name, arguments...));
+
+		Location::emplace<CardDerived>(offset, name, &log, arguments ...);
+	}
+	template<typename CardDerived, typename ... Arguments> void emplace_down(
+			std::string name, const Log* caller, Arguments&& ... arguments) {
+		Log log(method<std::type_index>("", caller, "emplace_down", typeid(void), name, arguments...));
+
+		Location::emplace_back<CardDerived>(name, &log, arguments ...);
+	}
+	void shuffle(const Log*);
+
+	static std::unique_ptr<Deck> construct(std::string, Location*, structure, const Log*);
+};
 }
 
 #endif /* BASE_H_ */
