@@ -36,8 +36,8 @@ std::string Log::messaging(std::string message) {
 
 	return message;
 }
-template<> std::string Log::type<std::type_info>(std::type_info&& object) {
-	return object.name();
+template<> std::string Log::type<std::string>(std::string&& object) {
+	return "\"" + object + "\"";
 }
 template<> std::string Log::type<const std::type_info&>(
 		const std::type_info& object) {

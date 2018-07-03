@@ -11,17 +11,17 @@
 #include <string>
 #include <sstream>
 #include <cmath>
+#include <type_traits>
 #include <utility>
 #include <typeindex>
 //#include <list>
-//#include <type_traits>
 #include <set>
 #include <map>
 /*#include <vector>////
-#include <iostream>
-#include <vector>
-#include <memory>
-#include <functional>*/
+ #include <iostream>
+ #include <vector>
+ #include <memory>
+ #include <functional>*/
 
 namespace base {
 bool running();
@@ -72,15 +72,14 @@ class Log {
 
 	static std::string tracking(const Log*);
 	static std::string messaging(std::string);
-	template<typename Type> static std::string type(Type&& object) {
+	template<typename Type> static std::string argument(Type&& object) {
 		std::ostringstream result;
 
-		if (std::is_same<typename std::decay<Type>::type, std::string>::value)
-			result << "\"" << object << "\"";
-		else
-			result << object;
+		result << object;
 
 		return result.str();
+	}
+	template<typename Type> static std::string parameter(Type&& object) {
 	}
 	template<typename Type, typename Return> static std::type_index returnType(
 			Return&& returning) {
@@ -281,7 +280,7 @@ protected:
 		return result;
 	}
 	template<typename Type, typename Return, typename ... Arguments> Log method(
-			const Log* caller, std::string message, Return&& returning, std::string function,
+			const Log* caller, std::string message, Return&& returning,
 			Arguments&& ... args) const {
 		auto t = returnType<Type>(returning);
 		Log result(t);
@@ -393,7 +392,8 @@ public:
 	modifications what();
 	bool operator ==(const Object&) const;
 	bool operator !=(const Object&) const;
-	virtual std::map<std::string, std::string> evaluate(std::map<std::string, std::string>) const = 0;
+	virtual std::map<std::string, std::string> evaluate(
+			std::map<std::string, std::string>) const = 0;
 	static std::string lister(std::map<std::string, std::string>);
 	static std::string lister(std::set<Object*>);
 	static std::string logging(modifications);
