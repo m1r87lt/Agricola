@@ -8,8 +8,9 @@
 #ifndef BASE_H_
 #define BASE_H_
 
-#include <string>
+/*
 #include <sstream>
+#include <string>
 #include <cmath>
 #include <type_traits>
 #include <utility>
@@ -33,7 +34,7 @@ template<typename Class> Class nillable(Class* object, Class&& otherwise) {
 template<typename Class> Class truth(Class&& object, Class&& otherwise) {
 	return object ? object : otherwise;
 }
-template<typename Container, typename Function> std::string lister(
+/*template<typename Container, typename Function> std::string lister(
 		Container&& container, std::string separator = ",", bool cascading =
 				false, bool embracing = false, bool enumerating = false,
 		Function function = [](typename Container::value_type content) {
@@ -56,22 +57,43 @@ template<typename Container, typename Function> std::string lister(
 
 	return result.str();
 }
+*/
+template<typename Type, typename Logger> class Variable {
+	std::string name;
+public:
+	Type value;
+	std::string logger() const {
+		std::ostringstream result;
 
+		result << type() << " " << name << "=" << Logger();
+
+		return result.str();
+	}
+	std::ostream& logger(std::ostream& output) const {
+		output << typeid(Type).name() << " " << name << "=" << Logger();
+
+		return output;
+	}
+	std::string type() const {
+		return typeid(Type).name();
+	}
+	std::string label() const {
+		return name;
+	}
+};
 class Log {
-	using variable = std::pair<std::pair<
-	std::type_index, std::string>, std::string>;
-
 	std::string legacy;
 	long long unsigned track;
 	std::string ns;
 	bool open;
-	variable returning;
+	Variable returning;
 	std::string logger;
 	static long long unsigned tracker;
 	friend class Object;
 
 	static std::string tracking(const Log*);
 	static std::string messaging(std::string);
+
 	template<typename Type> static std::string argument(Type&& object) {
 		std::ostringstream result;
 
@@ -279,17 +301,16 @@ protected:
 
 		return result;
 	}
-	template<typename Type, typename Return, typename ... Arguments> Log method(
+	template<typename Return, typename Type = Return, typename ... Arguments> Log method(
 			const Log* caller, std::string message, Return&& returning,
 			Arguments&& ... args) const {
-		auto t = returnType<Type>(returning);
+		auto t = type<Type, Return>();
 		Log result(t);
-		auto r = returnValue<Type>(returning);
-		auto a = arguments(name, args ...);
+		auto a = arguments(args ...);
 
 		result.legacy = tracking(caller);
-		if ((result.open = r == " {"))
-			result.returning.first = std::make_pair(t, function);
+		if ((result.open = t.))
+			result.returning.first.second = std::make_pair(t, function);
 		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
 			result.returning.second = "\"\"";
 		result.logger =

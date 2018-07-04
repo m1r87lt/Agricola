@@ -7,10 +7,10 @@
 
 #include "base.h"
 #include <stdexcept>
-#include <chrono>///
+/*#include <chrono>///
 #include <fstream>
 #include <random>
-
+*/
 namespace base {
 bool run = true;
 
@@ -20,6 +20,7 @@ bool running() {
 void end() {
 	run = false;
 }
+//Variable
 
 //Log
 long long unsigned Log::tracker = 0;
@@ -120,7 +121,7 @@ Log::Log(Log&& moved) :
 std::set<Object*> Object::everything;
 
 long long unsigned Object::who() const {
-	method<long long unsigned>(nullptr, "", track, "who");
+	method(nullptr, "", track, "who");
 
 	return track;
 }
