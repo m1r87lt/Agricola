@@ -9,10 +9,9 @@
 #define BASE_H_
 
 #include <utility>
-/*
- #include <sstream>
- #include <string>
- #include <cmath>
+#include <string>
+#include <sstream>
+/* #include <cmath>
  #include <type_traits>
  #include <typeindex>
  //#include <list>
@@ -65,21 +64,22 @@ template<typename Class> Class nillable(Class* object, Class&& otherwise) {
  return result.str();
  }
  */
-template<typename Type, typename Logger = decltype([](Type& value){
-	return value;
-})> class Variable {
+template<typename Type, typename Logger = decltype([](Type& value) {
+			return value;
+		})> class Variable {
 	std::string name;
 public:
 	Type value;
-	std::ostringstream& logger(std::ostream& output) const {
+
+	std::ostream& logger(std::ostream& output) const {
 		output << type() << " " << name << "=" << Logger();
 
 		return output;
 	}
 	std::string logger() const {
-		std:ostringstream output
+		std::ostringstream output;
 
-		return logger(output).str();
+		return dynamic_cast<std::ostringstream&>(logger(output)).str();
 	}
 	std::string type() const {
 		return typeid(Type).name();
@@ -87,13 +87,16 @@ public:
 	std::string label() const {
 		return name;
 	}
+	operator Type&() const {
+		return value;
+	}
+
 };
 class Log {
 	std::string legacy;
 	long long unsigned track;
 	std::string ns;
 	bool open;
-	Variable returning;
 	std::string logger;
 	static long long unsigned tracker;
 	friend class Object;
@@ -143,7 +146,7 @@ class Log {
 	static list arguments();
 	static list parameters();
 
-	Log(std::type_index);
+	Log (std::type_index);
 	Log(Log&);
 public:
 	std::string log() const;
@@ -517,8 +520,7 @@ public:
 	time_t when() const;
 	void attribute(structure, const Log*);
 	structure attributes() const;
-	std::pair<time_t,
-			std::map<std::string, std::pair<std::string, std::string>>>what();
+	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> what();
 	bool operator ==(const Card&) const;
 	bool operator !=(const Card&) const;
 	virtual structure evaluate(structure) const;
@@ -529,8 +531,7 @@ public:
 	void covering(const Log*);
 	void flip(const Log*);
 	static std::unique_ptr<Card> construct(std::unique_ptr<Object>&&,
-			std::unique_ptr<Object>&&, bool, Location*,
-			structure, const Log*);
+			std::unique_ptr<Object>&&, bool, Location*, structure, const Log*);
 
 	virtual ~Card() = default;
 };
@@ -544,8 +545,7 @@ public:
 	time_t when() const;
 	structure attributes() const;
 	void attribute(structure, const Log*);
-	std::pair<time_t,
-			std::map<std::string, std::pair<std::string, std::string>>>what();
+	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> what();
 	bool operator ==(const Deck&) const;
 	bool operator !=(const Deck&) const;
 	size_t size() const;
@@ -559,26 +559,33 @@ public:
 	void put_down(std::string, std::unique_ptr<Card>&&, const Log*);
 	template<typename CardDerived, typename ... Arguments> void emplace_up(
 			std::string name, const Log* caller, Arguments&& ... arguments) {
-		Log log(method<std::type_index>("", caller, "emplace_up", typeid(void), name, arguments...));
+		Log log(
+				method<std::type_index>("", caller, "emplace_up", typeid(void),
+						name, arguments...));
 
 		Location::emplace_front<CardDerived>(name, &log, arguments ...);
 	}
-	template<typename CardDerived, typename ... Arguments> void emplace(size_t offset,
-			std::string name, const Log* caller, Arguments&& ... arguments) {
-		Log log(method<std::type_index>("", caller, "emplace",
-						typeid(void), offset, name, arguments...));
+	template<typename CardDerived, typename ... Arguments> void emplace(
+			size_t offset, std::string name, const Log* caller,
+			Arguments&& ... arguments) {
+		Log log(
+				method<std::type_index>("", caller, "emplace", typeid(void),
+						offset, name, arguments...));
 
 		Location::emplace<CardDerived>(offset, name, &log, arguments ...);
 	}
 	template<typename CardDerived, typename ... Arguments> void emplace_down(
 			std::string name, const Log* caller, Arguments&& ... arguments) {
-		Log log(method<std::type_index>("", caller, "emplace_down", typeid(void), name, arguments...));
+		Log log(
+				method<std::type_index>("", caller, "emplace_down",
+						typeid(void), name, arguments...));
 
 		Location::emplace_back<CardDerived>(name, &log, arguments ...);
 	}
 	void shuffle(const Log*);
 
-	static std::unique_ptr<Deck> construct(std::string, Location*, structure, const Log*);
+	static std::unique_ptr<Deck> construct(std::string, Location*, structure,
+			const Log*);
 };
 }
 

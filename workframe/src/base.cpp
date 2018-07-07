@@ -6,8 +6,8 @@
  */
 
 #include "base.h"
-#include <stdexcept>
 /*#include <chrono>///
+#include <stdexcept>
 #include <fstream>
 #include <random>
 */
@@ -20,7 +20,6 @@ bool running() {
 void end() {
 	run = false;
 }
-//Variable
 
 //Log
 long long unsigned Log::tracker = 0;
