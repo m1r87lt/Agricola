@@ -8,17 +8,17 @@
 #ifndef BASE_H_
 #define BASE_H_
 
-/*
-#include <sstream>
-#include <string>
-#include <cmath>
-#include <type_traits>
 #include <utility>
-#include <typeindex>
-//#include <list>
-#include <set>
-#include <map>
-/*#include <vector>////
+/*
+ #include <sstream>
+ #include <string>
+ #include <cmath>
+ #include <type_traits>
+ #include <typeindex>
+ //#include <list>
+ #include <set>
+ #include <map>
+ /*#include <vector>////
  #include <iostream>
  #include <vector>
  #include <memory>
@@ -28,51 +28,58 @@ namespace base {
 bool running();
 void end();
 
-template<typename Class> Class nillable(Class* object, Class&& otherwise) {
-	return object ? *object : otherwise;
+template<typename Parameter, typename Class, typename Evaluation,
+		typename Back = Evaluation> Class nillable(Parameter&& object,
+		Class&& otherwise, Evaluation evaluate = [](Parameter& object) {
+			return object;
+		}, Back back) {
+	return evaluate(object) ? back(object) : std::forward<Class&&>(otherwise);
 }
-template<typename Class> Class truth(Class&& object, Class&& otherwise) {
-	return object ? object : otherwise;
+template<typename Class> Class nillable(Class* object, Class&& otherwise) {
+	if (object)
+		return *object;
+	else
+		return std::forward<Class&&>(otherwise);
 }
 /*template<typename Container, typename Function> std::string lister(
-		Container&& container, std::string separator = ",", bool cascading =
-				false, bool embracing = false, bool enumerating = false,
-		Function function = [](typename Container::value_type content) {
-			return content;
-		}) {
-	std::ostringstream result;
-	size_t i = 0;
-	auto length = log10(truth(container.size(), 1));
-	std::string space = cascading ? "\n\t" : " ";
+ Container&& container, std::string separator = ",", bool cascading =
+ false, bool embracing = false, bool enumerating = false,
+ Function function = [](typename Container::value_type content) {
+ return content;
+ }) {
+ std::ostringstream result;
+ size_t i = 0;
+ auto length = log10(truth(container.size(), 1));
+ std::string space = cascading ? "\n\t" : " ";
 
-	for (auto content : container) {
-		result << space << separator;
-		if (enumerating)
-			result << std::string(length, ' ') << ++i << ":\t"
-					<< function(content);
-	}
-	result.str(
-			"{" + result.str().substr(separator.length())
-					+ (cascading ? "\n" : " ") + "}");
+ for (auto content : container) {
+ result << space << separator;
+ if (enumerating)
+ result << std::string(length, ' ') << ++i << ":\t"
+ << function(content);
+ }
+ result.str(
+ "{" + result.str().substr(separator.length())
+ + (cascading ? "\n" : " ") + "}");
 
-	return result.str();
-}
-*/
-template<typename Type, typename Logger> class Variable {
+ return result.str();
+ }
+ */
+template<typename Type, typename Logger = decltype([](Type& value){
+	return value;
+})> class Variable {
 	std::string name;
 public:
 	Type value;
-	std::string logger() const {
-		std::ostringstream result;
-
-		result << type() << " " << name << "=" << Logger();
-
-		return result.str();
-	}
-	std::ostream& logger(std::ostream& output) const {
-		output << typeid(Type).name() << " " << name << "=" << Logger();
+	std::ostringstream& logger(std::ostream& output) const {
+		output << type() << " " << name << "=" << Logger();
 
 		return output;
+	}
+	std::string logger() const {
+		std:ostringstream output
+
+		return logger(output).str();
 	}
 	std::string type() const {
 		return typeid(Type).name();
