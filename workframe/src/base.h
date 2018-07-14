@@ -8,18 +8,18 @@
 #ifndef BASE_H_
 #define BASE_H_
 
+#include <functional>
 #include <utility>
 #include <string>
 #include <sstream>
-/* #include <cmath>
+#include <iostream>
+#include <typeindex>
+#include <map>
+#include <set>
+/*#include <cmath>
  #include <type_traits>
- #include <typeindex>
  //#include <list>
- #include <set>
- #include <map>
  /*#include <vector>////
- #include <iostream>
- #include <vector>
  #include <memory>
  #include <functional>*/
 
@@ -27,391 +27,362 @@ namespace base {
 bool running();
 void end();
 
-template<typename Parameter, typename Class, typename Evaluation,
-		typename Back = Evaluation> Class nillable(Parameter&& object,
-		Class&& otherwise, Evaluation evaluate = [](Parameter& object) {
-			return object;
-		}, Back back) {
-	return evaluate(object) ? back(object) : std::forward<Class&&>(otherwise);
+template<typename Parameter, typename Class> Class nillable(Parameter&& object,
+		Class&& otherwise, std::function<bool(Parameter&)> evaluate =
+				[](Parameter& evaluated) {
+					return evaluated;
+				}, std::function<Class(Parameter&)> forward =
+				[](Parameter& forwarded) {
+					return forwarded;
+				}) {
+	return evaluate(object) ? forward(object) : std::forward<Class&&>(otherwise);
 }
-template<typename Class> Class nillable(Class* object, Class&& otherwise) {
-	if (object)
-		return *object;
-	else
-		return std::forward<Class&&>(otherwise);
+template<typename Class> Class& nullable(Class* object, Class& otherwise) {
+	return object ? *object : otherwise;
 }
-/*template<typename Container, typename Function> std::string lister(
- Container&& container, std::string separator = ",", bool cascading =
- false, bool embracing = false, bool enumerating = false,
- Function function = [](typename Container::value_type content) {
- return content;
- }) {
- std::ostringstream result;
- size_t i = 0;
- auto length = log10(truth(container.size(), 1));
- std::string space = cascading ? "\n\t" : " ";
 
- for (auto content : container) {
- result << space << separator;
- if (enumerating)
- result << std::string(length, ' ') << ++i << ":\t"
- << function(content);
- }
- result.str(
- "{" + result.str().substr(separator.length())
- + (cascading ? "\n" : " ") + "}");
-
- return result.str();
- }
- */
-template<typename Type, typename Logger = decltype([](Type& value) {
-			return value;
-		})> class Variable {
+template<typename Type> class Variable {
 	std::string name;
+	std::string ns;
+	std::function<std::string(Type&)> transcoder;
 public:
 	Type value;
 
-	std::ostream& logger(std::ostream& output) const {
-		output << type() << " " << name << "=" << Logger();
-
-		return output;
-	}
-	std::string logger() const {
-		std::ostringstream output;
-
-		return dynamic_cast<std::ostringstream&>(logger(output)).str();
-	}
 	std::string type() const {
-		return typeid(Type).name();
+		return ns + typeid(Type).name();
 	}
 	std::string label() const {
 		return name;
 	}
-	operator Type&() const {
-		return value;
+	std::string operator ()() const {
+		return type() + "{" + transcoder(value) + "}";
 	}
-
-};
-class Log {
-	std::string legacy;
-	long long unsigned track;
-	std::string ns;
-	bool open;
-	std::string logger;
-	static long long unsigned tracker;
-	friend class Object;
-
-	static std::string tracking(const Log*);
-	static std::string messaging(std::string);
-
-	template<typename Type> static std::string argument(Type&& object) {
+	std::string logger() const {
 		std::ostringstream result;
 
-		result << object;
+		result << type() << " " << label() << "=" << transcoder(value);
 
 		return result.str();
 	}
-	template<typename Type> static std::string parameter(Type&& object) {
+	operator Type() const {
+		return std::forward<Type&&>(value);
 	}
-	template<typename Type, typename Return> static std::type_index returnType(
-			Return&& returning) {
-		return typeid(Return);
+
+	Variable(std::string name, std::string ns, Type&& value,
+			std::function<std::string(Type&)> transcoder) :
+			value(std::forward<Type&&>(value)) {
+		this->name = name;
+		this->ns = ns + "::";
+		this->transcoder = transcoder;
 	}
-	template<typename Type, typename Return> static std::string returnValue(
-			Return&& returning) {
-		auto result = type(returning);
-
-		return result == typeid(void).name() ? "" : "=" + result;
+	Variable(std::function<std::string(Type&)> transcoder, std::string name,
+			Type&& value) :
+			value(std::forward<Type&&>(value)) {
+		this->name = name;
+		this->transcoder = transcoder;
 	}
-	template<typename Argument, typename ... Arguments> static list arguments(
-			std::string name, Argument&& argument, Arguments&& ... rest) {
-		list result = arguments(rest ...);
-
-		result.emplace_front(
-				std::make_pair(std::type_index(typeid(Argument)), name),
-				type(argument));
-
-		return result;
+	Variable(const Variable<Type>& copy) :
+			value(std::forward<Type&&>(copy.value)) {
+		name = copy.name;
+		ns = copy.ns;
+		transcoder = copy.transcoder;
 	}
-	template<typename Argument, typename ... Arguments> static list parameters(
-			Argument&& argument, Arguments&& ... rest) {
-		list result = parameters(rest ...);
-
-		result.emplace_front(
-				std::make_pair(std::type_index(typeid(Argument)),
-						std::string()), type(argument));
-
-		return result;
+	Variable(Variable<Type> && moved) :
+			value(std::forward<Type&&>(moved.value)) {
+		name = moved.name;
+		ns = moved.ns;
+		transcoder = moved.transcoder;
 	}
-	static list arguments();
-	static list parameters();
+};
+template<typename Type> Variable<Type> variable(std::string name,
+		std::string ns, Type&& value,
+		std::function<std::string(Type&)> transcoder = [](Type& value) {
+			std::ostringstream result;
 
-	Log (std::type_index);
-	Log(Log&);
-public:
-	std::string log() const;
-	template<typename Return> void returned(Return&& returning) {
+			result << value;
+
+			return result.str();
+		}) {
+	return std::move(
+			Variable<Type>(name, ns, std::forward<Type&&>(value), transcoder));
+}
+template<typename Type> Variable<Type> variable(
+		std::function<std::string(Type&)> transcoder, std::string name,
+		Type&& value) {
+	return std::move(
+			Variable<Type>(transcoder, name, std::forward<Type&&>(value)));
+}
+template<typename Type> Variable<Type> variable(Type&& value, std::string name =
+		"") {
+	return std::move(Variable<Type>([](Type& value) {
 		std::ostringstream result;
 
-		if (this->returning.second == "\"\"")
-			result << "\"" << returning << "\"";
-		else
-			result << returning;
-		this->returning.second = result.str();
+		result << value;
+
+		return result.str();
+	}, name, std::forward<Type&&>(value)));
+}
+
+class Log {
+	std::string legacy;
+	long long unsigned track;
+	bool open;
+	std::string ns;
+	std::string logging;
+	static long long unsigned tracker;
+	friend class Object;
+	friend Variable<Log&> ;
+
+	std::string tracking() const;
+	std::string log() const;
+	Variable<Log&> variable() const;
+	template<typename Type, typename ... Arguments> static std::string arguments(
+			Variable<Type> argument, Arguments&& ... rest) {
+		return ", " + argument.logger()
+				+ arguments(std::forward<Arguments&& ...>(rest ...));
+	}
+	static std::string arguments();
+	static std::string tracking(const Log*);
+	static std::string messaging(std::string);
+	static std::string transcoder(Log&);
+
+	Log(const Log*, std::string, bool);
+	Log(Log&);
+public:
+	template<typename Return, typename Argument> static Log unary(
+			const Log* caller, std::string operation,
+			Variable<Argument> argument, std::string message) {
+		Log result(caller, "", true);
+
+		result.logging = typeid(Return).name();
+		result.logging += " " + operation + argument();
+		std::clog << result.log() << messaging(message) << " {" << std::endl;
+
+		return result;
+	}
+	template<typename Return, typename Argument> static Return unary(
+			const Log* caller, Variable<Return> returning,
+			Variable<Argument> argument, std::string message) {
+		Log result(caller, "", false);
+
+		result.logging = returning.type() + " " + returning.label()
+				+ argument();
+		std::clog << result.log() << messaging(message) << "=" << returning()
+				<< std::endl;
+
+		return result;
+	}
+	template<typename Return, typename Lefthand, typename Righthand> static Log binary(
+			const Log* caller, Variable<Lefthand> lefthand,
+			std::string operation, Variable<Righthand> righthand,
+			std::string message) {
+		Log result(caller, "", true);
+
+		result.logging = typeid(Return).name();
+		result.logging += " " + lefthand() + " " + operation + " "
+				+ righthand();
+		std::clog << result.log() << messaging(message) << " {" << std::endl;
+
+		return result;
+	}
+	template<typename Return, typename Lefthand, typename Righthand> static Return binary(
+			const Log* caller, Variable<Return> returning,
+			Variable<Lefthand> lefthand, Variable<Righthand> righthand,
+			std::string message) {
+		Log result(caller, "", false);
+
+		result.logging = returning.type() + " " + lefthand() + " "
+				+ returning.label() + " " + righthand();
+		std::clog << result.log() << messaging(message) << "=" << returning()
+				<< std::endl;
+
+		return returning;
+	}
+	template<typename Return> static Log function(const Log* caller,
+			std::string ns, std::type_index object, std::string name,
+			std::string message) {
+		Log result(caller, ns, true);
+
+		result.logging = typeid(Return).name();
+		result.logging += " " + result.ns + "::";
+		if (object != typeid(void))
+			result.logging += std::string(object.name()) + "::";
+		result.logging += name + "()";
+		std::clog << result.log() << messaging(message) << " {" << std::endl;
+
+		return result;
+	}
+	template<typename Return, typename Type, typename ... Arguments> static Log function(
+			std::string message, const Log* caller, std::string ns,
+			std::type_index object, std::string name, Variable<Type> argument,
+			Arguments&& ... rest) {
+		Log result(caller, ns, true);
+
+		result.logging = typeid(Return).name();
+		result.logging += " " + result.ns + "::";
+		if (object != typeid(void))
+			result.logging += std::string(object.name()) + "::";
+		result.logging += name + "(" + argument.logger() + arguments(rest ...)
+				+ ")";
+		std::clog << result.log() << messaging(message) << " {" << std::endl;
+
+		return result;
+	}
+	template<typename Return> static Return function(std::string message,
+			const Log* caller, Variable<Return> returning, std::string ns,
+			std::type_index object) {
+		Log result(caller, ns, false);
+
+		result.logging = returning.type() + " " + result.ns + "::";
+		if (object != typeid(void))
+			result.logging += std::string(object.name()) + "::";
+		result.logging += returning.label() + "()";
+		std::clog << result.log() << messaging(message) << "=" << returning()
+				<< std::endl;
+
+		return returning;
+	}
+	template<typename Return, typename Argument, typename ... Arguments> static Return function(
+			const Log* caller, Variable<Return> returning, std::string ns,
+			std::type_index object, std::string message,
+			Variable<Argument> argument, Arguments&& ... rest) {
+		Log result(caller, ns, false);
+
+		result.logging = returning.type() + " " + result.ns + "::";
+		if (object != typeid(void))
+			result.logging += std::string(object.name()) + "::";
+		result.logging += returning.label() + "(" + argument.logger()
+				+ arguments(rest ...) + ")";
+		std::clog << result.log() << messaging(message) << "=" << returning()
+				<< std::endl;
+
+		return returning;
 	}
 	void message(std::string) const;
-	template<typename Type, typename Return, typename Instance> static Log unary(
-			const Log* caller, Return&& returning, std::string operation,
-			std::string ns, Instance&& object, std::string message) {
-		auto t = returnType<Type>(returning);
-		Log result(t);
-		auto r = returnValue<Type>(returning);
+	template<typename Return> Return returning(Return&& returned) {
+		open = false;
+		std::clog << tracking() << "  }=" << returned;
 
-		result.legacy = tracking(caller);
-		if ((result.open = r == " {"))
-			result.returning.first = std::make_pair(t, operation);
-		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
-			result.returning.second = "\"\"";
-		if ((result.logger = type(&object)).back() == '}' && ns.empty())
-			result.logger = ns + "::" + result.logger;
-		result.logger = t.name() + " " + operation + result.logger;
-		std::clog << result.log() + r + messaging(message) << std::endl;
-
-		return result;
+		return std::forward<Return&&>(returned);
 	}
-	template<typename Type, typename Return, typename Lefthand,
-			typename Righthand> static Log binary(const Log* caller,
-			Return&& returning, std::string lns, Lefthand&& lefthand,
-			std::string operation, std::string rns, Righthand&& righthand,
-			std::string message) {
-		auto t = returnType<Type>(returning);
-		Log result(t);
-		auto L = type(lefthand);
-		auto R = type(righthand);
-		auto r = returnValue<Type>(returning);
+	template<typename Return> Return returning(Return&& returned, std::function<std::string(Return&)> logger) {
+		open = false;
+		std::clog << tracking() << "  }=" << logger(returned);
 
-		result.legacy = tracking(caller);
-		if ((result.open = r == " {"))
-			result.returning.first = std::make_pair(t, operation);
-		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
-			result.returning.second = "\"\"";
-		if (L.back() == '}' && lns.empty())
-			L = lns + "::" + L;
-		if (R.back() == '}' && rns.empty())
-			R = rns + "::" + R;
-		result.logger = t.name() + " " + L;
-		if (operation == "[]")
-			result.logger += "[" + R + "]";
-		else
-			result.logger += " " + operation + " " + R;
-		std::clog << result.log() + r + messaging(message) << std::endl;
-
-		return result;
-	}
-	template<typename Type, typename Return, typename ... Arguments> static Log function(
-			const Log* caller, std::string message, Return&& returning,
-			std::string ns, std::type_index object, std::string name,
-			std::string argname, Arguments&& ... args) {
-		auto t = returnType<Type>(returning);
-		Log result(t);
-		auto r = returnValue<Type>(returning);
-		std::string o;
-		auto a = arguments(argname, args ...);
-
-		result.legacy = tracking(caller);
-		if (object == typeid(void))
-			result.ns = ns;
-		else
-			o = std::string(object.name()) + "::";
-		if ((result.open = r == " {"))
-			result.returning.first = std::make_pair(t, name);
-		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
-			result.returning.second = "\"\"";
-		result.logger =
-				std::string(t.name()) + " " + result.ns + "::" + o + name + "("
-						+ lister(a, ",", false, false, false,
-								[](variable v) {
-									return std::string(v.first.first.name()) + " " + v.first.second + "=" + v.second;
-								}) + ")";
-		std::clog << result.log() + r + messaging(message) << std::endl;
-
-		return result;
-	}
-	template<typename Type, typename Return, typename ... Parameters> static Log function(
-			std::string message, const Log* caller, Return&& returning,
-			std::string ns, std::type_index object, std::string name,
-			Parameters&& ... params) {
-		auto t = returnType<Type>(returning);
-		Log result(t);
-		auto r = returnValue<Type>(returning);
-		std::string o;
-		auto p = parameters(params ...);
-
-		result.legacy = tracking(caller);
-		if (object == typeid(void))
-			result.ns = ns;
-		else
-			o = std::string(object.name()) + "::";
-		if ((result.open = r == " {"))
-			result.returning.first = std::make_pair(t, name);
-		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
-			result.returning.second = "\"\"";
-		result.logger =
-				std::string(t.name()) + " " + result.ns + "::" + o + name + "("
-						+ lister(p, ",", false, false, false,
-								[](variable v) {
-									return std::string(v.first.first.name()) + " " + v.first.second + "=" + v.second;
-								}) + ")";
-		std::clog << result.log() + r + messaging(message) << std::endl;
-
-		return result;
+		return std::forward<Return&&>(returned);
 	}
 
 	virtual ~Log();
 	Log(Log&&);
 protected:
-	template<typename Type, typename Return> Log unary(const Log* caller,
-			Return&& returning, std::string operation,
+	template<typename Return> Log unary(const Log* caller,
+			std::string operation, std::string message) const {
+		Log result(caller, "", true);
+
+		result.logging = typeid(Return).name();
+		result.logging += " " + operation + variable()();
+		std::clog << result.log() << messaging(message) << " {" << std::endl;
+
+		return result;
+	}
+	template<typename Return> Return unary(const Log* caller,
+			Variable<Return> returning, std::string message) const {
+		Log result(caller, "", false);
+
+		result.logging = returning.type() + " " + returning.label()
+				+ variable()();
+		std::clog << result.log() << messaging(message) << "=" << returning()
+				<< std::endl;
+
+		return result;
+	}
+	template<typename Return, typename Righthand> Log binary(const Log* caller,
+			std::string operation, Variable<Righthand> righthand,
 			std::string message) const {
-		auto t = returnType<Type>(returning);
-		Log result(t);
-		auto r = returnValue<Type>(returning);
+		Log result(caller, "", true);
 
-		result.legacy = tracking(caller);
-		if ((result.open = r == " {"))
-			result.returning.first = std::make_pair(t, operation);
-		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
-			result.returning.second = "\"\"";
-		result.logger = t.name() + " " + operation + ns + "::" + type(this);
-		std::clog << result.log() + r + messaging(message) << std::endl;
+		result.logging = typeid(Return).name();
+		result.logging += " " + variable()() + " " + operation + " "
+				+ righthand();
+		std::clog << result.log() << messaging(message) << " {" << std::endl;
 
 		return result;
 	}
-	template<typename Type, typename Return, typename Righthand> Log binary(
-			const Log* caller, Return&& returning, std::string operation,
-			std::string ns, Righthand&& righthand, std::string message) const {
-		auto t = returnType<Type>(returning);
-		Log result(t);
-		auto R = type(righthand);
-		auto r = returnValue<Type>(returning);
+	template<typename Return, typename Righthand> Return binary(
+			const Log* caller, Variable<Return> returning,
+			Variable<Righthand> righthand, std::string message) const {
+		Log result(caller, "", false);
 
-		result.legacy = tracking(caller);
-		if ((result.open = r == " {"))
-			result.returning.first = std::make_pair(t, operation);
-		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
-			result.returning.second = "\"\"";
-		if (R.back() == '}' && ns.empty())
-			R = ns + "::" + R;
-		result.logger = std::string(t.name()) + " " + ns + "::" + type(this);
-		if (operation == "[]")
-			result.logger += "[" + R + "]";
-		else
-			result.logger += " " + operation + " " + R;
-		std::clog << result.log() + r + messaging(message) << std::endl;
+		result.logging = returning.type() + " " + variable()() + " "
+				+ returning.label() + " " + righthand();
+		std::clog << result.log() << messaging(message) << "=" << returning()
+				<< std::endl;
+
+		return returning;
+	}
+	template<typename Return> Log method(const Log* caller, std::string name,
+			std::string message) const {
+		Log result(caller, "", true);
+
+		result.logging = typeid(Return).name();
+		result.logging += " " + variable()() + "." + name + "()";
+		std::clog << result.log() << messaging(message) << " {" << std::endl;
 
 		return result;
 	}
-	template<typename Return, typename Type = Return, typename ... Arguments> Log method(
-			const Log* caller, std::string message, Return&& returning,
-			Arguments&& ... args) const {
-		auto t = type<Type, Return>();
-		Log result(t);
-		auto a = arguments(args ...);
+	template<typename Return, typename Argument, typename ... Arguments> Log method(
+			const Log* caller, std::string name, std::string message,
+			Variable<Argument> argument, Arguments&& ... rest) const {
+		Log result(caller, "", true);
 
-		result.legacy = tracking(caller);
-		if ((result.open = t.))
-			result.returning.first.second = std::make_pair(t, function);
-		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
-			result.returning.second = "\"\"";
-		result.logger =
-				std::string(t.name()) + " " + ns + "::" + type(this) + "."
-						+ function + "("
-						+ lister(a, ",", false, false, false,
-								[](variable v) {
-									return std::string(v.first.first.name()) + " " + v.first.second + "=" + v.second;
-								}) + ")";
-		std::clog << result.log() + r + messaging(message) << std::endl;
+		result.logging = typeid(Return).name();
+		result.logging += " " + variable()() + "." + name + "("
+				+ argument.logger() + arguments(rest ...) + ")";
+		std::clog << result.log() << messaging(message) << " {" << std::endl;
 
 		return result;
 	}
-	template<typename Type, typename Return, typename ... Parameters> Log method(
-			std::string message, const Log* caller, std::string function,
-			Return&& returning, Parameters&& ... params) const {
-		auto t = returnType<Type>(returning);
-		Log result(t);
-		auto r = returnValue<Type>(returning);
-		auto p = parameters(params ...);
+	template<typename Return> Return method(std::string message,
+			const Log* caller, Variable<Return> returning) const {
+		Log result(caller, "", false);
 
-		result.legacy = tracking(caller);
-		if ((result.open = r == " {"))
-			result.returning.first = std::make_pair(t, function);
-		if (std::is_same<typename std::decay<Return>::type, std::string>::value)
-			result.returning.second = "\"\"";
-		result.logger = std::string(t.name()) + " " + ns + "::" + type(this)
-				+ "." + function + "("
-				+ lister(p, ",", false, false, false, [](variable v) {
-					return std::string(v.first.first.name()) + "=" + v.second;
-				}) + ")";
-		std::clog << result.log() + r + messaging(message) << std::endl;
+		result.logging = returning.type() + " " + variable()() + "."
+				+ returning.label() + "()";
+		std::clog << result.log() << messaging(message) << "=" << returning()
+				<< std::endl;
 
-		return result;
+		return returning;
+	}
+	template<typename Return, typename Argument, typename ... Arguments> Return method(
+			std::string message, const Log* caller, Variable<Return> returning,
+			Variable<Argument> argument, Arguments&& ... rest) const {
+		Log result(caller, "", false);
+
+		result.logging = returning.type() + " " + variable()() + "."
+				+ returning.label() + "(" + argument.logger()
+				+ arguments(rest ...) + ")";
+		std::clog << result.log() << messaging(message) << "=" << returning()
+				<< std::endl;
+
+		return returning;
 	}
 
-	template<typename ... Arguments> Log(const Log* caller, std::string message,
-			bool open, std::string ns, std::string name, Arguments&& ... args) :
-			returning(
-					std::make_pair(
-							std::make_pair(std::type_index(typeid(void)),
-									std::string()), std::string())) {
-		auto result = arguments(name, args...);
-
+	Log(const Log*, std::string, bool, std::string);
+	template<typename Argument, typename ... Arguments> Log(const Log* caller,
+			std::string ns, bool open, std::string message,
+			Variable<Argument> argument, Arguments&& ... rest) {
 		legacy = tracking(caller);
 		track = ++tracker;
-		logger =
-				(this->ns = ns) + "::" + type(this) + "::"
-						+ typeid(*this).name() + "("
-						+ lister(result, ",", false, false, false,
-								[](variable v) {
-									return std::string(v.first.first.name()) + " " + v.first.second + "=" + v.second;
-								}) + ")";
-		std::clog
-				<< log() + (((this->open = open)) ? " {" : "")
-						+ messaging(message) << std::endl;
-	}
-	template<typename ... Parameters> Log(std::string message,
-			const Log* caller, bool open, std::string ns,
-			Parameters&& ... params) :
-			returning(
-					std::make_pair(
-							std::make_pair(std::type_index(typeid(void)),
-									std::string()), std::string())) {
-		auto result = parameters(params...);
-
-		legacy = tracking(caller);
-		track = ++tracker;
-		logger = (this->ns = ns) + "::" + type(this) + "::"
-				+ typeid(*this).name() + "("
-				+ lister(result, [](variable v) {
-					return std::string(v.first.first.name()) + "=" + v.second;
-				}) + ")";
-		std::clog
-				<< log() + (((this->open = open)) ? " {" : "")
-						+ messaging(message) << std::endl;
+		this->ns = ns;
+		logging = variable()() + "::" + typeid(*this).name() + "("
+				+ argument.logger()
+				+ arguments(std::forward<Arguments&& ...>(rest ...)) + ")";
+		std::clog << log() << messaging(message)
+				<< (((this->open = open)) ? " {" : "") << std::endl;
 	}
 };
 
-class Object: public Log {
-	Object* position;
-	time_t creation;
-	std::map<std::string, std::string> attributing;
-	std::map<std::string, std::string> changes;
-	static std::set<Object*> everything;
-	friend class Location;
-protected:
-	time_t modification;
-
-	Object(Object*, std::map<std::string, std::string>, const Log*);
-public:
+struct Object: public Log {
 	using modifications = std::pair<time_t,
 	std::map<std::string, std::pair<std::string, std::string>>>;
 
@@ -423,11 +394,6 @@ public:
 	modifications what();
 	bool operator ==(const Object&) const;
 	bool operator !=(const Object&) const;
-	virtual std::map<std::string, std::string> evaluate(
-			std::map<std::string, std::string>) const = 0;
-	static std::string lister(std::map<std::string, std::string>);
-	static std::string lister(std::set<Object*>);
-	static std::string logging(modifications);
 	static std::set<Object*>& all();
 	static std::set<Object*> root();
 
@@ -436,157 +402,174 @@ public:
 	Object(Object&&) = delete;
 	Object& operator =(const Object&) = delete;
 	Object& operator =(Object&&) = delete;
-};
+private:
+	Object* position;
+	time_t creation;
+	std::map<std::string, std::string> attributing;
+	std::map<std::string, std::string> changes;
+	static std::set<Object*> everything;
 
-class Location: public Object {
-	using content = std::pair<std::string, std::unique_ptr<Object>>;
-	using container = std::list<content>;
-
-	container containing;
-	friend Object;
-
-	std::string naming(std::string);
-	container::iterator locate(size_t) const;
-	std::map<size_t, Location::container::iterator> locate(std::string) const;
-	std::map<size_t, Location::container::iterator> locate(
-			std::type_index) const;
-	std::pair<size_t, Location::container::iterator> locate(
-			const Object&) const;
-	std::unique_ptr<Object> extract(container::iterator, const Log*);
-	void remove(container::const_iterator, const Log*);
+	static std::string lister(const std::map<std::string, std::string>&);
+	static std::string changing(modifications);
+	friend class Location;
+	friend Variable<const std::map<std::string, std::string>&> ;
 protected:
-	Location(Location*, structure, const Log*);
-public:
-	Object* operator [](size_t) const;
-	std::map<size_t, Object*> operator ()(std::string) const;
-	std::map<size_t, Object*> operator ()(std::type_index) const;
-	void insert_front(std::string, std::unique_ptr<Object>&&, const Log*);
-	void insert(size_t, std::string, std::unique_ptr<Object>&&, const Log*);
-	void insert_back(std::string, std::unique_ptr<Object>&&, const Log*);
-	template<typename ObjectDerived, typename ... Arguments> void emplace_front(
-			std::string name, const Log* caller, Arguments&& ... arguments) {
-		insert_front(name,
-				std::unique_ptr<Object>(new ObjectDerived(arguments ...)),
-				&method<std::type_index>(
-						std::string("<") + typeid(ObjectDerived).name() + ">",
-						caller, "emplace_front", typeid(void), name,
-						arguments...));
-	}
-	template<typename ObjectDerived, typename ... Arguments> void emplace(
-			size_t offset, std::string name, const Log* caller,
-			Arguments&& ... arguments) {
-		insert(offset, name,
-				std::unique_ptr<Object>(new ObjectDerived(arguments ...)),
-				&method<std::type_index>(
-						std::string("<") + typeid(ObjectDerived).name() + ">",
-						caller, "emplace", typeid(void), offset, name,
-						arguments...));
-	}
-	template<typename ObjectDerived, typename ... Arguments> void emplace_back(
-			std::string name, const Log* caller, Arguments&& ... arguments) {
-		insert_back(name,
-				std::unique_ptr<Object>(new ObjectDerived(arguments ...)),
-				&method<std::type_index>(
-						std::string("<") + typeid(ObjectDerived).name() + ">",
-						caller, "emplace_back", typeid(void), name,
-						arguments...));
-	}
-	void remove(size_t, const Log*);
-	void remove(std::string, const Log*);
-	void remove(std::type_index, const Log*);
-	void remove(const Object&, const Log*);
-	std::unique_ptr<Object> extract(size_t, const Log*);
-	std::unique_ptr<Object> extract(const Object&, const Log*);
-	size_t size() const;
+	time_t modification;
 
-	static size_t which(const Object&);
-	static std::string who(const Object&);
-	static std::vector<Object*> path(const Object&);
-
-	virtual ~Location() = default;
+	Object(Object*, std::map<std::string, std::string>, const Log*);
 };
-}
-namespace game {
-class Card: private base::Location {
-	bool covered;
+/*
+ class Location: public Object {
+ using content = std::pair<std::string, std::unique_ptr<Object>>;
+ using container = std::list<content>;
 
-	Object& side(bool) const;
-protected:
-	Card(std::unique_ptr<Object>&&, std::unique_ptr<Object>&&, bool, Location*,
-			structure, const Log*);
-public:
-	long long unsigned who() const;
-	Location* where() const;
-	time_t when() const;
-	void attribute(structure, const Log*);
-	structure attributes() const;
-	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> what();
-	bool operator ==(const Card&) const;
-	bool operator !=(const Card&) const;
-	virtual structure evaluate(structure) const;
-	Object& operator ()() const;
-	bool facing() const;
-	void facing(const Log*);
-	bool covering() const;
-	void covering(const Log*);
-	void flip(const Log*);
-	static std::unique_ptr<Card> construct(std::unique_ptr<Object>&&,
-			std::unique_ptr<Object>&&, bool, Location*, structure, const Log*);
+ container containing;
+ friend Object;
 
-	virtual ~Card() = default;
-};
-class Deck: private base::Location {
-	std::string name;
-protected:
-	Deck(std::string, Location*, structure, const Log*);
-public:
-	long long unsigned who() const;
-	Location* where() const;
-	time_t when() const;
-	structure attributes() const;
-	void attribute(structure, const Log*);
-	std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> what();
-	bool operator ==(const Deck&) const;
-	bool operator !=(const Deck&) const;
-	size_t size() const;
-	virtual structure evaluate(structure) const;
-	const std::string& label() const;
-	std::unique_ptr<Card> draw(const Log*);
-	std::unique_ptr<Card> extract(const Log*);
-	std::unique_ptr<Card> get_bottom(const Log*);
-	void put_up(std::string, std::unique_ptr<Card>&&, const Log*);
-	void insert(std::string, std::unique_ptr<Card>&&, const Log*);
-	void put_down(std::string, std::unique_ptr<Card>&&, const Log*);
-	template<typename CardDerived, typename ... Arguments> void emplace_up(
-			std::string name, const Log* caller, Arguments&& ... arguments) {
-		Log log(
-				method<std::type_index>("", caller, "emplace_up", typeid(void),
-						name, arguments...));
+ std::string naming(std::string);
+ container::iterator locate(size_t) const;
+ std::map<size_t, Location::container::iterator> locate(std::string) const;
+ std::map<size_t, Location::container::iterator> locate(
+ std::type_index) const;
+ std::pair<size_t, Location::container::iterator> locate(
+ const Object&) const;
+ std::unique_ptr<Object> extract(container::iterator, const Log*);
+ void remove(container::const_iterator, const Log*);
+ protected:
+ Location(Location*, structure, const Log*);
+ public:
+ Object* operator [](size_t) const;
+ std::map<size_t, Object*> operator ()(std::string) const;
+ std::map<size_t, Object*> operator ()(std::type_index) const;
+ void insert_front(std::string, std::unique_ptr<Object>&&, const Log*);
+ void insert(size_t, std::string, std::unique_ptr<Object>&&, const Log*);
+ void insert_back(std::string, std::unique_ptr<Object>&&, const Log*);
+ template<typename ObjectDerived, typename ... Arguments> void emplace_front(
+ std::string name, const Log* caller, Arguments&& ... arguments) {
+ insert_front(name,
+ std::unique_ptr<Object>(new ObjectDerived(arguments ...)),
+ &method<std::type_index>(
+ std::string("<") + typeid(ObjectDerived).name() + ">",
+ caller, "emplace_front", typeid(void), name,
+ arguments...));
+ }
+ template<typename ObjectDerived, typename ... Arguments> void emplace(
+ size_t offset, std::string name, const Log* caller,
+ Arguments&& ... arguments) {
+ insert(offset, name,
+ std::unique_ptr<Object>(new ObjectDerived(arguments ...)),
+ &method<std::type_index>(
+ std::string("<") + typeid(ObjectDerived).name() + ">",
+ caller, "emplace", typeid(void), offset, name,
+ arguments...));
+ }
+ template<typename ObjectDerived, typename ... Arguments> void emplace_back(
+ std::string name, const Log* caller, Arguments&& ... arguments) {
+ insert_back(name,
+ std::unique_ptr<Object>(new ObjectDerived(arguments ...)),
+ &method<std::type_index>(
+ std::string("<") + typeid(ObjectDerived).name() + ">",
+ caller, "emplace_back", typeid(void), name,
+ arguments...));
+ }
+ void remove(size_t, const Log*);
+ void remove(std::string, const Log*);
+ void remove(std::type_index, const Log*);
+ void remove(const Object&, const Log*);
+ std::unique_ptr<Object> extract(size_t, const Log*);
+ std::unique_ptr<Object> extract(const Object&, const Log*);
+ size_t size() const;
 
-		Location::emplace_front<CardDerived>(name, &log, arguments ...);
-	}
-	template<typename CardDerived, typename ... Arguments> void emplace(
-			size_t offset, std::string name, const Log* caller,
-			Arguments&& ... arguments) {
-		Log log(
-				method<std::type_index>("", caller, "emplace", typeid(void),
-						offset, name, arguments...));
+ static size_t which(const Object&);
+ static std::string who(const Object&);
+ static std::vector<Object*> path(const Object&);
 
-		Location::emplace<CardDerived>(offset, name, &log, arguments ...);
-	}
-	template<typename CardDerived, typename ... Arguments> void emplace_down(
-			std::string name, const Log* caller, Arguments&& ... arguments) {
-		Log log(
-				method<std::type_index>("", caller, "emplace_down",
-						typeid(void), name, arguments...));
+ virtual ~Location() = default;
+ };
+ }
+ namespace game {
+ class Card: private base::Location {
+ bool covered;
 
-		Location::emplace_back<CardDerived>(name, &log, arguments ...);
-	}
-	void shuffle(const Log*);
+ Object& side(bool) const;
+ protected:
+ Card(std::unique_ptr<Object>&&, std::unique_ptr<Object>&&, bool, Location*,
+ structure, const Log*);
+ public:
+ long long unsigned who() const;
+ Location* where() const;
+ time_t when() const;
+ void attribute(structure, const Log*);
+ structure attributes() const;
+ std::pair<time_t,
+ std::map<std::string, std::pair<std::string, std::string>>>what();
+ bool operator ==(const Card&) const;
+ bool operator !=(const Card&) const;
+ virtual structure evaluate(structure) const;
+ Object& operator ()() const;
+ bool facing() const;
+ void facing(const Log*);
+ bool covering() const;
+ void covering(const Log*);
+ void flip(const Log*);
+ static std::unique_ptr<Card> construct(std::unique_ptr<Object>&&,
+ std::unique_ptr<Object>&&, bool, Location*, structure, const Log*);
 
-	static std::unique_ptr<Deck> construct(std::string, Location*, structure,
-			const Log*);
-};
+ virtual ~Card() = default;
+ };
+ class Deck: private base::Location {
+ std::string name;
+ protected:
+ Deck(std::string, Location*, structure, const Log*);
+ public:
+ long long unsigned who() const;
+ Location* where() const;
+ time_t when() const;
+ structure attributes() const;
+ void attribute(structure, const Log*);
+ std::pair<time_t,
+ std::map<std::string, std::pair<std::string, std::string>>>what();
+ bool operator ==(const Deck&) const;
+ bool operator !=(const Deck&) const;
+ size_t size() const;
+ virtual structure evaluate(structure) const;
+ const std::string& label() const;
+ std::unique_ptr<Card> draw(const Log*);
+ std::unique_ptr<Card> extract(const Log*);
+ std::unique_ptr<Card> get_bottom(const Log*);
+ void put_up(std::string, std::unique_ptr<Card>&&, const Log*);
+ void insert(std::string, std::unique_ptr<Card>&&, const Log*);
+ void put_down(std::string, std::unique_ptr<Card>&&, const Log*);
+ template<typename CardDerived, typename ... Arguments> void emplace_up(
+ std::string name, const Log* caller, Arguments&& ... arguments) {
+ Log log(
+ method<std::type_index>("", caller, "emplace_up", typeid(void),
+ name, arguments...));
+
+ Location::emplace_front<CardDerived>(name, &log, arguments ...);
+ }
+ template<typename CardDerived, typename ... Arguments> void emplace(
+ size_t offset, std::string name, const Log* caller,
+ Arguments&& ... arguments) {
+ Log log(
+ method<std::type_index>("", caller, "emplace", typeid(void),
+ offset, name, arguments...));
+
+ Location::emplace<CardDerived>(offset, name, &log, arguments ...);
+ }
+ template<typename CardDerived, typename ... Arguments> void emplace_down(
+ std::string name, const Log* caller, Arguments&& ... arguments) {
+ Log log(
+ method<std::type_index>("", caller, "emplace_down",
+ typeid(void), name, arguments...));
+
+ Location::emplace_back<CardDerived>(name, &log, arguments ...);
+ }
+ void shuffle(const Log*);
+
+ static std::unique_ptr<Deck> construct(std::string, Location*, structure,
+ const Log*);
+ };/**/
 }
 
 #endif /* BASE_H_ */
