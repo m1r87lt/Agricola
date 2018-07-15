@@ -213,8 +213,8 @@ public:
 		return result;
 	}
 	template<typename Return, typename Type, typename ... Arguments> static Log function(
-			std::string message, const Log* caller, std::string ns,
-			std::type_index object, std::string name, Variable<Type> argument,
+			const Log* caller, std::string ns, std::type_index object,
+			std::string name, std::string message, Variable<Type> argument,
 			Arguments&& ... rest) {
 		Log result(caller, ns, true);
 
@@ -243,9 +243,9 @@ public:
 		return returning;
 	}
 	template<typename Return, typename Argument, typename ... Arguments> static Return function(
-			const Log* caller, Variable<Return> returning, std::string ns,
-			std::type_index object, std::string message,
-			Variable<Argument> argument, Arguments&& ... rest) {
+			std::string message, const Log* caller, Variable<Return> returning,
+			std::string ns, std::type_index object, Variable<Argument> argument,
+			Arguments&& ... rest) {
 		Log result(caller, ns, false);
 
 		result.logging = returning.type() + " " + result.ns + "::";
@@ -265,7 +265,8 @@ public:
 
 		return std::forward<Return&&>(returned);
 	}
-	template<typename Return> Return returning(Return&& returned, std::function<std::string(Return&)> logger) {
+	template<typename Return> Return returning(Return&& returned,
+			std::function<std::string(Return&)> logger) {
 		open = false;
 		std::clog << tracking() << "  }=" << logger(returned);
 
@@ -410,7 +411,8 @@ private:
 	static std::set<Object*> everything;
 
 	static std::string lister(const std::map<std::string, std::string>&);
-	static std::string changing(modifications);
+	static std::string changing(modifications&);
+	static std::string objects(std::set<Object*>&);
 	friend class Location;
 	friend Variable<const std::map<std::string, std::string>&> ;
 protected:

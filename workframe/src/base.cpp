@@ -137,16 +137,29 @@ Object::modifications Object::what() {
 	return log.returning<modifications&>(result, changing);
 }
 bool Object::operator ==(const Object& than) const {
-	auto result = attributing == than.attributing;
-
-	binary<bool>(nullptr, result, "==", "base", &than, "");
-
-	return result;
+	return binary(nullptr,
+			base::variable(attributing == than.attributing, "=="),
+			than.variable(), "");
 }
 bool Object::operator !=(const Object& than) const {
-	auto result = attributing != than.attributing;
+	return binary(nullptr,
+			base::variable(attributing != than.attributing, "=="),
+			than.variable(), "");
+}
+std::set<Object*>& Object::all() {
+	return function("", nullptr,
+			Variable<std::set<Object*>&>(objects, "all", everything),
+			"base", typeid(Object));
+}
+Object::set Object::root() {
+	std::set<Object*> result;
+	auto log = function<std::type_index>("", nullptr, typeid(result), "base",
+			typeid(Object), "root");
 
-	binary<bool>(nullptr, result, "!=", "base", &than, "");
+	for (auto object : everything)
+		if (!object->position)
+			result.insert(object);
+	log.returned(lister(result).c_str());
 
 	return result;
 }
@@ -160,24 +173,6 @@ std::string Object::lister(set s) {
 	return base::lister(s, ";", false, true, false, [](Object* content) {
 		return content;
 	});
-}
-Object::set & Object::all() {
-	function<std::type_index>("", nullptr, typeid(everything), "base",
-			typeid(Object), "all").returned(lister(everything).c_str());
-
-	return everything;
-}
-Object::set Object::root() {
-	std::set<Object*> result;
-	auto log = function<std::type_index>("", nullptr, typeid(result), "base",
-			typeid(Object), "root");
-
-	for (auto object : everything)
-		if (!object->position)
-			result.insert(object);
-	log.returned(lister(result).c_str());
-
-	return result;
 }
 std::string Object::logging(
 		std::pair<time_t,
