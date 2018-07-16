@@ -61,6 +61,9 @@ std::string Log::transcoder(Log& derived) {
 std::string Log::parameters() {
 	return "";
 }
+Variable<Log&> Log::variable(std::string name) const {
+	return Variable<Log&>(name, ns, const_cast<Log&>(*this), transcoder);
+}
 
 Log::Log(const Log* caller, std::string ns, bool open) {
 	legacy = tracking(caller);
@@ -281,320 +284,315 @@ std::map<size_t, Location::container::iterator> Location::locate(
 	}
 
 	return log.returning<decltype(result)&>(result, mapper);
-}/*
- std::map<size_t, Location::container::iterator> Location::locate(
- std::type_index type) const {
- std::map<size_t, Location::container::iterator> result;
- Log log(
- method<std::type_index>(nullptr, "locate", typeid(result), "",
- "type", &type));
- auto current = std::make_pair(1,
- const_cast<container&>(containing).begin());
- std::ostringstream message;
+}
+std::map<size_t, Location::container::iterator> Location::locate(
+		std::type_index type) const {
+	std::map<size_t, Location::container::iterator> result;
+	auto log = method<decltype(result)>(nullptr, "locate", "",
+			Variable<decltype(type)&>(typer, "type", type));
+	auto current = std::make_pair(1,
+			const_cast<container&>(containing).begin());
 
- for (auto end = containing.end(); current.second != end; ++current.first) {
- if (type == typeid(*current.second->second))
- result.emplace(current);
- ++current.second;
- }
- if (result.empty()) {
- message
- << "WARNING invalid argument: the instance is not located here.";
- log.message(message.str());
- std::cerr << log.log() << " " << message.str() << std::endl;
- } else
- log.returned(
- base::lister(result, ",", false, true, false,
- [&message](decltype(current) found) {
- message.clear();
- message << "[" << found.first << "]" << found.second->second.get();
+	for (auto end = containing.end(); current.second != end; ++current.first) {
+		if (type == typeid(*current.second->second))
+			result.emplace(current);
+		++current.second;
+	}
+	if (result.empty()) {
+		std::ostringstream message;
 
- return message.str();
- }));
+		message
+				<< "WARNING invalid argument: the instance is not located here.";
+		log.message(message.str());
+		log.error(message.str());
+	}
 
- return result;
- }
- std::pair<size_t, Location::container::iterator> Location::locate(
- const Object& instance) const {
- auto result = std::make_pair(1, const_cast<container&>(containing).begin());
- Log log(
- method<std::type_index>(nullptr, "locate", typeid(result), "",
- "instance", &instance));
- auto end = containing.end();
- std::ostringstream message;
+	return log.returning<decltype(result)&>(result, mapper);
+}
+std::pair<size_t, Location::container::iterator> Location::locate(
+		const Object& instance) const {
+	auto result = std::make_pair(1, const_cast<container&>(containing).begin());
+	auto log =
+			method<decltype(result)>(nullptr, "locate", "",
+					instance.variable("instance"));
+	auto end = containing.end();
 
- while (result.second != end && result.second->second.get() != &instance) {
- ++result.first;
- ++result.second;
- }
- if (result.second == end) {
- message
- << "WARNING invalid argument: the instance is not located here.";
- log.message(message.str());
- std::cerr << log.log() << " " << message.str() << std::endl;
- } else {
- message << "[" << result.first << "]" << result.second->second.get();
- log.returned(message.str().c_str());
- }
+	while (result.second != end && result.second->second.get() != &instance) {
+		++result.first;
+		++result.second;
+	}
+	if (result.second == end) {
+		std::ostringstream message;
 
- return result;
- }
- std::unique_ptr<Object> Location::extract(container::iterator iterator,
- const Log* caller) {
- std::unique_ptr<Object> result;
- Log log(
- method<std::type_index>(caller, "extract", typeid(result), "",
- "iterator",
- "[" + std::to_string(which(*iterator->second)) + "]"
- + std::to_string((size_t) iterator->second.get())));
+		message
+				<< "WARNING invalid argument: the instance is not located here.";
+		log.message(message.str());
+		log.error(message.str());
+	}
 
- if (iterator == containing.end()) {
- std::string message =
- "ERROR invalid argument: iterator is out of range.";
+	return log.returning<decltype(result)&>(result, locater);
+}
+std::unique_ptr<Object> Location::extract(container::iterator iterator,
+		const Log* caller) {
+	std::unique_ptr<Object> result;
+	Log log(
+			method<std::type_index>(caller, "extract", typeid(result), "",
+					"iterator",
+					"[" + std::to_string(which(*iterator->second)) + "]"
+							+ std::to_string((size_t) iterator->second.get())));
 
- log.message(message);
- std::cerr << log.log() << " " << message << std::endl;
+	if (iterator == containing.end()) {
+		std::string message =
+				"ERROR invalid argument: iterator is out of range.";
 
- throw std::invalid_argument(message);
- }
- iterator->second.swap(result);
- result->position = nullptr;
- containing.erase(iterator);
- modification = result->modification = std::chrono::system_clock::to_time_t(
- std::chrono::system_clock::now());
+		log.message(message);
+		std::cerr << log.log() << " " << message << std::endl;
 
- return std::move(result);
- }
- void Location::remove(container::const_iterator iterator, const Log* caller) {
- Log log(
- method<std::type_index>(caller, "remove", typeid(void), "",
- "iterator",
- "[" + std::to_string(which(*iterator->second)) + "]"
- + std::to_string((size_t) iterator->second.get())));
+		throw std::invalid_argument(message);
+	}
+	iterator->second.swap(result);
+	result->position = nullptr;
+	containing.erase(iterator);
+	modification = result->modification = std::chrono::system_clock::to_time_t(
+			std::chrono::system_clock::now());
 
- if (iterator == containing.end()) {
- std::string message =
- "WARNING invalid argument: iterator is out of range.";
+	return std::move(result);
+}
+void Location::remove(container::const_iterator iterator, const Log* caller) {
+	Log log(
+			method<std::type_index>(caller, "remove", typeid(void), "",
+					"iterator",
+					"[" + std::to_string(which(*iterator->second)) + "]"
+							+ std::to_string((size_t) iterator->second.get())));
 
- log.message(message);
- std::cerr << log.log() << " " << message << std::endl;
+	if (iterator == containing.end()) {
+		std::string message =
+				"WARNING invalid argument: iterator is out of range.";
 
- throw std::invalid_argument(message);
- } else {
- containing.erase(iterator);
- modification = std::chrono::system_clock::to_time_t(
- std::chrono::system_clock::now());
- }
- }
- Object* Location::operator [](size_t offset) const {
- Object* result = nullptr;
- Log log(
- binary<std::type_index>(nullptr, typeid(result), "[]", "", offset,
- ""));
- auto iterator = locate(offset);
+		log.message(message);
+		std::cerr << log.log() << " " << message << std::endl;
 
- if (iterator != containing.end())
- result = iterator->second.get();
- log.returned(result);
+		throw std::invalid_argument(message);
+	} else {
+		containing.erase(iterator);
+		modification = std::chrono::system_clock::to_time_t(
+				std::chrono::system_clock::now());
+	}
+}
+Object* Location::operator [](size_t offset) const {
+	Object* result = nullptr;
+	Log log(
+			binary<std::type_index>(nullptr, typeid(result), "[]", "", offset,
+					""));
+	auto iterator = locate(offset);
 
- return result;
- }
- std::map<size_t, Object*> Location::operator ()(std::string name) const {
- std::map<size_t, Object*> result;
- Log log(
- Log::method<std::type_index>(nullptr, "", typeid(result), "",
- "name", name));
- auto located = locate(name);
+	if (iterator != containing.end())
+		result = iterator->second.get();
+	log.returned(result);
 
- for (auto found : located)
- result.emplace(found.first, found.second->second.get());
- log.returned(
- base::lister(result, ",", true, true, false,
- [](std::pair<size_t, Object*> content) {
- std::ostringstream text;
+	return result;
+}
+std::map<size_t, Object*> Location::operator ()(std::string name) const {
+	std::map<size_t, Object*> result;
+	Log log(
+			Log::method<std::type_index>(nullptr, "", typeid(result), "",
+					"name", name));
+	auto located = locate(name);
 
- text << "[" << content.first << "]" << content.second;
+	for (auto found : located)
+		result.emplace(found.first, found.second->second.get());
+	log.returned(
+			base::lister(result, ",", true, true, false,
+					[](std::pair<size_t, Object*> content) {
+						std::ostringstream text;
 
- return text.str();
- }));
+						text << "[" << content.first << "]" << content.second;
 
- return result;
- }
- std::map<size_t, Object*> Location::operator ()(std::type_index type) const {
- std::map<size_t, Object*> result;
- Log log(
- Log::method<std::type_index>(nullptr, "", typeid(result), "",
- "type", &type));
- auto located = locate(type);
+						return text.str();
+					}));
 
- for (auto found : located)
- result.emplace(found.first, found.second->second.get());
- log.returned(
- base::lister(result, ",", true, true, false,
- [](std::pair<size_t, Object*> content) {
- std::ostringstream text;
+	return result;
+}
+std::map<size_t, Object*> Location::operator ()(std::type_index type) const {
+	std::map<size_t, Object*> result;
+	Log log(
+			Log::method<std::type_index>(nullptr, "", typeid(result), "",
+					"type", &type));
+	auto located = locate(type);
 
- text << "[" << content.first << "]" << content.second;
+	for (auto found : located)
+		result.emplace(found.first, found.second->second.get());
+	log.returned(
+			base::lister(result, ",", true, true, false,
+					[](std::pair<size_t, Object*> content) {
+						std::ostringstream text;
 
- return text.str();
- }));
+						text << "[" << content.first << "]" << content.second;
 
- return result;
- }
- void Location::insert_front(std::string name,
- std::unique_ptr<Object>&& instance, const Log* caller) {
- Log log(
- method<void>(caller, "insert_front", typeid(void), "", "name", name,
- "instance", instance.get()));
+						return text.str();
+					}));
 
- insert(1, name, std::move(instance), &log);
- }
- void Location::insert(size_t offset, std::string name,
- std::unique_ptr<Object>&& instance, const Log* caller) {
- Log log(
- method<void>(caller, "insert", typeid(void), "", "offset", offset,
- "name", name, "instance", instance.get()));
- std::ostringstream message;
+	return result;
+}
+void Location::insert_front(std::string name,
+		std::unique_ptr<Object>&& instance, const Log* caller) {
+	Log log(
+			method<void>(caller, "insert_front", typeid(void), "", "name", name,
+					"instance", instance.get()));
 
- if (instance.get()) {
- if (offset > containing.size() + 1)
- message << "WARNING invalid argument: offset > 1 + size="
- << containing.size() << ".";
- else if (offset) {
- auto result = locate(offset);
+	insert(1, name, std::move(instance), &log);
+}
+void Location::insert(size_t offset, std::string name,
+		std::unique_ptr<Object>&& instance, const Log* caller) {
+	Log log(
+			method<void>(caller, "insert", typeid(void), "", "offset", offset,
+					"name", name, "instance", instance.get()));
+	std::ostringstream message;
 
- result = containing.emplace(result, naming(name), nullptr);
- result->second.swap(instance);
- result->second->position = this;
- modification = result->second->modification =
- std::chrono::system_clock::to_time_t(
- std::chrono::system_clock::now());
- } else
- message << "WARNING invalid argument: offset > 1 + size="
- << containing.size() << ".";
- } else
- message << "ERROR invalid argument: instance cannot be undefined.";
- if (message.str().length()) {
- log.message(message.str());
- std::cerr << log.log() << " " << message.str() << std::endl;
+	if (instance.get()) {
+		if (offset > containing.size() + 1)
+			message << "WARNING invalid argument: offset > 1 + size="
+					<< containing.size() << ".";
+		else if (offset) {
+			auto result = locate(offset);
 
- throw std::invalid_argument(message.str());
- }
- }
- void Location::insert_back(std::string name, std::unique_ptr<Object>&& instance,
- const Log* caller) {
- Log log(
- method<void>(caller, "insert_back", typeid(void), "", "name", name,
- "instance", instance.get()));
+			result = containing.emplace(result, naming(name), nullptr);
+			result->second.swap(instance);
+			result->second->position = this;
+			modification = result->second->modification =
+					std::chrono::system_clock::to_time_t(
+							std::chrono::system_clock::now());
+		} else
+			message << "WARNING invalid argument: offset > 1 + size="
+					<< containing.size() << ".";
+	} else
+		message << "ERROR invalid argument: instance cannot be undefined.";
+	if (message.str().length()) {
+		log.message(message.str());
+		std::cerr << log.log() << " " << message.str() << std::endl;
 
- insert(containing.size() + 1, name, std::move(instance), &log);
- }
- void Location::remove(size_t offset, const Log* caller) {
- Log log(
- method<std::type_index>(caller, "remove", typeid(void), "",
- "offset", offset));
+		throw std::invalid_argument(message.str());
+	}
+}
+void Location::insert_back(std::string name, std::unique_ptr<Object>&& instance,
+		const Log* caller) {
+	Log log(
+			method<void>(caller, "insert_back", typeid(void), "", "name", name,
+					"instance", instance.get()));
 
- remove(locate(offset), &log);
- }
- void Location::remove(std::string name, const Log* caller) {
- Log log(
- method<std::type_index>(caller, "remove", typeid(void), "", "name",
- name));
- auto located = locate(name);
+	insert(containing.size() + 1, name, std::move(instance), &log);
+}
+void Location::remove(size_t offset, const Log* caller) {
+	Log log(
+			method<std::type_index>(caller, "remove", typeid(void), "",
+					"offset", offset));
 
- for (auto found : located)
- remove(found.second, &log);
- }
- void Location::remove(std::type_index type, const Log* caller) {
- Log log(
- method<std::type_index>(caller, "remove", typeid(void), "", "type",
- &type));
+	remove(locate(offset), &log);
+}
+void Location::remove(std::string name, const Log* caller) {
+	Log log(
+			method<std::type_index>(caller, "remove", typeid(void), "", "name",
+					name));
+	auto located = locate(name);
 
- auto located = locate(type);
+	for (auto found : located)
+		remove(found.second, &log);
+}
+void Location::remove(std::type_index type, const Log* caller) {
+	Log log(
+			method<std::type_index>(caller, "remove", typeid(void), "", "type",
+					&type));
 
- for (auto found : located)
- remove(found.second, &log);
- }
- void Location::remove(const Object& instance, const Log* caller) {
- Log log(
- method<std::type_index>(caller, "remove", typeid(void), "",
- "instance", &instance));
+	auto located = locate(type);
 
- remove(locate(instance).second, &log);
- }
- std::unique_ptr<Object> Location::extract(size_t offset, const Log* caller) {
- std::unique_ptr<Object> result;
- Log log(
- method<std::type_index>(caller, "extract", typeid(result), "",
- "offset", offset));
+	for (auto found : located)
+		remove(found.second, &log);
+}
+void Location::remove(const Object& instance, const Log* caller) {
+	Log log(
+			method<std::type_index>(caller, "remove", typeid(void), "",
+					"instance", &instance));
 
- extract(locate(offset), &log).swap(result);
- log.returned(result.get());
+	remove(locate(instance).second, &log);
+}
+std::unique_ptr<Object> Location::extract(size_t offset, const Log* caller) {
+	std::unique_ptr<Object> result;
+	Log log(
+			method<std::type_index>(caller, "extract", typeid(result), "",
+					"offset", offset));
 
- return std::move(result);
- }
- std::unique_ptr<Object> Location::extract(const Object& instance,
- const Log* caller) {
- std::unique_ptr<Object> result;
- Log log(
- method<std::type_index>(caller, "extract", typeid(result), "",
- "instance", &instance));
+	extract(locate(offset), &log).swap(result);
+	log.returned(result.get());
 
- extract(locate(instance).second, &log).swap(result);
- log.returned(result.get());
+	return std::move(result);
+}
+std::unique_ptr<Object> Location::extract(const Object& instance,
+		const Log* caller) {
+	std::unique_ptr<Object> result;
+	Log log(
+			method<std::type_index>(caller, "extract", typeid(result), "",
+					"instance", &instance));
 
- return std::move(result);
- }
- size_t Location::size() const {
- method<size_t>("", nullptr, "size", containing.size());
+	extract(locate(instance).second, &log).swap(result);
+	log.returned(result.get());
 
- return containing.size();
- }
- size_t Location::which(const Object& instance) {
- size_t result = 0;
- Log log(
- function<std::type_index>(nullptr, "", typeid(result), "base",
- typeid(Location), "which", "instance", &instance));
- if (instance.position)
- result =
- dynamic_cast<Location*>(instance.position)->locate(instance).first;
- log.returned(result);
+	return std::move(result);
+}
+size_t Location::size() const {
+	method<size_t>("", nullptr, "size", containing.size());
 
- return result;
- }
- std::string Location::who(const Object& instance) {
- std::string result;
- Log log(
- function<std::type_index>(nullptr, "", typeid(result), "base",
- typeid(Location), "who", "instance", &instance));
+	return containing.size();
+}
+size_t Location::which(const Object& instance) {
+	size_t result = 0;
+	Log log(
+			function<std::type_index>(nullptr, "", typeid(result), "base",
+					typeid(Location), "which", "instance", &instance));
+	if (instance.position)
+		result =
+				dynamic_cast<Location*>(instance.position)->locate(instance).first;
+	log.returned(result);
 
- if (instance.position)
- result =
- dynamic_cast<Location*>(instance.position)->locate(instance).second->first;
- log.returned(result);
+	return result;
+}
+std::string Location::who(const Object& instance) {
+	std::string result;
+	Log log(
+			function<std::type_index>(nullptr, "", typeid(result), "base",
+					typeid(Location), "who", "instance", &instance));
 
- return result;
- }
- std::vector<Object*> Location::path(const Object& instance) {
- std::vector<Object*> result;
- Log log(
- function<std::type_index>(nullptr, "", typeid(result), "base",
- typeid(Location), "path", "instance", &instance));
+	if (instance.position)
+		result =
+				dynamic_cast<Location*>(instance.position)->locate(instance).second->first;
+	log.returned(result);
 
- if (instance.position)
- result = path(*instance.position);
- result.push_back(&const_cast<Object&>(instance));
- log.returned(
- base::lister(result, ",", false, true, false, [](Object* content) {
- return content;
- }).c_str());
+	return result;
+}
+std::vector<Object*> Location::path(const Object& instance) {
+	std::vector<Object*> result;
+	Log log(
+			function<std::type_index>(nullptr, "", typeid(result), "base",
+					typeid(Location), "path", "instance", &instance));
 
- return result;
- }
+	if (instance.position)
+		result = path(*instance.position);
+	result.push_back(&const_cast<Object&>(instance));
+	log.returned(
+			base::lister(result, ",", false, true, false, [](Object* content) {
+				return content;
+			}).c_str());
 
- Location::Location(Location* position, structure attributing, const Log* caller) :
- Object(position, attributing, caller) {
- }/*
+	return result;
+}
+
+Location::Location(Location* position, structure attributing, const Log* caller) :
+		Object(position, attributing, caller) {
+}
+
+std::string typer(std::type_index& type) {
+	return type.name();
+}
+/*
  }
  namespace game {
  //Card

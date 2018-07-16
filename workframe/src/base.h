@@ -288,6 +288,7 @@ public:
 	virtual ~Log();
 	Log(Log&&);
 protected:
+	Variable<Log&> variable(std::string) const;
 	template<typename Return> Log unary(const Log* caller,
 			std::string operation, std::string message) const {
 		Log result(caller, "", true);
@@ -470,6 +471,7 @@ class Location: public Object {
 	void remove(container::const_iterator, const Log*);
 	static std::string iterate(container::iterator&);
 	static std::string mapper(std::map<size_t, container::iterator>&);
+	static std::string locater(std::pair<size_t, container::iterator>&);
 protected:
 	Location(Location*, std::map<std::string, std::string>, const Log*,
 			std::string, bool, std::string);
@@ -514,6 +516,7 @@ public:
 
 	virtual ~Location() = default;
 };
+std::string typer(std::type_index&);
 /*
  }
  namespace game {
