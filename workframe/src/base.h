@@ -145,6 +145,21 @@ class Log {
 	Log(const Log*, std::string, bool);
 	Log(Log&);
 public:
+	void message(std::string) const;
+	template<typename Return> Return returning(Return&& returned) {
+		open = false;
+		std::clog << tracking() << "  }=" << returned;
+
+		return std::forward<Return&&>(returned);
+	}
+	template<typename Return> Return returning(Return&& returned,
+			std::function<std::string(Return&)> logger) {
+		open = false;
+		std::clog << tracking() << "  }=" << logger(returned);
+
+		return std::forward<Return&&>(returned);
+	}
+	void error(std::string) const;
 	template<typename Return, typename Argument> static Log unary(
 			const Log* caller, std::string operation,
 			Variable<Argument> argument, std::string message) {
@@ -268,20 +283,6 @@ public:
 		std::clog << result.log() << messaging(message) << " {" << std::endl;
 
 		return result;
-	}
-	void message(std::string) const;
-	template<typename Return> Return returning(Return&& returned) {
-		open = false;
-		std::clog << tracking() << "  }=" << returned;
-
-		return std::forward<Return&&>(returned);
-	}
-	template<typename Return> Return returning(Return&& returned,
-			std::function<std::string(Return&)> logger) {
-		open = false;
-		std::clog << tracking() << "  }=" << logger(returned);
-
-		return std::forward<Return&&>(returned);
 	}
 
 	virtual ~Log();
