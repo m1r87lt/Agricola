@@ -312,9 +312,8 @@ std::map<size_t, Location::container::iterator> Location::locate(
 std::pair<size_t, Location::container::iterator> Location::locate(
 		const Object& instance) const {
 	auto result = std::make_pair(1, const_cast<container&>(containing).begin());
-	auto log =
-			method<decltype(result)>(nullptr, "locate", "",
-					instance.variable("instance"));
+	auto log = method<decltype(result)>(nullptr, "locate", "",
+			instance.variable("instance"));
 	auto end = containing.end();
 
 	while (result.second != end && result.second->second.get() != &instance) {
@@ -330,23 +329,21 @@ std::pair<size_t, Location::container::iterator> Location::locate(
 		log.error(message.str());
 	}
 
-	return log.returning<decltype(result)&>(result, locater);
+	return log.returning<std::pair<size_t, Location::container::iterator>>(
+			result, locater);
 }
 std::unique_ptr<Object> Location::extract(container::iterator iterator,
 		const Log* caller) {
 	std::unique_ptr<Object> result;
-	Log log(
-			method<std::type_index>(caller, "extract", typeid(result), "",
-					"iterator",
-					"[" + std::to_string(which(*iterator->second)) + "]"
-							+ std::to_string((size_t) iterator->second.get())));
+	auto log = method<decltype(result)>(caller, "extract", "",
+			Variable<container::iterator&>(iterate, "iterator", iterator));
 
 	if (iterator == containing.end()) {
 		std::string message =
 				"ERROR invalid argument: iterator is out of range.";
 
 		log.message(message);
-		std::cerr << log.log() << " " << message << std::endl;
+		log.error(message);
 
 		throw std::invalid_argument(message);
 	}
@@ -356,7 +353,7 @@ std::unique_ptr<Object> Location::extract(container::iterator iterator,
 	modification = result->modification = std::chrono::system_clock::to_time_t(
 			std::chrono::system_clock::now());
 
-	return std::move(result);
+	return log.returning<decltype(result)>(result, unique_ptr);
 }
 void Location::remove(container::const_iterator iterator, const Log* caller) {
 	Log log(

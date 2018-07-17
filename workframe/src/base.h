@@ -401,6 +401,7 @@ protected:
 		return result.str();
 	}
 	static std::string parameters();
+	template<> static
 
 	Log(const Log*, std::string, bool, std::string);
 	template<typename Argument, typename ... Arguments> Log(const Log* caller,
@@ -509,7 +510,6 @@ public:
 	std::unique_ptr<Object> extract(size_t, const Log*);
 	std::unique_ptr<Object> extract(const Object&, const Log*);
 	size_t size() const;
-
 	static size_t which(const Object&);
 	static std::string who(const Object&);
 	static std::vector<Object*> path(const Object&);
