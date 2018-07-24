@@ -8,14 +8,21 @@
 #include "player.h"
 #include <chrono>
 
-std::map<Color, std::string>::const_iterator find_color(std::string color) {
-	auto c = colorNames.begin();
-	auto C = colorNames.end();
+//Color
+std::string Color::name() const {
+	return names.find(instance)->second;
+}
+Color::Which Color::color(std::string which) const {
+	for (auto n : names)
+		if (n.second == which)
+			return n.first;
+}
 
-	while (c->second != color && c != C)
-		++c;
-
-	return c;
+Color::Color(Which which) {
+	instance = which;
+}
+Color::Color(std::string which) {
+	instance = color(which);
 }
 
 //Played

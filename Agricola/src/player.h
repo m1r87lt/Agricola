@@ -10,37 +10,36 @@
 
 #include <src/base.h>
 
-enum class Color {
-	No,
-	White,
-	Gray,
-	Black,
-	Crimson,
-	Red,
-	Brown,
-	Orange,
-	Yellow,
-	Green,
-	Blue,
-	Purple
+struct Color {
+	enum class Which {
+		No,
+		White,
+		Gray,
+		Black,
+		Crimson,
+		Red,
+		Brown,
+		Orange,
+		Yellow,
+		Green,
+		Blue,
+		Purple
+	} instance;
+
+	std::string name() const;
+	static Which color(std::string) const;
+
+	Color(Which);
+	Color(std::string);
+private:
+	static const std::map<Color, std::string> names = {
+			{ Which::No, "No" }, { Which::White, "White" }, { Which::Gray,
+					"Gray" }, { Which::Black, "Black" }, { Which::Crimson,
+					"Crimson" }, { Which::Red, "Red" },
+			{ Which::Brown, "Brown" }, { Which::Orange, "Orange" }, {
+					Which::Yellow, "Yellow" }, { Which::Green, "Green" }, {
+					Which::Blue, "Blue" }, { Which::Purple, "Purple" } };
 };
-const std::map<Color, std::string> colorNames = { { Color::No, "No" }, {
-		Color::White, "White" }, { Color::Gray, "Gray" }, { Color::Black,
-		"Black" }, { Color::Crimson, "Crimson" }, { Color::Red, "Red" }, {
-		Color::Brown, "Brown" }, { Color::Orange, "Orange" }, { Color::Yellow,
-		"Yellow" }, { Color::Green, "Green" }, { Color::Blue, "Blue" }, {
-		Color::Purple, "Purple" } };
-std::map<Color, std::string>::const_iterator find_color(std::string);
-template<typename Container> std::string list_unique_ptrs(
-		const Container& container) {
-	std::ostringstream result;
-
-	for (auto c = container.begin(); c != container.end(); ++c)
-		result << ",\n\t" << c->get();
-	result << (result.str().empty() ? "{ " : "\n");
-
-	return "{" + result.str().substr(1) + "}";
-}
 
 class Played: public base::Location {
 	Played(base::Log);
