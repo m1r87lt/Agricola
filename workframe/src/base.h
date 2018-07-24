@@ -79,7 +79,7 @@ public:
 		this->transcoder = transcoder;
 	}
 	Variable(const Variable<Type>& copy) :
-			value(std::forward<Type&&>(copy.value)) {
+			value(std::forward<const Type&>(copy.value)) {
 		name = copy.name;
 		ns = copy.ns;
 		transcoder = copy.transcoder;
@@ -132,7 +132,6 @@ class Log {
 
 	std::string tracking() const;
 	std::string log() const;
-	Variable<Log&> variable() const;
 	template<typename Type, typename ... Arguments> static std::string arguments(
 			Variable<Type> argument, Arguments&& ... rest) {
 		return ", " + argument.logger() + arguments(rest ...);
@@ -146,6 +145,7 @@ class Log {
 	Log(Log&);
 public:
 	void message(std::string) const;
+	Variable<Log&> variable() const;
 	template<typename Return> Return returning(Return&& returned) {
 		open = false;
 		std::clog << tracking() << "  }=" << returned;
@@ -160,6 +160,13 @@ public:
 		return std::forward<Return&&>(returned);
 	}
 	void error(std::string) const;
+	template<typename Return> std::unique_ptr<Return> unique_ptr(
+			std::unique_ptr<Return>&& returned) {
+		open = false;
+		std::clog << tracking() << "  }=" << returned.get();
+
+		return std::move(returned);
+	}
 	template<typename Return, typename Argument> static Log unary(
 			const Log* caller, std::string operation,
 			Variable<Argument> argument, std::string message) {
@@ -339,7 +346,10 @@ protected:
 		Log result(caller, "", true);
 
 		result.logging = typeid(Return).name();
-		result.logging += " " + variable()() + "." + name + "()";
+		result.logging += " " + variable()();
+		if (name.size())
+			result.logging += ".";
+		result.logging += name + "()";
 		std::clog << result.log() << messaging(message) << " {" << std::endl;
 
 		return result;
@@ -350,8 +360,11 @@ protected:
 		Log result(caller, "", true);
 
 		result.logging = typeid(Return).name();
-		result.logging += " " + variable()() + "." + name + "("
-				+ argument.logger() + arguments(rest ...) + ")";
+		result.logging += " " + variable()();
+		if (name.size())
+			result.logging += ".";
+		result.logging += name + "(" + argument.logger() + arguments(rest ...)
+				+ ")";
 		std::clog << result.log() << messaging(message) << " {" << std::endl;
 
 		return result;
@@ -360,8 +373,10 @@ protected:
 			const Log* caller, Variable<Return> returning) const {
 		Log result(caller, "", false);
 
-		result.logging = returning.type() + " " + variable()() + "."
-				+ returning.label() + "()";
+		result.logging = returning.type() + " " + variable()();
+		if (returning.label().size())
+			result.logging += ".";
+		result.logging += returning.label() + "()";
 		std::clog << result.log() << messaging(message) << "=" << returning()
 				<< std::endl;
 
@@ -372,8 +387,10 @@ protected:
 			Variable<Argument> argument, Arguments&& ... rest) const {
 		Log result(caller, "", false);
 
-		result.logging = returning.type() + " " + variable()() + "."
-				+ returning.label() + "(" + argument.logger()
+		result.logging = returning.type() + " " + variable()();
+		if (returning.label().size())
+			result.logging += ".";
+		result.logging += returning.label() + "(" + argument.logger()
 				+ arguments(rest ...) + ")";
 		std::clog << result.log() << messaging(message) << "=" << returning()
 				<< std::endl;
@@ -401,7 +418,6 @@ protected:
 		return result.str();
 	}
 	static std::string parameters();
-	template<> static
 
 	Log(const Log*, std::string, bool, std::string);
 	template<typename Argument, typename ... Arguments> Log(const Log* caller,
@@ -429,8 +445,13 @@ struct Object: public Log {
 	modifications what();
 	bool operator ==(const Object&) const;
 	bool operator !=(const Object&) const;
+	virtual std::map<std::string, std::string> evaluate(
+			std::map<std::string, std::string>) = 0;
 	static std::set<Object*>& all();
 	static std::set<Object*> root();
+	static std::string lister(const std::map<std::string, std::string>&);
+	static std::string changing(modifications&);
+	static std::string objects(std::set<Object*>&);
 
 	virtual ~Object() = default;
 	Object(const Object&) = delete;
@@ -444,9 +465,6 @@ private:
 	std::map<std::string, std::string> changes;
 	static std::set<Object*> everything;
 
-	static std::string lister(const std::map<std::string, std::string>&);
-	static std::string changing(modifications&);
-	static std::string objects(std::set<Object*>&);
 	friend class Location;
 protected:
 	time_t modification;
@@ -464,10 +482,8 @@ class Location: public Object {
 	std::string naming(std::string);
 	container::iterator locate(size_t) const;
 	std::map<size_t, container::iterator> locate(std::string) const;
-	std::map<size_t, container::iterator> locate(
-			std::type_index) const;
-	std::pair<size_t, container::iterator> locate(
-			const Object&) const;
+	std::map<size_t, container::iterator> locate(std::type_index) const;
+	std::pair<size_t, container::iterator> locate(const Object&) const;
 	std::unique_ptr<Object> extract(container::iterator, const Log*);
 	void remove(container::const_iterator, const Log*);
 	static std::string iterate(container::iterator&);
@@ -485,23 +501,26 @@ public:
 	void insert_back(std::string, std::unique_ptr<Object>&&, const Log*);
 	template<typename ObjectDerived, typename ... Arguments> void emplace_front(
 			std::string name, const Log* caller, Arguments&& ... arguments) {
-		insert_front(name, new ObjectDerived(arguments ...),
-				&tmethod<void>(caller, "emplace_front", "",
-						base::variable(name, "name"), arguments...));
+		auto log = tmethod<void>(caller, "emplace_front", "",
+				base::variable(name, "name"), arguments...);
+
+		insert_front(name, new ObjectDerived(arguments ...), &log);
 	}
 	template<typename ObjectDerived, typename ... Arguments> void emplace(
 			size_t offset, std::string name, const Log* caller,
 			Arguments&& ... arguments) {
-		insert(offset, name, new ObjectDerived(arguments ...),
-				&tmethod<void>(caller, "emplace", "",
-						base::variable(offset, "offset"),
-						base::variable(name, "name"), arguments...));
+		auto log = tmethod<void>(caller, "emplace", "",
+				base::variable(offset, "offset"), base::variable(name, "name"),
+				arguments...);
+
+		insert(offset, name, new ObjectDerived(arguments ...), &log);
 	}
 	template<typename ObjectDerived, typename ... Arguments> void emplace_back(
 			std::string name, const Log* caller, Arguments&& ... arguments) {
-		insert_back(name, new ObjectDerived(arguments ...),
-				&tmethod<void>(caller, "emplace_front", "",
-						base::variable(name, "name"), arguments...));
+		auto log = tmethod<void>(caller, "emplace_front", "",
+				base::variable(name, "name"), arguments...);
+
+		insert_back(name, new ObjectDerived(arguments ...), &log);
 	}
 	void remove(size_t, const Log*);
 	void remove(std::string, const Log*);
@@ -509,7 +528,10 @@ public:
 	void remove(const Object&, const Log*);
 	std::unique_ptr<Object> extract(size_t, const Log*);
 	std::unique_ptr<Object> extract(const Object&, const Log*);
+	void take(size_t, Location&, size_t, const Log*);
+	void take(const Object&, Location&, size_t, const Log*);
 	size_t size() const;
+	static std::string map_loc(std::map<size_t, Object*>&);
 	static size_t which(const Object&);
 	static std::string who(const Object&);
 	static std::vector<Object*> path(const Object&);
@@ -517,90 +539,82 @@ public:
 	virtual ~Location() = default;
 };
 std::string typer(std::type_index&);
-/*
- }
- namespace game {
- class Card: private base::Location {
- bool covered;
+}
+namespace game {
+class Card: public base::Object {
+	bool covered;
+	struct That: public base::Location {
+		virtual std::map<std::string, std::string> evaluate(
+				std::map<std::string, std::string>);
 
- Object& side(bool) const;
- protected:
- Card(std::unique_ptr<Object>&&, std::unique_ptr<Object>&&, bool, Location*,
- structure, const Log*);
- public:
- long long unsigned who() const;
- Location* where() const;
- time_t when() const;
- void attribute(structure, const Log*);
- structure attributes() const;
- std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> what();
- bool operator ==(const Card&) const;
- bool operator !=(const Card&) const;
- virtual structure evaluate(structure) const;
- Object& operator ()() const;
- bool facing() const;
- void facing(const Log*);
- bool covering() const;
- void covering(const Log*);
- void flip(const Log*);
- static std::unique_ptr<Card> construct(std::unique_ptr<Object>&&,
- std::unique_ptr<Object>&&, bool, Location*, structure, const Log*);
+		That(Object*, const Log*);
+	} container;
 
- virtual ~Card() = default;
- };
- class Deck: private base::Location {
- std::string name;
- protected:
- Deck(std::string, Location*, structure, const Log*);
- public:
- long long unsigned who() const;
- Location* where() const;
- time_t when() const;
- structure attributes() const;
- void attribute(structure, const Log*);
- std::pair<time_t, std::map<std::string, std::pair<std::string, std::string>>> what();
- bool operator ==(const Deck&) const;
- bool operator !=(const Deck&) const;
- size_t size() const;
- virtual structure evaluate(structure) const;
- const std::string& label() const;
- std::unique_ptr<Card> draw(const Log*);
- std::unique_ptr<Card> extract(const Log*);
- std::unique_ptr<Card> get_bottom(const Log*);
- void put_up(std::string, std::unique_ptr<Card>&&, const Log*);
- void insert(std::string, std::unique_ptr<Card>&&, const Log*);
- void put_down(std::string, std::unique_ptr<Card>&&, const Log*);
- template<typename CardDerived, typename ... Arguments> void emplace_up(
- std::string name, const Log* caller, Arguments&& ... arguments) {
- Log log(
- method<std::type_index>("", caller, "emplace_up", typeid(void),
- name, arguments...));
+	Object& side(bool) const;
+protected:
+	Card(std::unique_ptr<Object>&&, std::unique_ptr<Object>&&, bool, base::Location*,
+			std::map<std::string, std::string>, const Log*);
+public:
+	virtual std::map<std::string, std::string> evaluate(
+			std::map<std::string, std::string>);
+	Object& operator ()() const;
+	bool facing() const;
+	void facing(const Log*);
+	bool covering() const;
+	void covering(const Log*);
+	void flip(const Log*);
+	static std::unique_ptr<Card> construct(std::unique_ptr<Object>&&,
+			std::unique_ptr<Object>&&, bool, base::Location*,
+			std::map<std::string, std::string>, const Log*);
+};
 
- Location::emplace_front<CardDerived>(name, &log, arguments ...);
- }
- template<typename CardDerived, typename ... Arguments> void emplace(
- size_t offset, std::string name, const Log* caller,
- Arguments&& ... arguments) {
- Log log(
- method<std::type_index>("", caller, "emplace", typeid(void),
- offset, name, arguments...));
+class Deck: public base::Object {
+	std::string name;
+	struct That: public base::Location {
+		virtual std::map<std::string, std::string> evaluate(
+				std::map<std::string, std::string>);
 
- Location::emplace<CardDerived>(offset, name, &log, arguments ...);
- }
- template<typename CardDerived, typename ... Arguments> void emplace_down(
- std::string name, const Log* caller, Arguments&& ... arguments) {
- Log log(
- method<std::type_index>("", caller, "emplace_down",
- typeid(void), name, arguments...));
+		That(Object*, const Log*);
+	} container;
+protected:
+	Deck(std::string, base::Location*, std::map<std::string, std::string>,
+			const Log*);
+public:
+	size_t size() const;
+	virtual std::map<std::string, std::string> evaluate(
+			std::map<std::string, std::string>);
+	const std::string& label() const;
+	std::unique_ptr<Card> draw(const Log*);
+	std::unique_ptr<Card> extract(const Log*);
+	std::unique_ptr<Card> get_bottom(const Log*);
+	void put_up(std::string, std::unique_ptr<Card>&&, const Log*);
+	void insert(std::string, std::unique_ptr<Card>&&, const Log*);
+	void put_down(std::string, std::unique_ptr<Card>&&, const Log*);
+	template<typename CardDerived, typename ... Arguments> void emplace_up(
+			std::string name, const Log* caller, Arguments&& ... arguments) {
+		auto log = tmethod<void>(caller, "emplace_up", "", name, arguments...);
 
- Location::emplace_back<CardDerived>(name, &log, arguments ...);
- }
- void shuffle(const Log*);
+		container.emplace_front<CardDerived>(name, &log, arguments ...);
+	}
+	template<typename CardDerived, typename ... Arguments> void emplace(
+			size_t offset, std::string name, const Log* caller,
+			Arguments&& ... arguments) {
+		auto log = method<void>(caller, "emplace", "", offset, name,
+				arguments...);
 
- static std::unique_ptr<Deck> construct(std::string, Location*, structure,
- const Log*);
- };
- /**/
+		container.emplace<CardDerived>(offset, name, &log, arguments ...);
+	}
+	template<typename CardDerived, typename ... Arguments> void emplace_down(
+			std::string name, const Log* caller, Arguments&& ... arguments) {
+		auto log = method<void>(caller, "emplace_down", "", name, arguments...);
+
+		container.emplace_back<CardDerived>(name, &log, arguments ...);
+	}
+	void shuffle(const Log*);
+
+	static std::unique_ptr<Deck> construct(std::string, base::Location*,
+			std::map<std::string, std::string>, const Log*);
+};
 }
 
 #endif /* BASE_H_ */
