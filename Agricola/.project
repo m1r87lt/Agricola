@@ -4,7 +4,6 @@
 	<comment></comment>
 	<projects>
 		<project>workframe</project>
-		<project>odpi</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

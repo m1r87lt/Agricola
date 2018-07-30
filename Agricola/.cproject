@@ -19,7 +19,6 @@
 							<builder buildPath="${workspace_loc:/Agricola}/Debug" id="cdt.managedbuild.tool.gnu.builder.mingw.base.260648480" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CDT Internal Builder" superClass="cdt.managedbuild.tool.gnu.builder.mingw.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.assembler.mingw.exe.debug.1869312147" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.mingw.exe.debug">
 								<option id="gnu.both.asm.option.include.paths.290527152" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/odpi}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/workframe}&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1909850368" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
@@ -29,7 +28,6 @@
 								<option id="gnu.cpp.compiler.mingw.exe.debug.option.optimization.level.2047486835" name="Optimization Level" superClass="gnu.cpp.compiler.mingw.exe.debug.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.mingw.exe.debug.option.debugging.level.998556240" name="Debug Level" superClass="gnu.cpp.compiler.mingw.exe.debug.option.debugging.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.2121541640" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/odpi}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/workframe}&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.dialect.std.773531436" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.c++11" valueType="enumerated"/>
@@ -39,7 +37,6 @@
 								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.mingw.exe.debug.option.optimization.level.52028773" name="Optimization Level" superClass="gnu.c.compiler.mingw.exe.debug.option.optimization.level" useByScannerDiscovery="false" valueType="enumerated"/>
 								<option id="gnu.c.compiler.mingw.exe.debug.option.debugging.level.2066852515" name="Debug Level" superClass="gnu.c.compiler.mingw.exe.debug.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.include.paths.701872663" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/odpi}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/workframe}&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1060204397" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
@@ -47,11 +44,9 @@
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.mingw.exe.debug.188369915" name="MinGW C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.mingw.exe.debug"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.mingw.exe.debug.207487682" name="MinGW C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.mingw.exe.debug">
 								<option id="gnu.cpp.link.option.paths.242677316" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" useByScannerDiscovery="false" valueType="libPaths">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/odpi/Debug}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/workframe/Debug}&quot;"/>
 								</option>
 								<option id="gnu.cpp.link.option.libs.1259434101" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
-									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="odpi"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="workframe"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.494513106" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
@@ -72,13 +67,6 @@
 						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/workframe"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/workframe/Debug"/>
 						<entry flags="RESOLVED" kind="libraryFile" name="workframe" srcPrefixMapping="" srcRootPath=""/>
-					</externalSetting>
-				</externalSettings>
-				<externalSettings containerId="odpi;" factoryId="org.eclipse.cdt.core.cfg.export.settings.sipplier">
-					<externalSetting>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/odpi"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/odpi/Debug"/>
-						<entry flags="RESOLVED" kind="libraryFile" name="odpi" srcPrefixMapping="" srcRootPath=""/>
 					</externalSetting>
 				</externalSettings>
 			</storageModule>

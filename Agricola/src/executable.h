@@ -55,37 +55,17 @@
 #define EX_R6_RENOVATION_FENCES "Renovation+Fences"
 
 class Executable {
-	short unsigned active;
 	std::string name;
 protected:
-	Executable(std::string, base::Log);
+	Executable(std::string, const base::Log*);
 public:
-	virtual std::string description() const = 0;
-	virtual std::string field(std::string, unsigned) const;
-	virtual void field(std::string, size_t, std::string, unsigned);
+	Player* active;
 
-	short unsigned used() const;
-	operator std::string() const;
-	int operator ()(short unsigned, bool, base::Log);
-
-	static std::map<std::string,
-			std::function<int(short unsigned, bool, base::Log)>> operations;
-
-	static int null(short unsigned, bool, base::Log);
-
-	template<typename Container> static std::string list(
-			Container&& container) {
-		std::ostringstream result;
-		auto C = container.end();
-
-		for (auto c = container.begin(); c != C; ++c)
-			result << ",\n\t" << (std::string) *c->get();
-		result
-				<< (result.str().empty() ?
-						"{ }" : "{" + result.str().substr(1) + "\n}");
-
-		return result.str();
-	}
+	operator const char*() const;
+	int operator ()(std::string, bool, const base::Log*);
+	virtual int execute(std::string, const base::Log*) = 0;
+	virtual int attempt(std::string, const base::Log*) = 0;
+	static int null(Player*, bool, const base::Log*);
 
 	virtual ~Executable() = default;
 };

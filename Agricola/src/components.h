@@ -8,80 +8,44 @@
 #ifndef COMPONENTS_H_
 #define COMPONENTS_H_
 
+#define FARMYARD_PERSONALSUPPLY "Personal Supply"
+#define FARMYARD_SPACE_FENCE "Farmyard Fence Space"
+#define FARMYARD_SPACE_SPACE "Farmyard Space"
+#define FARMYARD "Farmyard"
+
 #include "executable.h"
-#include <tuple>
 
-struct Farmyard: public Owned, public base::Location {
-	class PersonalSupply: public Location {
-		PersonalSupply(Farmyard*, base::Log);
+struct Farmyard: public Owned, public base::Object {
+	class PersonalSupply: public base::Location {
+		PersonalSupply(Farmyard*, const Log*);
 		friend Farmyard;
 	public:
-		static const std::string name;
-
-		virtual std::string what() const;
-		virtual Object* enter(std::string, size_t, unsigned) const;
-		virtual std::string field(std::string, unsigned) const;
-		virtual void field(std::string, size_t, std::string, unsigned);
-
-		virtual ~PersonalSupply() = default;
+		virtual std::map<std::string, std::string> evaluate(
+				std::map<std::string, std::string>);
 	};
-	class Space: public Location {
-		Space(Farmyard*, base::Log);
+	class Space: public base::Location {
+		Space(Farmyard*, const Log*);
 		friend Farmyard;
 	public:
-		static const std::string space_name;
-		static const std::string fence_name;
-
-		virtual std::string what() const;
-		virtual Object* enter(std::string, size_t, unsigned) const;
-		virtual std::string field(std::string, unsigned) const;
-		virtual void field(std::string, size_t, std::string, unsigned);
-
-		virtual ~Space() = default;
+		virtual std::map<std::string, std::string> evaluate(
+				std::map<std::string, std::string>);
 	};
-	class Row: public Prompt {
+	class Row: public Log {
 		Farmyard* owner;
 		size_t row;
 
-		Row(size_t, Farmyard*);
+		Row(size_t, Farmyard*, const Log*);
 		friend Farmyard;
 	public:
 		Space* operator [](size_t);
-
-		virtual Object* enter(std::string, size_t, unsigned) const;
-		virtual std::string field(std::string, unsigned) const;
-		virtual void field(std::string, size_t, std::string, unsigned);
 	};
-
-	static const std::string type;
-
-	virtual std::string what() const;
-	virtual Object* enter(std::string, size_t, unsigned) const;
-	virtual std::string field(std::string, unsigned) const;
-	virtual void field(std::string, size_t, std::string, unsigned);
 
 	PersonalSupply* personal_supply() const;
 	Space* space(size_t, size_t) const;
 	Space* fence(size_t, size_t, bool, bool) const;
 	Row operator [](size_t) const;
-	bool insert(size_t, std::string, std::unique_ptr<Object>&&,
-			base::Log) = delete;
-	void insert_back(std::string, std::unique_ptr<Object>&&, base::Log) = delete;
-	template<typename ObjectDerived, typename ... Arguments> void emplace(
-			size_t, std::string, base::Log, Arguments&& ...) = delete;
-	template<typename ObjectDerived, typename ... Arguments> void emplace_back(
-			std::string, base::Log, Arguments&& ...) = delete;
-	bool remove(size_t, base::Log) = delete;
-	bool remove(std::string, base::Log) = delete;
-	bool remove(const Object&, base::Log) = delete;
-	std::unique_ptr<Object> extract(size_t, base::Log) = delete;
-	std::unique_ptr<Object> extract(std::string, base::Log) = delete;
-	std::unique_ptr<Object> extract(const Object&, base::Log) = delete;
-	size_t size() const = delete;
-	size_t which(const Object&) const = delete;
 
-	Farmyard(short unsigned, base::Log);
-
+	Farmyard(Player*, const Log*);
 	virtual ~Farmyard() = default;
 };
 struct Gameboard: public base::Location {
@@ -155,9 +119,8 @@ protected:
 	virtual std::string field(std::string, unsigned) const;
 	virtual void field(std::string, size_t, std::string, unsigned);
 
-	Face(std::vector<Data>, std::string, std::vector<Data>,
-			unsigned, char, std::string,
-			std::vector<std::unique_ptr<Executable>>, Location*,
+	Face(std::vector<Data>, std::string, std::vector<Data>, unsigned, char,
+			std::string, std::vector<std::unique_ptr<Executable>>, Location*,
 			base::Log);
 public:
 	const std::vector<Data>& prerequisites() const;
@@ -201,20 +164,18 @@ class Card: public game::Card {
 
 	static std::tuple<std::vector<std::unique_ptr<Executable>>,
 			std::vector<Data>, std::vector<Data>>
-			face(std::map<std::string, std::string>, base::Log);
+	face(std::map<std::string, std::string>, base::Log);
 
 	Card(std::string, Color, std::unique_ptr<Location>&&,
-			std::unique_ptr<Location>&&, Location*,
-			base::Log);
+			std::unique_ptr<Location>&&, Location*, base::Log);
 public:
 	class Occupation: public Face {
 		short unsigned p;
 		bool bp;
 
 		Occupation(short unsigned, bool,
-				std::vector<std::unique_ptr<Executable>>,
-				std::vector<Data>, std::string,
-				std::vector<Data>, unsigned, char, std::string,
+				std::vector<std::unique_ptr<Executable>>, std::vector<Data>,
+				std::string, std::vector<Data>, unsigned, char, std::string,
 				Location*, base::Log);
 		friend Card;
 	public:
@@ -241,9 +202,8 @@ public:
 		bool order;
 
 		Improvement(bool, int, bool, bool, bool,
-				std::vector<std::unique_ptr<Executable>>,
-				std::vector<Data>, std::string,
-				std::vector<Data>, unsigned, char, std::string,
+				std::vector<std::unique_ptr<Executable>>, std::vector<Data>,
+				std::string, std::vector<Data>, unsigned, char, std::string,
 				Location*, base::Log);
 		friend Card;
 	public:
@@ -256,8 +216,7 @@ public:
 
 		virtual std::string what() const;
 		virtual std::string description() const;
-		virtual base::Object* enter(std::string, size_t,
-				unsigned) const;
+		virtual base::Object* enter(std::string, size_t, unsigned) const;
 		virtual std::string field(std::string, unsigned) const;
 		virtual void field(std::string, size_t, std::string, unsigned);
 
@@ -278,8 +237,7 @@ public:
 		unsigned stage() const;
 		std::pair<unsigned, unsigned> round() const;
 
-		virtual base::Object* enter(std::string, size_t,
-				unsigned) const;
+		virtual base::Object* enter(std::string, size_t, unsigned) const;
 		virtual std::string field(std::string, unsigned) const;
 		virtual void field(std::string, size_t, std::string, unsigned);
 
@@ -293,8 +251,7 @@ public:
 		std::string caption;
 
 		Action(short unsigned, bool, std::string,
-				std::vector<std::unique_ptr<::Action>>, Location*,
-				base::Log);
+				std::vector<std::unique_ptr<::Action>>, Location*, base::Log);
 		friend Card;
 	public:
 		static const std::string type;
@@ -302,10 +259,8 @@ public:
 		short unsigned players() const;
 		bool family() const;
 		std::string description() const;
-		bool insert(size_t, std::string, std::unique_ptr<Object>&&,
-				base::Log) = delete;
-		void insert_back(std::string, std::unique_ptr<Object>&&,
-				base::Log) = delete;
+		bool insert(size_t, std::string, std::unique_ptr<Object>&&, base::Log) = delete;
+		void insert_back(std::string, std::unique_ptr<Object>&&, base::Log) = delete;
 		template<typename ObjectDerived, typename ... Arguments> void emplace(
 				size_t, std::string, base::Log, Arguments&& ...) = delete;
 		template<typename ObjectDerived, typename ... Arguments> void emplace_back(
@@ -318,8 +273,7 @@ public:
 		std::unique_ptr<Object> extract(const Object&, base::Log) = delete;
 
 		virtual std::string what() const;
-		virtual base::Object* enter(std::string, size_t,
-				unsigned) const;
+		virtual base::Object* enter(std::string, size_t, unsigned) const;
 		virtual std::string field(std::string, unsigned) const;
 		virtual void field(std::string, size_t, std::string, unsigned);
 
@@ -336,8 +290,7 @@ public:
 		static const std::string type;
 
 		virtual std::string what() const;
-		virtual base::Object* enter(std::string, size_t,
-				unsigned) const;
+		virtual base::Object* enter(std::string, size_t, unsigned) const;
 		virtual std::string field(std::string, unsigned) const;
 		virtual void field(std::string, size_t, std::string, unsigned);
 
@@ -349,8 +302,7 @@ public:
 	static const char complex;
 
 	virtual std::string what() const;
-	virtual base::Object* enter(std::string, size_t,
-			unsigned) const;
+	virtual base::Object* enter(std::string, size_t, unsigned) const;
 	virtual std::string field(std::string, unsigned) const;
 	virtual void field(std::string, size_t, std::string, unsigned);
 
@@ -358,13 +310,11 @@ public:
 
 	static std::unique_ptr<Card> occupation(unsigned, base::Log);
 	static std::unique_ptr<Card> improvement(unsigned, base::Log);
-	static std::unique_ptr<Card> round(std::string,
-			base::Log);
+	static std::unique_ptr<Card> round(std::string, base::Log);
 	static std::unique_ptr<Card> action(short unsigned,
 			std::vector<std::tuple<std::string, Data, std::string>>,
 			short unsigned,
-			std::vector<std::tuple<std::string, Data, std::string>>,
-			base::Log);
+			std::vector<std::tuple<std::string, Data, std::string>>, base::Log);
 	static std::unique_ptr<Card> begging(base::Log);
 
 	virtual ~Card() = default;
@@ -408,12 +358,9 @@ struct Wooden: public base::Object, public Owned {
 	static std::unique_ptr<Wooden> sheep(base::Log);
 	static std::unique_ptr<Wooden> wildBoar(base::Log);
 	static std::unique_ptr<Wooden> cattle(base::Log);
-	static std::unique_ptr<Wooden> family_member(short unsigned,
-			base::Log);
-	static std::unique_ptr<Wooden> stable(short unsigned,
-			base::Log);
-	static std::unique_ptr<Wooden> fence(short unsigned,
-			base::Log);
+	static std::unique_ptr<Wooden> family_member(short unsigned, base::Log);
+	static std::unique_ptr<Wooden> stable(short unsigned, base::Log);
+	static std::unique_ptr<Wooden> fence(short unsigned, base::Log);
 	static std::unique_ptr<Wooden> first_player(base::Log);
 
 	virtual ~Wooden() = default;

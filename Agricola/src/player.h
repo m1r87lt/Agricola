@@ -27,67 +27,51 @@ struct Color {
 	} instance;
 
 	std::string name() const;
-	static Which color(std::string) const;
+	operator Which() const;
+	base::Variable<Color> variable() const;
+	base::Variable<Color> variable(std::string label) const;
+	static Which color(std::string);
 
 	Color(Which);
 	Color(std::string);
 private:
-	static const std::map<Color, std::string> names = {
-			{ Which::No, "No" }, { Which::White, "White" }, { Which::Gray,
-					"Gray" }, { Which::Black, "Black" }, { Which::Crimson,
-					"Crimson" }, { Which::Red, "Red" },
-			{ Which::Brown, "Brown" }, { Which::Orange, "Orange" }, {
-					Which::Yellow, "Yellow" }, { Which::Green, "Green" }, {
-					Which::Blue, "Blue" }, { Which::Purple, "Purple" } };
-};
+	static const std::map<Color, std::string> names;
 
-class Played: public base::Location {
-	Played(base::Log);
-public:
-	friend class Player;
-	virtual std::string what() const;
-	virtual Object* enter(std::string, size_t, unsigned) const;
-	virtual std::string field(std::string, unsigned) const;
-	virtual void field(std::string, size_t, std::string, unsigned);
+	static std::string transcode(Color);
+	static std::string naming(Which);
 };
 
 class Player: public base::Location {
 	std::string name;
-	Color c;
-
+	Color colored;
 	static std::vector<std::unique_ptr<Player>> players;
 
-	Player(std::string, Color, base::Log);
+	Player(std::string, Color, const Log*, std::string);
 public:
-	virtual Object* enter(std::string, size_t, unsigned) const;
-	virtual std::string field(std::string, unsigned) const;
-	virtual void field(std::string, size_t, std::string, unsigned);
-	virtual std::string what() const;
-
 	const std::string& identity() const;
 	short unsigned number() const;
-	Color color() const;
-	Played& played() const;
-
+	const Color& color() const;
+	Location* played() const;
 	static Player* player(short unsigned);
 	static Player* player(std::string);
 	static Player* player(Color);
 	static short unsigned quantity();
-	static short unsigned construct(std::string, Color, base::Log);
+	static short unsigned construct(std::string, Color, const Log*);
 	static void construct(std::initializer_list<std::pair<std::string, Color>>,
-			base::Log);
+			const Log*, std::string);
 };
 
 class Owned {
-	short unsigned owner;
+	Player* owner;
+
+	static std::string transcode(Owned);
 public:
-	virtual std::string field(std::string, unsigned) const;
-	virtual void field(std::string, size_t, std::string, unsigned);
+	Player* player() const;
 
-	short unsigned player() const;
-
-	Owned(short unsigned, base::Log);
-
+	Owned(short unsigned, const base::Log*);
+	Owned(std::string, const base::Log*);
+	Owned(Color, const base::Log*);
+	Owned(const Player&, const base::Log*);
 	virtual ~Owned() = default;
 };
 
