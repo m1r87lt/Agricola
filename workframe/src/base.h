@@ -22,99 +22,86 @@
 #include <vector>
 
 namespace base {
-bool running();
+bool is_running();
 void end();
 
-template<typename Parameter, typename Class> Class nillable(Parameter&& object,
-		Class&& otherwise, std::function<bool(Parameter&)> evaluate,
+template<typename Parameter, typename Class> Class get_former_if(
+		Parameter&& object, Class&& otherwise,
+		std::function<bool(Parameter&)> evaluate,
 		std::function<Class(Parameter&)> forward) {
 	return evaluate(object) ? forward(object) : std::forward<Class&&>(otherwise);
 }
-template<typename Class> Class& nillable(Class* object, Class& otherwise) {
+template<typename Class> Class& get_former_not_null(Class* object,
+		const Class& otherwise) {
 	return object ? *object : otherwise;
 }
 
-template<typename Type> class Variable {
+template<typename Class> class Variable {
 	std::string name;
 	std::string ns;
-	std::function<std::string(const Type&)> transcoder;
-public:
-	Type value;
+	std::function<std::string(const Class&)> transcoder;
 
-	std::string type() const {
-		return ns + typeid(Type).name();
-	}
-	std::string label() const {
-		return name;
-	}
-	std::string operator ()() const {
-		return type() + "{" + transcoder(value) + "}";
-	}
-	std::string logger() const {
+	static std::string transcodes(const Class& transcoded) {
 		std::ostringstream result;
 
-		result << type() << " " << label() << "=" << transcoder(value);
+		result << instance;
 
 		return result.str();
 	}
-	operator Type() const {
-		return std::forward<const Type&>(value);
+public:
+	Class instance;
+
+	std::string has_type() const {
+		return ns + typeid(Class).name();
+	}
+	std::string has_label() const {
+		return name;
+	}
+	std::string is() const {
+		return has_type() + "{" + transcoder(instance) + "}";
+	}
+	std::string logs() const {
+		std::ostringstream result;
+
+		result << has_type() << " " << has_label() << "="
+				<< transcoder(instance);
+
+		return result.str();
+	}
+	operator Class() const {
+		return std::move(instance);
+	}
+	const Class& operator ()() const {
+		return instance;
+	}
+	Class& operator ()() {
+		return instance;
 	}
 
-	Variable(std::string name, std::string ns, Type&& value,
-			std::function<std::string(Type&)> transcoder) :
-			value(std::forward<Type&&>(value)) {
+	Variable(std::string name, std::string ns, Class&& assigned,
+			std::function<std::string(const Class&)> transcoder) :
+			instance(assigned) {
 		this->name = name;
 		this->ns = ns + "::";
 		this->transcoder = transcoder;
 	}
-	Variable(std::function<std::string(const Type&)> transcoder,
-			std::string name, Type&& value) :
-			value(std::forward<Type&&>(value)) {
+	Variable(std::string name, std::string ns, Class&& assigned) :
+			instance(assigned) {
 		this->name = name;
-		this->transcoder = transcoder;
+		this->ns = ns + "::";
+		this->transcoder = transcodes;
 	}
-	Variable(const Variable<Type>& copy) :
-			value(std::forward<const Type&>(copy.value)) {
-		name = copy.name;
-		ns = copy.ns;
-		transcoder = copy.transcoder;
+	Variable(std::string ns, Class&& assigned) :
+			instance(assigned) {
+		this->ns = ns + "::";
+		this->transcoder = transcodes;
 	}
-	Variable(Variable<Type> && moved) :
-			value(std::forward<Type&&>(moved.value)) {
-		name = moved.name;
-		ns = moved.ns;
-		transcoder = moved.transcoder;
+	Variable(Class&& assigned) :
+			instance(assigned) {
+		this->ns = "::";
+		this->transcoder = transcodes;
 	}
 };
-template<typename Type> Variable<Type> variable(std::string name,
-		std::string ns, Type&& value,
-		std::function<std::string(Type&)> transcoder = [](Type& value) {
-			std::ostringstream result;
-
-			result << value;
-
-			return result.str();
-		}) {
-	return std::move(
-			Variable<Type>(name, ns, std::forward<Type&&>(value), transcoder));
-}
-template<typename Type> Variable<Type> variable(
-		std::function<std::string(Type&)> transcoder, std::string name,
-		Type&& value) {
-	return std::move(
-			Variable<Type>(transcoder, name, std::forward<Type&&>(value)));
-}
-template<typename Type> Variable<Type> variable(Type&& value, std::string name =
-		"") {
-	return std::move(Variable<Type>([](const Type& value) {
-		std::ostringstream result;
-
-		result << value;
-
-		return result.str();
-	}, name, std::forward<Type&&>(value)));
-}
 
 class Log {
 	std::string legacy;
@@ -123,64 +110,64 @@ class Log {
 	std::string ns;
 	std::string logging;
 	static long long unsigned tracker;
-	friend class Object;
-	friend Variable<Log&> ;
 
-	std::string tracking() const;
-	std::string log() const;
-	template<typename Type, typename ... Arguments> static std::string arguments(
-			Variable<Type> argument, Arguments&& ... rest) {
-		return ", " + argument.logger() + arguments(rest ...);
+	friend class Object;
+
+	std::string tracks() const;
+	std::string logs() const;
+	template<typename Argument, typename ... Rest> static std::string transcodes_arguments(
+			Variable<Argument> argument, Rest&& ... rest) {
+		return ", " + argument.logger() + transcodes_arguments(rest ...);
 	}
-	static std::string arguments();
-	static std::string tracking(const Log*);
-	static std::string messaging(std::string);
-	static std::string transcoder(Log&);
+	static std::string transcodes_arguments();
+	static std::string tracks(const Log*);
+	static std::string messages(std::string);
+	static std::string transcodes(const Log&);
 
 	Log(const Log*, std::string, bool);
 	Log(Log&);
 public:
-	void message(std::string) const;
-	virtual Variable<Log&> variable() const;
-	template<typename Return> Return returning(Return&& returned) {
+	void notes(std::string) const;
+	void logs_error(std::string) const;
+	template<typename Return> Return returns(Return&& returning) {
 		open = false;
-		std::clog << tracking() << "  }=" << returned;
+		std::clog << tracks() << "  }=" << returning;
 
-		return std::forward<Return&&>(returned);
+		return std::forward<Return&&>(returning);
 	}
-	template<typename Return> Return returning(Return&& returned,
-			std::function<std::string(Return&)> logger) {
+	template<typename Return> Return returns(Return&& returning,
+			std::function<std::string(const Return&)> logger) {
 		open = false;
-		std::clog << tracking() << "  }=" << logger(returned);
+		std::clog << tracks() << "  }=" << logger(returning);
 
-		return std::forward<Return&&>(returned);
+		return std::forward<Return&&>(returning);
 	}
-	void error(std::string) const;
-	template<typename Return> std::unique_ptr<Return> unique_ptr(
-			std::unique_ptr<Return>&& returned) {
+	template<typename Return> std::unique_ptr<Return> returns_refence(
+			std::unique_ptr<Return>&& reference) {
 		open = false;
-		std::clog << tracking() << "  }=" << returned.get();
+		std::clog << tracks() << "  }=" << reference.get();
 
-		return std::move(returned);
+		return std::move(reference);
 	}
-	template<typename Return, typename Argument> static Log unary(
+	virtual Variable<Log&> get_variable() const;
+	template<typename Return, typename Argument> static Log as_unary(
 			const Log* caller, std::string operation,
 			Variable<Argument> argument, std::string message) {
 		Log result(caller, "", true);
 
 		result.logging = typeid(Return).name();
-		result.logging += " " + operation + argument();
-		std::clog << result.log() << messaging(message) << " {" << std::endl;
+		result.logging += " " + operation + argument.is();
+		std::clog << result.logs() << messages(message) << " {" << std::endl;
 
 		return result;
 	}
-	template<typename Return, typename Argument> static Return unary(
+	template<typename Return, typename Argument> static Return as_unary(
 			const Log* caller, Variable<Return> returning,
 			Variable<Argument> argument, std::string message) {
 		Log result(caller, "", false);
 
-		result.logging = returning.type() + " " + returning.label()
-				+ argument();
+		result.logging = returning.has_type() + " " + returning.has_label()
+				+ argument.is();
 		std::clog << result.log() << messaging(message) << "=" << returning()
 				<< std::endl;
 
