@@ -23,66 +23,63 @@ void end() {
 //Log
 long long unsigned Log::tracker = 0;
 
-std::string Log::tracking() const {
+std::string Log::tracks() const {
 	return legacy + std::to_string(track);
 }
-std::string Log::log() const {
-	return tracking() + ": " + logging;
+std::string Log::logs() const {
+	return tracks() + ": " + logging;
 }
-std::string Log::arguments() {
+std::string Log::transcodes_arguments() {
 	return "";
 }
-std::string Log::tracking(const Log* caller) {
+std::string Log::tracks(const Log* caller) {
 	if (caller)
 		return caller->legacy + "." + std::to_string(caller->track) + ".";
 	else
 		return ".";
 }
-std::string Log::messaging(std::string message) {
+std::string Log::messages(std::string message) {
 	if (message.length())
 		message = " \"" + message + "\"";
 
 	return message;
 }
-void Log::message(std::string text) const {
-	std::clog << tracking() + " " + messaging(text) << std::endl;
+std::string Log::transcodes(const Log& log) {
+	return std::to_string(log.track);
 }
-Variable<Log&> Log::variable() const {
-	return Variable<Log&>("", ns, const_cast<Log&>(*this), transcoder);
-}
-void Log::error(std::string message) const {
-	std::cerr << log() << messaging(message) << std::endl;
-}
-std::string Log::transcoder(Log& derived) {
-	return std::to_string(derived.track);
-}
-std::string Log::parameters() {
+std::string Log::write_parameters() {
 	return "";
 }
-Variable<Log&> Log::variable(std::string name) const {
-	return Variable<Log&>(name, ns, const_cast<Log&>(*this), transcoder);
+void Log::notes(std::string text) const {
+	std::clog << tracks() + " " + messages(text) << std::endl;
+}
+void Log::logs_error(std::string message) const {
+	std::cerr << logs() << messages(message) << std::endl;
+}
+Variable<const Log&> Log::gets_variable(std::string name) const {
+	return Variable<const Log&>(name, ns, *this, transcodes);
 }
 
 Log::Log(const Log* caller, std::string ns, bool open) {
-	legacy = tracking(caller);
+	legacy = tracks(caller);
 	track = ++tracker;
 	this->open = open;
 	this->ns = ns;
 }
 Log::Log(const Log* caller, std::string ns, bool open, std::string message) {
-	legacy = tracking(caller);
+	legacy = tracks(caller);
 	track = ++tracker;
 	this->ns = ns;
-	logging = variable()() + "::" + typeid(*this).name() + "()";
-	std::clog << log() << messaging(message)
+	logging = gets_variable("").is() + "::" + typeid(*this).name() + "()";
+	std::clog << logs() << messages(message)
 			<< (((this->open = open)) ? " {" : "") << std::endl;
 }
 Log::~Log() {
 	if (std::is_same<typename std::decay<decltype(*this)>::type, Log>::value
 			&& open)
-		std::clog << tracking() << "  }" << std::endl;
+		std::clog << tracks() << "  }" << std::endl;
 	else if (!open)
-		std::clog << "~" << variable()() << std::endl;
+		std::clog << "~" << gets_variable("").is() << std::endl;
 }
 Log::Log(Log& copy) {
 	legacy = copy.legacy;
@@ -92,37 +89,48 @@ Log::Log(Log& copy) {
 	logging = copy.logging;
 	copy.open = false;
 }
-Log::Log(Log&& moved) {
-	legacy = moved.legacy;
-	track = moved.track;
-	open = moved.open;
-	ns = moved.ns;
-	logging = moved.logging;
-	moved.open = false;
+Log::Log(Log&& moving) {
+	legacy = moving.legacy;
+	track = moving.track;
+	open = moving.open;
+	ns = moving.ns;
+	logging = moving.logging;
+	moving.open = false;
+}
+Log& Log::operator =(Log&& assigning) {
+	legacy = assigning.legacy;
+	track = assigning.track;
+	open = assigning.open;
+	ns = assigning.ns;
+	logging = assigning.logging;
+	assigning.open = false;
+
+	return *this;
 }
 
 //Object
 std::set<Object*> Object::everything;
 
-long long unsigned Object::who() const {
-	return method("", nullptr, base::variable(track, "who"));
+long long unsigned Object::who_is() const {
+	return as_method("", nullptr, make_variable("who_is", "", track));
 }
-Object* Object::where() const {
-	return method("", nullptr, base::variable(position, "where"));
+Object* Object::where_is() const {
+	return as_method("", nullptr, make_variable("where_is", "", position));
 }
-time_t Object::when() const {
-	return method("", nullptr, base::variable(creation, "when"));
+time_t Object::exists_since() const {
+	return as_method("", nullptr, make_variable("exists_since", "", creation));
 }
-std::map<std::string, std::string> Object::attributes() const {
-	return method("", nullptr,
-			Variable<const decltype(attributing)&>(lister, "attributes",
-					attributing));
+std::map<std::string, std::string> Object::gets_attributes() const {
+	return as_method("", nullptr,
+			Variable<const decltype(attributing)&>("gets_attributes", "", attributing,
+					write_string_map));
 }
-void Object::attribute(std::map<std::string, std::string> attributing,
+void Object::sets_attributes(std::map<std::string, std::string> attributing,
 		const Log* caller) {
-	auto log = method<void>(caller, "attribute", "",
-			Variable<decltype(attributing)&>(lister, "attributing",
-					attributing));
+	auto log = as_method<void>(caller, "sets_attributes", "",
+			Variable<decltype(attributing)>("attributing", "", attributing,
+					write_string_map));
+
 	for (auto field : attributing) {
 		auto substituting = this->attributing.find(field.first);
 
@@ -136,60 +144,52 @@ void Object::attribute(std::map<std::string, std::string> attributing,
 	modification = std::chrono::system_clock::to_time_t(
 			std::chrono::system_clock::now());
 }
-Object::modifications Object::what() {
+Object::modifications Object::gets_modifications() {
 	modifications result;
-	auto log = method<decltype(result)>(nullptr, "what", "");
+	auto log = as_method<decltype(result)>(nullptr, "gets_modifications", "");
 
 	result.first = modification;
 	for (auto change : changes)
 		result.second[change.first] = std::make_pair(change.second,
 				attributing.at(change.first));
 
-	return log.returning<decltype(result)&>(result, changing);
+	return log.returns<decltype(result)&>(result, transcode_modifications);
 }
 bool Object::operator ==(const Object& than) const {
-	return binary(nullptr,
-			base::variable(attributing == than.attributing, "=="),
-			than.variable(), "");
+	return as_binary(nullptr,
+			make_variable("==", "", attributing == than.attributing),
+			than.gets_variable("than"), "");
 }
 bool Object::operator !=(const Object& than) const {
-	return binary(nullptr,
-			base::variable(attributing != than.attributing, "=="),
-			than.variable(), "");
+	return as_binary(nullptr,
+			make_variable("!=", "", attributing != than.attributing),
+			than.gets_variable("than"), "");
 }
-std::set<Object*>& Object::all() {
-	return function("", nullptr,
-			Variable<decltype(everything)&>(objects, "all", everything), "base",
-			typeid(Object));
+Variable<const Log&> Object::gets_variable(std::string name) const {
+	return Log::gets_variable(name);
 }
-std::set<Object*> Object::root() {
+std::set<Object*>& Object::gets_all() {
+	return as_function("", nullptr,
+			Variable<decltype(everything)&>("gets_all", "", everything,
+					write_set), "base", typeid(Object));
+}
+std::set<Object*> Object::gets_roots() {
 	std::set<Object*> result;
-	auto log = function<decltype(result)>(nullptr, "base", typeid(Object),
-			"root", "");
-	std::set<Object*>& e = everything;
+	auto log = as_function<decltype(result)>(nullptr, "base", typeid(Object),
+			"gets_roots", "");
+	decltype(result) e = everything;
 
 	for (auto object : e)
 		if (!object->position)
 			result.insert(object);
-	return log.returning<decltype(result)&>(result, objects);
-}
-std::unique_ptr<Object> Object::construct(
-		std::map<std::string, std::string> attributes, const Log* caller,
-		std::string message) {
-	auto log = Log::function<std::unique_ptr<Object>>(caller, "base",
-			typeid(Object), "construct", "",
-			Variable<std::map<std::string, std::string>&>(lister, "attributes",
-					attributes));
 
-	return log.unique_ptr(
-			std::unique_ptr<Object>(
-					new Object(nullptr, attributes, &log, "base", false,
-							message)));
+	return log.returns<decltype(result)&>(result, write_set);
 }
-std::string Object::lister(const std::map<std::string, std::string>& mapping) {
+std::string Object::write_string_map(
+		const std::map<std::string, std::string>& map) {
 	std::string result = "{";
 
-	for (auto mapped : mapping)
+	for (auto mapped : map)
 		result += "\n\t" + mapped.first + "=" + mapped.second + ",";
 	if (result.back() == ',')
 		result.back() = '\n';
@@ -198,7 +198,7 @@ std::string Object::lister(const std::map<std::string, std::string>& mapping) {
 
 	return result + "}";
 }
-std::string Object::changing(modifications& mods) {
+std::string Object::transcode_modifications(const modifications& mods) {
 	std::string result = "{ ";
 
 	result += ctime(&mods.first);
@@ -211,7 +211,7 @@ std::string Object::changing(modifications& mods) {
 
 	return result + "\n}";
 }
-std::string Object::objects(std::set<Object*>& set) {
+std::string Object::write_set(const std::set<Object*>& set) {
 	std::stringstream result("{");
 
 	for (auto object : set)
@@ -222,6 +222,33 @@ std::string Object::objects(std::set<Object*>& set) {
 		result.get();
 
 	return result.str() + " }";
+}
+Object::~Object() {
+	if (running())
+		everything.erase(this);
+	if (!open)
+		std::clog << "~" << gets_variable("").is();
+}
+Object::Object(Object&& moving) :
+		Log(moving) {
+	position = moving.position;
+	creation = moving.creation;
+	attributing = moving.attributing;
+	attributing = moving.changes;
+	modification = std::chrono::system_clock::to_time_t(
+			std::chrono::system_clock::now());
+	everything.emplace(this);
+}
+Object& Object::operator =(Object&& moving) {
+	Log log(std::move(moving));
+	position = moving.position;
+	creation = moving.creation;
+	attributing = moving.attributing;
+	attributing = moving.changes;
+	modification = std::chrono::system_clock::to_time_t(
+			std::chrono::system_clock::now());
+
+	return *this;
 }
 
 //Location
@@ -608,10 +635,12 @@ std::vector<Object*> Location::path(const Object& instance) {
 std::unique_ptr<Location> Location::construct(
 		std::map<std::string, std::string> attributes, const Log* caller,
 		std::string message) {
-	auto log = Log::function<std::unique_ptr<Location>>(caller, "base",
-			typeid(Location), "construct", "",
-			Variable<std::map<std::string, std::string>&>(lister, "attributes",
-					attributes));
+	auto log =
+			Log::function < std::unique_ptr
+					< Location
+							>> (caller, "base", typeid(Location), "construct", "", Variable<
+									std::map<std::string, std::string>&>(lister,
+									"attributes", attributes));
 
 	return log.unique_ptr(
 			std::unique_ptr<Location>(
@@ -721,7 +750,7 @@ Card::Card(std::unique_ptr<Object>&& cover, std::unique_ptr<Object>&& face,
 
 //Deck
 size_t Deck::size() const {
-	auto log = method<size_t>(nullptr, "size", "");
+	auto log = method < size_t > (nullptr, "size", "");
 
 	return log.returning(container->size());
 }
@@ -801,8 +830,8 @@ void Deck::shuffle(const Log* caller) {
 std::unique_ptr<Deck> Deck::construct(std::string name,
 		std::map<std::string, std::string> attributes, const Log* caller,
 		std::string message) {
-	function<std::unique_ptr<Deck>>(caller, "game", typeid(Deck),
-			name, "", base::variable(name, "name"),
+	function<std::unique_ptr<Deck>>(caller, "game", typeid(Deck), name, "",
+			base::variable(name, "name"),
 			base::Variable<std::map<std::string, std::string>&>(lister,
 					"attributes", attributes)).unique_ptr();
 

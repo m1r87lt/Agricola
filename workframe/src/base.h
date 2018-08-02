@@ -44,7 +44,7 @@ template<typename Class> class Variable {
 	static std::string transcodes(const Class& transcoded) {
 		std::ostringstream result;
 
-		result << instance;
+		result << transcoded;
 
 		return result.str();
 	}
@@ -101,7 +101,66 @@ public:
 		this->ns = "::";
 		this->transcoder = transcodes;
 	}
+	Variable(const Variable<Class>& copy) :
+			instance(copy.instance) {
+		name = copy.name;
+		ns = copy.ns;
+		transcoder = copy.transcoder;
+	}
+	Variable<Class>& operator =(const Variable<Class>& copy) {
+		name = copy.name;
+		ns = copy.ns;
+		transcoder = copy.transcoder;
+		instance = copy.instance;
+
+		return *this;
+	}
+	Variable(const Variable<Class>& copy, std::string name) :
+			instance(copy.instance) {
+		this->name = name;
+		ns = copy.ns;
+		transcoder = copy.transcoder;
+	}
+	Variable<Class>& operator =(std::string name) {
+		this->name = name;
+
+		return *this;
+	}
+	Variable(Variable<Class> && moving) :
+			instance(std::move(moving.instance)) {
+		name = moving.name;
+		ns = moving.ns;
+		transcoder = moving.transcoder;
+	}
+	Variable<Class>& operator =(Variable<Class> && moving) {
+		name = moving.name;
+		ns = moving.ns;
+		transcoder = moving.transcoder;
+		instance = std::move(moving.instance);
+
+		return *this;
+	}
+	Variable(Variable<Class> && moved, std::string name) :
+			instance(std::move(moved.instance)) {
+		this->name = name;
+		ns = moved.ns;
+		transcoder = moved.transcoder;
+	}
 };
+template<typename Class> Variable<Class> make_variable(std::string name,
+		std::string ns, Class&& assigned) {
+	return std::forward<Variable<Class> &&>(
+			Variable<Class>(name, ns, std::forward<Class&&>(assigned)));
+}
+template<typename Class> Variable<Class> make_variable(std::string ns,
+		Class&& assigned) {
+	return std::forward<Variable<Class> &&>(
+			Variable<Class>(ns, std::forward<Class&&>(assigned)));
+}
+template<typename Class> Variable<Class> make_variable(Class&& assigned) {
+	return std::forward<Variable<Class> &&>(
+			Variable<Class>(std::forward<Class&&>(assigned)));
+}
 
 class Log {
 	std::string legacy;
@@ -122,10 +181,149 @@ class Log {
 	static std::string transcodes_arguments();
 	static std::string tracks(const Log*);
 	static std::string messages(std::string);
-	static std::string transcodes(const Log&);
 
 	Log(const Log*, std::string, bool);
 	Log(Log&);
+	Log& operator =(const Log&) = delete;
+protected:
+	template<typename Return> Log as_unary(const Log* caller,
+			std::string operation, std::string message) const {
+		Log result(caller, "", true);
+
+		result.logging = typeid(Return).name();
+		result.logging += " " + operation + gets_variable("").is();
+		std::clog << result.logs() << messages(message) << " {" << std::endl;
+
+		return result;
+	}
+	template<typename Return> Return as_unary(const Log* caller,
+			Variable<Return> returning, std::string message) const {
+		Log result(caller, "", false);
+
+		result.logging = returning.has_type() + " " + returning.has_label()
+				+ gets_variable("").is();
+		std::clog << result.logs() << messages(message) << "=" << returning.is()
+				<< std::endl;
+
+		return result;
+	}
+	template<typename Return, typename Righthand> Log as_binary(
+			const Log* caller, std::string operation,
+			Variable<Righthand> righthand, std::string message) const {
+		Log result(caller, "", true);
+
+		result.logging = typeid(Return).name();
+		result.logging += " " + gets_variable("").is() + " " + operation + " "
+				+ righthand();
+		std::clog << result.logs() << messages(message) << " {" << std::endl;
+
+		return result;
+	}
+	template<typename Return, typename Righthand> Return as_binary(
+			const Log* caller, Variable<Return> returning,
+			Variable<Righthand> righthand, std::string message) const {
+		Log result(caller, "", false);
+
+		result.logging = returning.has_type() + " " + gets_variable("").is()
+				+ " " + returning.has_label() + " " + righthand.is();
+		std::clog << result.logs() << messages(message) << "=" << returning.is()
+				<< std::endl;
+
+		return returning;
+	}
+	template<typename Return> Log as_method(const Log* caller, std::string name,
+			std::string message) const {
+		Log result(caller, "", true);
+
+		result.logging = typeid(Return).name();
+		result.logging += " " + gets_variable("").is();
+		if (name.size())
+			result.logging += ".";
+		result.logging += name + "()";
+		std::clog << result.logs() << messages(message) << " {" << std::endl;
+
+		return result;
+	}
+	template<typename Return, typename Argument, typename ... Arguments> Log as_method(
+			const Log* caller, std::string name, std::string message,
+			Variable<Argument> argument, Arguments&& ... rest) const {
+		Log result(caller, "", true);
+
+		result.logging = typeid(Return).name();
+		result.logging += " " + gets_variable("").is();
+		if (name.size())
+			result.logging += ".";
+		result.logging += name + "(" + argument.logs()
+				+ transcodes_arguments(rest ...) + ")";
+		std::clog << result.logs() << messages(message) << " {" << std::endl;
+
+		return result;
+	}
+	template<typename Return> Return as_method(std::string message,
+			const Log* caller, Variable<Return> returning) const {
+		Log result(caller, "", false);
+		auto label = returning.has_label();
+
+		result.logging = returning.has_type() + " " + gets_variable("").is();
+		if (label.size())
+			result.logging += ".";
+		result.logging += label + "()";
+		std::clog << result.logs() << messages(message) << "="
+				<< returning.is()() << std::endl;
+
+		return returning;
+	}
+	template<typename Return, typename Argument, typename ... Arguments> Return as_method(
+			std::string message, const Log* caller, Variable<Return> returning,
+			Variable<Argument> argument, Arguments&& ... rest) const {
+		Log result(caller, "", false);
+		auto label = returning.has_label();
+
+		result.logging = returning.type() + " " + gets_variable("").is();
+		if (label.size())
+			result.logging += ".";
+		result.logging += label + "(" + argument.logs()
+				+ transcodes_arguments(rest ...) + ")";
+		std::clog << result.logs() << messages(message) << "=" << returning.is()
+				<< std::endl;
+
+		return returning;
+	}
+	template<typename Return, typename ... Arguments> Log as_method(
+			std::string message, const Log* caller, std::string name,
+			Arguments&& ... rest) const {
+		Log result(caller, "", true);
+
+		result.logging = typeid(Return).name();
+		result.logging += " " + gets_variable("").is() + "." + name + "("
+				+ parameters(rest ...).substr(1) + ")";
+		std::clog << result.logs() << messages(message) << " {" << std::endl;
+
+		return result;
+	}
+	static std::string transcodes(const Log&);
+	template<typename Parameter, typename ... Parameters> static std::string write_parameters(
+			Parameter&& parameter, Parameters&& ... rest) {
+		std::ostringstream result;
+
+		result << ", " << parameter << parameters(rest ...);
+
+		return result.str();
+	}
+	static std::string write_parameters();
+
+	Log(const Log*, std::string, bool, std::string);
+	template<typename Argument, typename ... Arguments> Log(const Log* caller,
+			std::string ns, bool open, std::string message,
+			Variable<Argument> argument, Arguments&& ... rest) {
+		legacy = tracks(caller);
+		track = ++tracker;
+		this->ns = ns;
+		logging = gets_variable("").is() + "::" + typeid(*this).name() + "("
+				+ argument.logs() + transcodes_arguments(rest ...) + ")";
+		std::clog << logs() << messages(message)
+				<< (((this->open = open)) ? " {" : "") << std::endl;
+	}
 public:
 	void notes(std::string) const;
 	void logs_error(std::string) const;
@@ -142,14 +340,14 @@ public:
 
 		return std::forward<Return&&>(returning);
 	}
-	template<typename Return> std::unique_ptr<Return> returns_refence(
+	template<typename Return> std::unique_ptr<Return> returns_reference(
 			std::unique_ptr<Return>&& reference) {
 		open = false;
 		std::clog << tracks() << "  }=" << reference.get();
 
 		return std::move(reference);
 	}
-	virtual Variable<Log&> get_variable() const;
+	virtual Variable<const Log&> gets_variable(std::string) const;
 	template<typename Return, typename Argument> static Log as_unary(
 			const Log* caller, std::string operation,
 			Variable<Argument> argument, std::string message) {
@@ -168,38 +366,38 @@ public:
 
 		result.logging = returning.has_type() + " " + returning.has_label()
 				+ argument.is();
-		std::clog << result.log() << messaging(message) << "=" << returning()
+		std::clog << result.logs() << messages(message) << "=" << returning.is()
 				<< std::endl;
 
 		return result;
 	}
-	template<typename Return, typename Lefthand, typename Righthand> static Log binary(
+	template<typename Return, typename Lefthand, typename Righthand> static Log as_binary(
 			const Log* caller, Variable<Lefthand> lefthand,
 			std::string operation, Variable<Righthand> righthand,
 			std::string message) {
 		Log result(caller, "", true);
 
 		result.logging = typeid(Return).name();
-		result.logging += " " + lefthand() + " " + operation + " "
-				+ righthand();
-		std::clog << result.log() << messaging(message) << " {" << std::endl;
+		result.logging += " " + lefthand.is() + " " + operation + " "
+				+ righthand.is();
+		std::clog << result.logs() << messages(message) << " {" << std::endl;
 
 		return result;
 	}
-	template<typename Return, typename Lefthand, typename Righthand> static Return binary(
+	template<typename Return, typename Lefthand, typename Righthand> static Return as_binary(
 			const Log* caller, Variable<Return> returning,
 			Variable<Lefthand> lefthand, Variable<Righthand> righthand,
 			std::string message) {
 		Log result(caller, "", false);
 
-		result.logging = returning.type() + " " + lefthand() + " "
-				+ returning.label() + " " + righthand();
-		std::clog << result.log() << messaging(message) << "=" << returning()
+		result.logging = returning.has_type() + " " + lefthand.is() + " "
+				+ returning.has_label() + " " + righthand.is();
+		std::clog << result.logs() << messages(message) << "=" << returning()
 				<< std::endl;
 
 		return returning;
 	}
-	template<typename Return> static Log function(const Log* caller,
+	template<typename Return> static Log as_function(const Log* caller,
 			std::string ns, std::type_index object, std::string name,
 			std::string message) {
 		Log result(caller, ns, true);
@@ -209,11 +407,11 @@ public:
 		if (object != typeid(void))
 			result.logging += std::string(object.name()) + "::";
 		result.logging += name + "()";
-		std::clog << result.log() << messaging(message) << " {" << std::endl;
+		std::clog << result.logs() << messages(message) << " {" << std::endl;
 
 		return result;
 	}
-	template<typename Return, typename Argument, typename ... Arguments> static Log function(
+	template<typename Return, typename Argument, typename ... Arguments> static Log as_function(
 			const Log* caller, std::string ns, std::type_index object,
 			std::string name, std::string message, Variable<Argument> argument,
 			Arguments&& ... rest) {
@@ -223,43 +421,43 @@ public:
 		result.logging += " " + result.ns + "::";
 		if (object != typeid(void))
 			result.logging += std::string(object.name()) + "::";
-		result.logging += name + "(" + argument.logger() + arguments(rest ...)
-				+ ")";
-		std::clog << result.log() << messaging(message) << " {" << std::endl;
+		result.logging += name + "(" + argument.logs()
+				+ transcodes_arguments(rest ...) + ")";
+		std::clog << result.logs() << messages(message) << " {" << std::endl;
 
 		return result;
 	}
-	template<typename Return> static Return function(std::string message,
+	template<typename Return> static Return as_function(std::string message,
 			const Log* caller, Variable<Return> returning, std::string ns,
 			std::type_index object) {
 		Log result(caller, ns, false);
 
-		result.logging = returning.type() + " " + result.ns + "::";
+		result.logging = returning.has_type() + " " + result.ns + "::";
 		if (object != typeid(void))
 			result.logging += std::string(object.name()) + "::";
-		result.logging += returning.label() + "()";
-		std::clog << result.log() << messaging(message) << "=" << returning()
+		result.logging += returning.has_label() + "()";
+		std::clog << result.logs() << messages(message) << "=" << returning.is()
 				<< std::endl;
 
 		return returning;
 	}
-	template<typename Return, typename Argument, typename ... Arguments> static Return function(
+	template<typename Return, typename Argument, typename ... Arguments> static Return as_function(
 			std::string message, const Log* caller, Variable<Return> returning,
 			std::string ns, std::type_index object, Variable<Argument> argument,
 			Arguments&& ... rest) {
 		Log result(caller, ns, false);
 
-		result.logging = returning.type() + " " + result.ns + "::";
+		result.logging = returning.has_type() + " " + result.ns + "::";
 		if (object != typeid(void))
 			result.logging += std::string(object.name()) + "::";
-		result.logging += returning.label() + "(" + argument.logger()
-				+ arguments(rest ...) + ")";
-		std::clog << result.log() << messaging(message) << "=" << returning()
+		result.logging += returning.has_label() + "(" + argument.logs()
+				+ transcodes_arguments(rest ...) + ")";
+		std::clog << result.logs() << messages(message) << "=" << returning.is()
 				<< std::endl;
 
 		return returning;
 	}
-	template<typename Return, typename ... Arguments> static Log function(
+	template<typename Return, typename ... Arguments> static Log as_function(
 			std::type_index object, const Log* caller, std::string ns,
 			std::string name, std::string message, Arguments&& ... rest) {
 		Log result(caller, ns, true);
@@ -268,180 +466,18 @@ public:
 		result.logging += " " + result.ns + "::";
 		if (object != typeid(void))
 			result.logging += std::string(object.name()) + "::";
-		result.logging += name + "(";
-		+parameters(rest ...) + ")";
-		std::clog << result.log() << messaging(message) << " {" << std::endl;
+		result.logging += name + "(" + parameters(rest ...).substr(1) + ")";
+		std::clog << result.logs() << messages(message) << " {" << std::endl;
 
 		return result;
 	}
 
 	virtual ~Log();
 	Log(Log&&);
-protected:
-	Variable<Log&> variable(std::string) const;
-	template<typename Return> Log unary(const Log* caller,
-			std::string operation, std::string message) const {
-		Log result(caller, "", true);
-
-		result.logging = typeid(Return).name();
-		result.logging += " " + operation + variable()();
-		std::clog << result.log() << messaging(message) << " {" << std::endl;
-
-		return result;
-	}
-	template<typename Return> Return unary(const Log* caller,
-			Variable<Return> returning, std::string message) const {
-		Log result(caller, "", false);
-
-		result.logging = returning.type() + " " + returning.label()
-				+ variable()();
-		std::clog << result.log() << messaging(message) << "=" << returning()
-				<< std::endl;
-
-		return result;
-	}
-	template<typename Return, typename Righthand> Log binary(const Log* caller,
-			std::string operation, Variable<Righthand> righthand,
-			std::string message) const {
-		Log result(caller, "", true);
-
-		result.logging = typeid(Return).name();
-		result.logging += " " + variable()() + " " + operation + " "
-				+ righthand();
-		std::clog << result.log() << messaging(message) << " {" << std::endl;
-
-		return result;
-	}
-	template<typename Return, typename Righthand> Return binary(
-			const Log* caller, Variable<Return> returning,
-			Variable<Righthand> righthand, std::string message) const {
-		Log result(caller, "", false);
-
-		result.logging = returning.type() + " " + variable()() + " "
-				+ returning.label() + " " + righthand();
-		std::clog << result.log() << messaging(message) << "=" << returning()
-				<< std::endl;
-
-		return returning;
-	}
-	template<typename Return> Log method(const Log* caller, std::string name,
-			std::string message) const {
-		Log result(caller, "", true);
-
-		result.logging = typeid(Return).name();
-		result.logging += " " + variable()();
-		if (name.size())
-			result.logging += ".";
-		result.logging += name + "()";
-		std::clog << result.log() << messaging(message) << " {" << std::endl;
-
-		return result;
-	}
-	template<typename Return, typename Argument, typename ... Arguments> Log method(
-			const Log* caller, std::string name, std::string message,
-			Variable<Argument> argument, Arguments&& ... rest) const {
-		Log result(caller, "", true);
-
-		result.logging = typeid(Return).name();
-		result.logging += " " + variable()();
-		if (name.size())
-			result.logging += ".";
-		result.logging += name + "(" + argument.logger() + arguments(rest ...)
-				+ ")";
-		std::clog << result.log() << messaging(message) << " {" << std::endl;
-
-		return result;
-	}
-	template<typename Return> Return method(std::string message,
-			const Log* caller, Variable<Return> returning) const {
-		Log result(caller, "", false);
-
-		result.logging = returning.type() + " " + variable()();
-		if (returning.label().size())
-			result.logging += ".";
-		result.logging += returning.label() + "()";
-		std::clog << result.log() << messaging(message) << "=" << returning()
-				<< std::endl;
-
-		return returning;
-	}
-	template<typename Return, typename Argument, typename ... Arguments> Return method(
-			std::string message, const Log* caller, Variable<Return> returning,
-			Variable<Argument> argument, Arguments&& ... rest) const {
-		Log result(caller, "", false);
-
-		result.logging = returning.type() + " " + variable()();
-		if (returning.label().size())
-			result.logging += ".";
-		result.logging += returning.label() + "(" + argument.logger()
-				+ arguments(rest ...) + ")";
-		std::clog << result.log() << messaging(message) << "=" << returning()
-				<< std::endl;
-
-		return returning;
-	}
-	template<typename Return, typename ... Arguments> Log tmethod(
-			const Log* caller, std::string name, std::string message,
-			Arguments&& ... rest) const {
-		Log result(caller, "", true);
-
-		result.logging = typeid(Return).name();
-		result.logging += " " + variable()() + "." + name + "("
-				+ parameters(rest ...) + ")";
-		std::clog << result.log() << messaging(message) << " {" << std::endl;
-
-		return result;
-	}
-	template<typename Parameter, typename ... Parameters> static std::string parameters(
-			Parameter&& parameter, Parameters&& ... rest) {
-		std::ostringstream result;
-
-		result << ", " << parameter << parameters(rest ...);
-
-		return result.str();
-	}
-	static std::string parameters();
-
-	Log(const Log*, std::string, bool, std::string);
-	template<typename Argument, typename ... Arguments> Log(const Log* caller,
-			std::string ns, bool open, std::string message,
-			Variable<Argument> argument, Arguments&& ... rest) {
-		legacy = tracking(caller);
-		track = ++tracker;
-		this->ns = ns;
-		logging = variable()() + "::" + typeid(*this).name() + "("
-				+ argument.logger() + arguments(rest ...) + ")";
-		std::clog << log() << messaging(message)
-				<< (((this->open = open)) ? " {" : "") << std::endl;
-	}
+	Log& operator =(Log&&);
 };
 
-struct Object: public Log {
-	using modifications = std::pair<time_t,
-	std::map<std::string, std::pair<std::string, std::string>>>;
-
-	long long unsigned who() const;
-	Object* where() const;
-	time_t when() const;
-	std::map<std::string, std::string> attributes() const;
-	void attribute(std::map<std::string, std::string>, const Log*);
-	modifications what();
-	bool operator ==(const Object&) const;
-	bool operator !=(const Object&) const;
-	static std::set<Object*>& all();
-	static std::set<Object*> root();
-	static std::unique_ptr<Object> construct(std::map<std::string, std::string>,
-			const Log*, std::string);
-	static std::string lister(const std::map<std::string, std::string>&);
-	static std::string changing(modifications&);
-	static std::string objects(std::set<Object*>&);
-
-	virtual ~Object() = default;
-	Object(const Object&) = delete;
-	Object(Object&&) = delete;
-	Object& operator =(const Object&) = delete;
-	Object& operator =(Object&&) = delete;
-private:
+class Object: public Log {
 	Object* position;
 	time_t creation;
 	std::map<std::string, std::string> attributing;
@@ -449,15 +485,54 @@ private:
 	static std::set<Object*> everything;
 
 	friend class Location;
+public:
+	using modifications = std::pair<time_t,
+	std::map<std::string, std::pair<std::string, std::string>>>;
+
+	long long unsigned who_is() const;
+	Object* where_is() const;
+	time_t exists_since() const;
+	std::map<std::string, std::string> gets_attributes() const;
+	void sets_attributes(std::map<std::string, std::string>, const Log*);
+	modifications gets_modifications();
+	bool operator ==(const Object&) const;
+	bool operator !=(const Object&) const;
+	virtual Variable<const Log&> gets_variable(std::string) const;
+	static std::set<Object*>& gets_all();
+	static std::set<Object*> gets_roots();
+	template<typename ... Arguments> static std::unique_ptr<Object> construct(
+			std::map<std::string, std::string> attributes, const Log* caller,
+			std::string message, Arguments&& ... rest) {
+		auto log = Log::as_function<std::unique_ptr<Object>>(typeid(Object),
+				caller, "base", "construct", "",
+				Variable<std::map<std::string, std::string>&>("attributes", "",
+						attributes, write_string_map), rest ...);
+
+		return log.returns_reference(
+				std::unique_ptr<Object>(
+						new Object(nullptr, attributes, &log, "base", false,
+								message, rest ...)));
+	}
+	static std::string write_string_map(
+			const std::map<std::string, std::string>&);
+	static std::string transcode_modifications(const modifications&);
+	static std::string write_set(const std::set<Object*>&);
+
+	virtual ~Object();
+	Object(const Object&) = delete;
+	Object(Object&&);
+	Object& operator =(const Object&) = delete;
+	Object& operator =(Object&&);
 protected:
 	time_t modification;
 
 	template<typename ... Arguments> Object(Object* position,
 			std::map<std::string, std::string> attributes, const Log* caller,
 			std::string ns, bool open, std::string message, Arguments ... rest) :
-			Log(caller, ns, open, message, base::variable(position, "position"),
-					Variable<decltype(attributes)&>(lister, "attributes",
-							attributes), rest ...) {
+			Log(caller, ns, open, message,
+					make_variable("position", "", position),
+					Variable<const decltype(attributes)&>("attributes", "",
+							attributes, write_string_map), rest ...) {
 		modification = creation = std::chrono::system_clock::to_time_t(
 				std::chrono::system_clock::now());
 		this->position = position;
