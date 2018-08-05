@@ -9,13 +9,14 @@
 
 //Executable
 Executable::operator const char*() const {
-	return base::Log::unary<const char*>(nullptr,
-			base::variable(name.c_str(), "(const char*)"), typeid(), "");
+	return base::Log::unary(nullptr,
+			base::variable(name.c_str(), "(const char*)"),
+			base::Variable<Executable>(Executable), "");
 }
 int Executable::operator ()(std::string operation, bool attempting,
-		const Log* caller) {
-	auto log = method<int>(caller, "", "",
-			base::variable(operation, "operation"),
+		const base::Log* caller) {
+	auto log = base::Log::function<int>(caller, "", typeid(Executable),
+			"{" + name + "}", "", base::variable(operation, "operation"),
 			base::variable(attempting, "attempt"));
 
 	if (attempt)
@@ -24,10 +25,11 @@ int Executable::operator ()(std::string operation, bool attempting,
 		return log.returning(execute(operation, &log));
 }
 int Executable::null(Player* nobody, bool attempt, const base::Log* caller) {
-	return method<int>("", caller, base::variable(0, "null"));
+	return base::Log::function<int>("", caller,
+			base::variable(0, "{" + name + "}.null"), "", typeid(Executable));
 }
 
-Executable::Executable(std::string name, const base::Log* caller):
+Executable::Executable(std::string name, const base::Log* caller) :
 		Log(caller, "", false, "") {
 	active = nullptr;
 	this->name = name;

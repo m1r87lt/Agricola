@@ -19,8 +19,8 @@ const std::map<Color, std::string> names = { { Color::Which::No, "No" }, {
 
 std::string Color::name() const {
 	return base::Log::function("", nullptr,
-			base::variable(names.find(instance)->second, ".name"), "",
-			typeid(Color));
+			base::variable(naming(instance), transcode(*this) + ".name"), "",
+			typeid(void));
 }
 Color::operator Color::Which() const {
 	return base::Log::unary(nullptr,
@@ -42,17 +42,20 @@ Color::Which Color::color(std::string which) {
 			return log.returning(naming, n.first);
 }
 std::string Color::transcode(Color which) {
-	return which.name();
+	return typeid(Color).name() + std::string("{") + naming(instance) + "}";
+}
+std::string Color::naming(Which which) {
+	return names.find(which)->second;
 }
 
 Color::Color(Which which) {
 	instance = which;
-	base::Log::function<Color>("", nullptr, variable(), "", typeid(Color),
+	base::Log::function("", nullptr, variable("::"), "", typeid(Color),
 			base::Variable<Which>(naming, "which", which));
 }
 Color::Color(std::string which) {
 	instance = color(which);
-	base::Log::function<Color>("", nullptr, variable(), "", typeid(Color),
+	base::Log::function("", nullptr, variable("::"), "", typeid(Color),
 			base::variable(which, "which"));
 }
 
@@ -227,27 +230,33 @@ std::string Owned::transcode(Owned owned) {
 
 	return result.str();
 }
+base::Variable<Owned> Owned::variable() const {
+	return std::move(base::Variable<Owned>(transcode, "", *this));
+}
+base::Variable<Owned> Owned::variable(std::string label) const {
+	return std::move(base::Variable<Owned>(transcode, label, *this));
+}
 Player* Owned::player() const {
-	return base::Log::function<Player*>("", nullptr,
+	return base::Log::function("", nullptr,
 			base::variable(owner, transcode(*this) + ".player"), "",
-			typeid(Owned));
+			typeid(void));
 }
 
 Owned::Owned(short unsigned number, const base::Log* caller) {
-	auto log = base::Log::function<Owned>(caller, "", typeid(Owned),
-			typeid(Owned).name(), "", base::variable(number, "number"));
+	auto log = base::Log::function<Owned>(caller, "", typeid(void),
+			"::" + typeid(Owned).name(), "", base::variable(number, "number"));
 
 	owner = Player::player(number);
 }
 Owned::Owned(std::string name, const base::Log* caller) {
-	auto log = base::Log::function<Owned>(caller, "", typeid(Owned),
-			typeid(Owned).name(), "", base::variable(name, "name"));
+	auto log = base::Log::function<Owned>(caller, "", typeid(void),
+			"::" + typeid(Owned).name(), "", base::variable(name, "name"));
 
 	owner = Player::player(name);
 }
 Owned::Owned(Color color, const base::Log* caller) {
-	auto log = base::Log::function<Owned>(caller, "", typeid(Owned),
-			typeid(Owned).name(), "", color.variable("color"));
+	auto log = base::Log::function<Owned>(caller, "", typeid(void),
+			"::" + typeid(Owned).name(), "", color.variable("color"));
 
 	owner = Player::player(color);
 }

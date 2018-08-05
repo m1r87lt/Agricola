@@ -65,6 +65,8 @@ class Owned {
 	Player* owner;
 
 	static std::string transcode(Owned);
+	base::Variable<Owned> variable() const;
+	base::Variable<Owned> variable(std::string) const;
 public:
 	Player* player() const;
 
