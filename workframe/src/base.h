@@ -69,13 +69,7 @@ public:
 		return result.str();
 	}
 	operator Class() const {
-		return std::forward<Class&&>(instance);
-	}
-	const Class& operator ()() const {
-		return instance;
-	}
-	Class& operator ()() {
-		return instance;
+		return std::forward<Class>(instance);
 	}
 
 	Variable(std::string name, std::string ns, Class&& assigned,
@@ -183,7 +177,7 @@ protected:
 
 		return result;
 	}
-	template<typename Return> Variable<Return> as_unary(const Log* caller,
+	template<typename Return> Return as_unary(const Log* caller,
 			Variable<Return> returning, std::string message) const {
 		Log result(caller, "", false);
 
@@ -192,7 +186,7 @@ protected:
 		std::clog << result.logs() << messages(message) << "=" << returning.is()
 				<< std::endl;
 
-		return std::forward<Variable<Return>>(returning);
+		return returning;
 	}
 	template<typename Return, typename Righthand> Log as_binary(
 			const Log* caller, std::string operation,
@@ -216,7 +210,7 @@ protected:
 		std::clog << result.logs() << messages(message) << "=" << returning.is()
 				<< std::endl;
 
-		return std::forward<Variable<Return>>(returning);
+		return returning;
 	}
 	template<typename Return> Log as_method(const Log* caller, std::string name,
 			std::string message) const {
@@ -258,7 +252,7 @@ protected:
 		std::clog << result.logs() << messages(message) << "=" << returning.is()
 				<< std::endl;
 
-		return std::forward<Variable<Return>>(returning);
+		return returning;
 	}
 	template<typename Return, typename Argument, typename ... Arguments> Return as_method(
 			std::string message, const Log* caller, Variable<Return> returning,
@@ -274,7 +268,7 @@ protected:
 		std::clog << result.logs() << messages(message) << "=" << returning.is()
 				<< std::endl;
 
-		return std::forward<Variable<Return>>(returning);
+		return returning;
 	}
 	template<typename Return, typename ... Arguments> Log as_method(
 			std::string message, const Log* caller, std::string name,
@@ -283,19 +277,29 @@ protected:
 
 		result.logging = typeid(Return).name();
 		result.logging += " " + gets_variable("").is() + "." + name + "("
-				+ parameters(rest ...).substr(1) + ")";
+				+ write_parameters(std::forward<Arguments&&>(rest) ...).substr(
+						1) + ")";
 		std::clog << result.logs() << messages(message) << " {" << std::endl;
+
+		return result;
+	}
+	template<typename ... Arguments> Log as_constructor(const Log* caller,
+			std::string ns, std::type_index type, std::string message,
+			Arguments&& ... rest) const {
+		Log result(caller, "", false);
+		auto typer = type.name();
+
+		result.logging = ns + "::" + typer + "::" + typer + "("
+				+ write_parameters(std::forward<Arguments&&>(rest)...).substr(1)
+				+ ")";
+		std::clog << result.logs() << messages(message) << std::endl;
 
 		return result;
 	}
 	static std::string derives_transcode(const Log*);
 	template<typename Parameter, typename ... Parameters> static std::string write_parameters(
-			Parameter&& parameter, Parameters&& ... rest) {
-		std::ostringstream result;
-
-		result << ", " << parameter << parameters(rest ...);
-
-		return result.str();
+			Variable<Parameter> && parameter, Parameters&& ... rest) {
+		return ", " + parameter.logs() + write_parameters(rest ...);
 	}
 	static std::string write_parameters();
 
@@ -318,14 +322,14 @@ public:
 		open = false;
 		std::clog << tracks() << "  }=" << returning;
 
-		return std::forward<Return&&>(returning);
+		return returning;
 	}
 	template<typename Return> Return returns(Return&& returning,
 			std::function<std::string(const Return&)> logger) {
 		open = false;
 		std::clog << tracks() << "  }=" << logger(returning);
 
-		return std::forward<Return&&>(returning);
+		return returning;
 	}
 	template<typename Return> std::unique_ptr<Return> returns_reference(
 			std::unique_ptr<Return>&& reference) {
@@ -357,7 +361,7 @@ public:
 		std::clog << result.logs() << messages(message) << "=" << returning.is()
 				<< std::endl;
 
-		return std::forward<Variable<Return>>(returning);
+		return returning;
 	}
 	template<typename Return, typename Lefthand, typename Righthand> static Log as_binary(
 			const Log* caller, Variable<Lefthand> lefthand,
@@ -383,7 +387,7 @@ public:
 		std::clog << result.logs() << messages(message) << "=" << returning()
 				<< std::endl;
 
-		return std::forward<Variable<Return>>(returning);
+		return returning;
 	}
 	template<typename Return> static Log as_function(const Log* caller,
 			std::string ns, std::type_index object, std::string name,
@@ -415,7 +419,7 @@ public:
 
 		return result;
 	}
-	template<typename Return> static Variable<Return> as_function(std::string message,
+	template<typename Return> static Return as_function(std::string message,
 			const Log* caller, Variable<Return> returning, std::string ns,
 			std::type_index object) {
 		Log result(caller, ns, false);
@@ -427,7 +431,7 @@ public:
 		std::clog << result.logs() << messages(message) << "=" << returning.is()
 				<< std::endl;
 
-		return std::forward<Variable<Return>>(returning);
+		return returning;
 	}
 	template<typename Return, typename Argument, typename ... Arguments> static Return as_function(
 			std::string message, const Log* caller, Variable<Return> returning,
@@ -443,7 +447,7 @@ public:
 		std::clog << result.logs() << messages(message) << "=" << returning.is()
 				<< std::endl;
 
-		return std::forward<Variable<Return>>(returning);
+		return returning;
 	}
 	template<typename Return, typename ... Arguments> static Log as_function(
 			std::type_index object, const Log* caller, std::string ns,
@@ -454,7 +458,9 @@ public:
 		result.logging += " " + result.ns + "::";
 		if (object != typeid(void))
 			result.logging += std::string(object.name()) + "::";
-		result.logging += name + "(" + parameters(rest ...).substr(1) + ")";
+		result.logging += name + "("
+				+ parameters(std::forward<Arguments&&>(rest) ...).substr(1)
+				+ ")";
 		std::clog << result.logs() << messages(message) << " {" << std::endl;
 
 		return result;
@@ -518,10 +524,11 @@ protected:
 	template<typename ... Arguments> Object(Object* position,
 			std::map<std::string, std::string> attributes, const Log* caller,
 			std::string ns, bool open, std::string message, Arguments ... rest) :
-			Log(caller, ns, open, message,
-					make_variable("position", "", position),
+			Log(caller, ns, open, message, derives_variable("position"),
 					Variable<const decltype(attributes)&>("attributes", "",
 							attributes, write_string_map), rest ...) {
+		auto log = as_constructor(caller, "base", typeid(Object), "", rest...);
+
 		modification = creation = std::chrono::system_clock::to_time_t(
 				std::chrono::system_clock::now());
 		this->position = position;

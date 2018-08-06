@@ -115,17 +115,20 @@ Log& Log::operator =(Log&& assigning) {
 std::set<Object*> Object::everything;
 
 long long unsigned Object::who_is() const {
-	return as_method("", nullptr, make_variable("who_is", "", track));
+	return as_method("", nullptr,
+			Variable<const decltype(track)&>("who_is", "", track));
 }
 Object* Object::where_is() const {
-	return as_method("", nullptr, make_variable("where_is", "", position));
+	return as_method("", nullptr,
+			Variable<const decltype(position)&>("where_is", "base", position));
 }
 time_t Object::exists_since() const {
-	return as_method("", nullptr, make_variable("exists_since", "", creation));
+	return as_method("", nullptr,
+			Variable<const decltype(creation)&>("exists_since", "", creation));
 }
 std::map<std::string, std::string> Object::gets_attributes() const {
 	return as_method("", nullptr,
-			Variable<const decltype(attributing)&>("gets_attributes", "",
+			Variable<const decltype(attributing)&>("gets_attributes", "std",
 					attributing, write_string_map));
 }
 void Object::sets_attributes(std::map<std::string, std::string> attributing,
@@ -160,29 +163,31 @@ Object::modifications Object::gets_modifications() {
 }
 Object& Object::operator =(std::map<std::string, std::string> map) {
 	auto log = as_binary<Object&>(nullptr, "=",
-			Variable<const std::map<std::string, std::string>&>("map", "", map,
-					write_string_map), "");
+			Variable<const std::map<std::string, std::string>&>("map", "std",
+					map, write_string_map), "");
 
-	return *log.returns<Object*>(this, derives_transcode);
+	sets_attributes(map, &log);
+
+	return log.returns<Object&>(*this, transcodes);
 }
 bool Object::operator ==(const Object& than) const {
 	return as_binary(nullptr,
-			make_variable("==", "", attributing == than.attributing),
+			Variable<const bool>("==", "", attributing == than.attributing),
 			than.gets_variable("than"), "");
 }
 bool Object::operator !=(const Object& than) const {
 	return as_binary(nullptr,
-			make_variable("!=", "", attributing != than.attributing),
+			Variable<const bool>("!=", "", attributing != than.attributing),
 			than.gets_variable("than"), "");
 }
 Variable<const Object&> Object::gets_variable(std::string name) const {
-	return Variable<const Object&>(name, "base", *this, transcodes);
+	return std::forward<Variable<const Object&>>(
+			Variable<const Object&>(name, "base", *this, transcodes));
 }
 std::set<Object*>& Object::gets_all() {
-	return as_function("", nullptr,
-			std::forward<Variable<decltype(everything)&>&>(
-					Variable<decltype(everything)&>("gets_all", "", everything,
-							write_set)), "base", typeid(Object))();
+	Variable<decltype(everything)&> e("gets_all", "", everything, write_set);
+
+	return as_function("", nullptr, e, "base", typeid(Object));
 }
 std::set<Object*> Object::gets_roots() {
 	std::set<Object*> result;
@@ -241,7 +246,10 @@ Object::~Object() {
 		std::clog << "~" << gets_variable("").is();
 }
 Object::Object(Object&& moving) :
-		Log(moving) {
+		Log(std::move(moving)) {
+	auto log = as_constructor(this, "base", typeid(Object), "",
+			moving.derives_variable("moving"));
+
 	position = moving.position;
 	creation = moving.creation;
 	attributing = moving.attributing;
@@ -262,7 +270,7 @@ Object& Object::operator =(Object&& moving) {
 			std::chrono::system_clock::now());
 	Log::operator =(std::move(moving));
 
-	return *returns<Object*>(this, derives_transcode);
+	return log.returns<Object&>(*this, transcodes);
 }
 /*
  //Location
