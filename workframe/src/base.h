@@ -61,12 +61,7 @@ public:
 		return has_type() + "{" + transcoder(instance) + "}";
 	}
 	std::string logs() const {
-		std::ostringstream result;
-
-		result << has_type() << " " << has_label() << "="
-				<< transcoder(instance);
-
-		return result.str();
+		return has_type() + " " + has_label() + "=" + transcoder(instance);
 	}
 	operator Class() const {
 		return std::forward<Class>(instance);
@@ -141,7 +136,70 @@ public:
 		transcoder = moved.transcoder;
 	}
 };
+template<> class Variable<std::type_index> {
+	const std::string Variable<std::type_index>::ns = "std";
+	std::string name;
+public:
+	std::type_index instance;
 
+	std::string Variable<std::type_index>::has_type() const {
+		return ns + typeid(std::type_index).name();
+	}
+	std::string Variable<std::type_index>::has_label() const {
+		return name;
+	}
+	std::string Variable<std::type_index>::is() const {
+		return has_type() + "{" + instance.name() + "}";
+	}
+	std::string Variable<std::type_index>::logs() const {
+		return has_type() + " " + has_label() + "=" + instance.name();
+	}
+	operator std::type_index() const {
+		return instance;
+	}
+
+	Variable(std::string name, std::type_index assigned) :
+			instance(assigned) {
+		this->name = name;
+	}
+	Variable(std::type_index assigned) :
+			instance(assigned) {
+	}
+	Variable(const Variable<std::type_index>& copy) :
+			instance(copy.instance) {
+		name = copy.name;
+	}
+	Variable<std::type_index>& operator =(
+			const Variable<std::type_index>& copy) {
+		name = copy.name;
+		instance = copy.instance;
+
+		return *this;
+	}
+	Variable(const Variable<std::type_index>& copy, std::string name) :
+			instance(copy.instance) {
+		this->name = name;
+	}
+	Variable<std::type_index>& operator =(std::string name) {
+		this->name = name;
+
+		return *this;
+	}
+	Variable(Variable<std::type_index> && moving) :
+			instance(std::move(moving.instance)) {
+		name = moving.name;
+	}
+	Variable<std::type_index>& operator =(Variable<std::type_index> && moving) {
+		name = moving.name;
+		instance = std::move(moving.instance);
+
+		return *this;
+	}
+	Variable(Variable<std::type_index> && moved, std::string name) :
+			instance(std::move(moved.instance)) {
+		this->name = name;
+	}
+};
 class Log {
 	std::string legacy;
 	long long unsigned track;
