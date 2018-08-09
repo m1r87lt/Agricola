@@ -200,6 +200,7 @@ public:
 		this->name = name;
 	}
 };
+
 class Log {
 	std::string legacy;
 	long long unsigned track;
@@ -252,8 +253,12 @@ protected:
 		Log result(caller, "", true);
 
 		result.logging = typeid(Return).name();
-		result.logging += " " + gets_variable("").is() + " " + operation + " "
-				+ righthand.is();
+		if (operation == "[]")
+			result.logging += " " + gets_variable("").is() + "["
+					+ righthand.is() + "]";
+		else
+			result.logging += " " + gets_variable("").is() + " " + operation
+					+ " " + righthand.is();
 		std::clog << result.logs() << messages(message) << " {" << std::endl;
 
 		return result;
@@ -262,9 +267,12 @@ protected:
 			const Log* caller, Variable<Return> returning,
 			Variable<Righthand> righthand, std::string message) const {
 		Log result(caller, "", false);
-
-		result.logging = returning.has_type() + " " + gets_variable("").is()
-				+ " " + returning.has_label() + " " + righthand.is();
+		if (returning.has_label() == "[]")
+			result.logging = returning.has_type() + " " + gets_variable("").is()
+					+ "[" + returning.is() + "]" + righthand.is();
+		else
+			result.logging = returning.has_type() + " " + gets_variable("").is()
+					+ " " + returning.has_label() + " " + righthand.is();
 		std::clog << result.logs() << messages(message) << "=" << returning.is()
 				<< std::endl;
 
@@ -577,9 +585,10 @@ class Location: public Object {
 	std::pair<size_t, container::iterator> locates(const Object&) const;
 	std::unique_ptr<Object> extracts(container::iterator, const Log*);
 	void removes(container::const_iterator, const Log*);
-	static std::string writes_iterator(const container::iterator&);
-	static std::string writes_map(std::map<size_t, container::iterator>&);
-	static std::string writes_pair(std::pair<size_t, container::iterator>&);
+	static std::string writes_iterator(const container::const_iterator);
+	static std::string writes_map(std::map<size_t, container::const_iterator>);
+	static std::string writes_pair(
+			std::pair<size_t, container::const_iterator>);
 protected:
 	template<typename ... Arguments> Location(Location* position,
 			std::map<std::string, std::string> attributing, const Log* caller,

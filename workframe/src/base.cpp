@@ -315,134 +315,123 @@ Location::container::iterator Location::locates(size_t offset) const {
 
 	return log.returns<decltype(result)&>(result, writes_iterator);
 }
-std::map<size_t, Location::container::iterator> Location::locate(
+std::map<size_t, Location::container::iterator> Location::locates(
 		std::string name) const {
 	std::map<size_t, Location::container::iterator> result;
-	Log log(
-			method<decltype(result)>(nullptr, "locate", "",
-					base::variable(name, "name")));
-	auto current = std::make_pair(1,
-			const_cast<container&>(containing).begin());
+	auto log = as_method<decltype(result)&>(nullptr, "locates", "",
+			Variable<std::string>("name", "std", name));
+	auto current = std::make_pair(1, containing->begin());
 
-	for (auto end = containing.end(); current.second != end; ++current.first) {
+	for (auto end = containing->end(); current.second != end; ++current.first) {
 		if (current.second->first.substr(0,
 				current.second->first.find_last_of("_")) == name)
 			result.emplace(current);
 		++current.second;
 	}
 	if (result.empty()) {
-		std::ostringstream message;
-
-		message << "WARNING no Object exists here with that name.";
-		log.message(message.str());
-		log.error(message.str());
+		std::string message = "WARNING no Object exists here with that name.";
+		log.messages(message);
+		log.logs_error(message);
 	}
 
-	return log.returning<decltype(result)&>(result, mapper);
+	return log.returns<decltype(result)&>(result, writes_map);
 }
-std::map<size_t, Location::container::iterator> Location::locate(
+std::map<size_t, Location::container::iterator> Location::locates(
 		std::type_index type) const {
 	std::map<size_t, Location::container::iterator> result;
-	auto log = method<decltype(result)>(nullptr, "locate", "",
-			Variable<decltype(type)&>(typer, "type", type));
-	auto current = std::make_pair(1,
-			const_cast<container&>(containing).begin());
+	auto log = as_method<decltype(result)>(nullptr, "locates", "",
+			Variable<decltype(type)>("type", type));
+	auto current = std::make_pair(1, containing->begin());
 
-	for (auto end = containing.end(); current.second != end; ++current.first) {
+	for (auto end = containing->end(); current.second != end; ++current.first) {
 		if (type == typeid(*current.second->second))
 			result.emplace(current);
 		++current.second;
 	}
 	if (result.empty()) {
-		std::ostringstream message;
-
-		message
-				<< "WARNING invalid argument: the instance is not located here.";
-		log.message(message.str());
-		log.error(message.str());
+		std::string message =
+				"WARNING invalid argument: the instance is not located here.";
+		log.messages(message);
+		log.logs_error(message);
 	}
 
-	return log.returning<decltype(result)&>(result, mapper);
+	return log.returns<decltype(result)&>(result, writes_map);
 }
-std::pair<size_t, Location::container::iterator> Location::locate(
+std::pair<size_t, Location::container::iterator> Location::locates(
 		const Object& instance) const {
-	auto result = std::make_pair(1, const_cast<container&>(containing).begin());
-	auto log = method<decltype(result)>(nullptr, "locate", "",
-			instance.variable("instance"));
-	auto end = containing.end();
+	auto result = std::make_pair(1, containing->begin());
+	auto log = as_method<decltype(result)>(nullptr, "locates", "",
+			instance.gets_variable("instance"));
+	auto end = containing->end();
 
 	while (result.second != end && result.second->second.get() != &instance) {
 		++result.first;
 		++result.second;
 	}
 	if (result.second == end) {
-		std::ostringstream message;
+		std::string message;
 
-		message
-				<< "WARNING invalid argument: the instance is not located here.";
-		log.message(message.str());
-		log.error(message.str());
+		message = "WARNING invalid argument: the instance is not located here.";
+		log.messages(message);
+		log.logs_error(message);
 	}
 
-	return log.returning<std::pair<size_t, Location::container::iterator>>(
-			result, locater);
+	return log.returns<std::pair<size_t, Location::container::iterator>>(result,
+			writes_pair);
 }
-std::unique_ptr<Object> Location::extract(container::iterator iterator,
+std::unique_ptr<Object> Location::extracts(container::iterator iterator,
 		const Log* caller) {
 	std::unique_ptr<Object> result;
-	auto log = method<decltype(result)>(caller, "extract", "",
-			Variable<container::iterator&>(iterate, "iterator", iterator));
+	auto log = as_method<decltype(result)>(caller, "extracts", "",
+			Variable<container::iterator&>("iterator",
+					std::string("std::") + typeid(container).name(), iterator,
+					writes_iterator));
 
-	if (iterator == containing.end()) {
+	if (iterator == containing->end()) {
 		std::string message =
 				"ERROR invalid argument: iterator is out of range.";
 
-		log.message(message);
-		log.error(message);
+		log.messages(message);
+		log.logs_error(message);
 
 		throw std::invalid_argument(message);
 	}
 	iterator->second.swap(result);
 	result->position = nullptr;
-	containing.erase(iterator);
+	containing->erase(iterator);
 	modification = result->modification = std::chrono::system_clock::to_time_t(
 			std::chrono::system_clock::now());
 
-	return unique_ptr(std::move(result));
+	return returns_reference(std::move(result));
 }
-void Location::remove(container::const_iterator iterator, const Log* caller) {
-	auto log = method<void>(caller, "remove", "",
-			Variable<container::const_iterator&>(
-					[](container::const_iterator& iterator) {
-						std::ostringstream result;
+void Location::removes(container::const_iterator iterator, const Log* caller) {
+	auto log = as_method<void>(caller, "removes", "",
+			Variable<container::const_iterator&>(iterator, "", "iterator",
+					writes_iterator));
 
-						result << iterator->second.get();
-
-						return result.str();
-					}, "iterator", iterator));
-
-	if (iterator == containing.end()) {
+	if (iterator == containing->end()) {
 		std::string message =
 				"WARNING invalid argument: iterator is out of range.";
 
-		log.message(message);
-		log.error(message);
+		log.messages(message);
+		log.logs_error(message);
 
 		throw std::invalid_argument(message);
 	} else {
-		containing.erase(iterator);
+		containing->erase(iterator);
 		modification = std::chrono::system_clock::to_time_t(
 				std::chrono::system_clock::now());
 	}
 }
-std::string Location::iterate(container::iterator& iterator) {
+std::string Location::writes_iterator(container::const_iterator iterator) {
 	std::ostringstream result;
 
 	result << iterator->second.get();
 
 	return result.str();
 }
-std::string Location::mapper(std::map<size_t, container::iterator>& map) {
+std::string Location::writes_map(
+		std::map<size_t, container::const_iterator> map) {
 	std::stringstream result("{");
 
 	for (auto m : map)
@@ -457,7 +446,8 @@ std::string Location::mapper(std::map<size_t, container::iterator>& map) {
 
 	return result.str() + "}";
 }
-std::string Location::locater(std::pair<size_t, container::iterator>& pair) {
+std::string Location::writes_pair(
+		std::pair<size_t, container::const_iterator> pair) {
 	std::ostringstream result("[");
 
 	result << pair.first << "]" << pair.second->second.get();
@@ -466,8 +456,8 @@ std::string Location::locater(std::pair<size_t, container::iterator>& pair) {
 }
 Object* Location::operator [](size_t offset) const {
 	Object* result = nullptr;
-	auto log = binary<decltype(result)>(nullptr, "[]",
-			base::variable(offset, "offset"), "");
+	auto log = as_binary<decltype(result)>(nullptr, "[]",
+			Variable<>(offset, "offset"), "");
 	auto iterator = locate(offset);
 
 	if (iterator != containing.end())
