@@ -6,7 +6,6 @@
  */
 
 #include "base.h"
-#include <type_traits>
 #include <stdexcept>
 #include <random>
 
@@ -170,22 +169,22 @@ Object::modifications Object::gives_modifications() {
 }
 Object& Object::operator =(std::map<std::string, std::string> map) {
 	auto log = as_binary<Object&>(nullptr, "=",
-			Variable<const std::map<std::string, std::string>&>("map", "std",
-					map, write_string_map), "");
+			Variable<const decltype(map)&>("map", "std", map, write_string_map),
+			"");
 
-	sets_attributes(map, &log);
+	gets_attributes(map, &log);
 
 	return log.returns<Object&>(*this, transcodes);
 }
 bool Object::operator ==(const Object& than) const {
 	return as_binary(nullptr,
 			Variable<const bool>("==", "", attributing == than.attributing),
-			than.gets_variable("than"), "");
+			than.gives_variable("than"), "");
 }
 bool Object::operator !=(const Object& than) const {
 	return as_binary(nullptr,
 			Variable<const bool>("!=", "", attributing != than.attributing),
-			than.gets_variable("than"), "");
+			than.gives_variable("than"), "");
 }
 Variable<const Object&> Object::gives_variable(std::string name) const {
 	return std::forward<Variable<const Object&>>(
@@ -319,7 +318,7 @@ std::map<size_t, Location::container::iterator> Location::locates(
 		std::string name) const {
 	std::map<size_t, Location::container::iterator> result;
 	auto log = as_method<decltype(result)&>(nullptr, "locates", "",
-			Variable<std::string>("name", "std", name));
+			Variable<decltype(name)>("name", "std", name));
 	auto current = std::make_pair(1, containing->begin());
 
 	for (auto end = containing->end(); current.second != end; ++current.first) {
@@ -458,7 +457,7 @@ std::string Location::write_pair(
 Object* Location::operator [](size_t offset) const {
 	Object* result = nullptr;
 	auto log = as_binary<decltype(result)>(nullptr, "[]",
-			Variable<size_t>("offset", "", offset), "");
+			Variable<decltype(offset)>("offset", "", offset), "");
 	auto iterator = locates(offset);
 
 	if (iterator != containing->end())
@@ -468,49 +467,50 @@ Object* Location::operator [](size_t offset) const {
 }
 std::map<size_t, Object*> Location::operator ()(std::string name) const {
 	std::map<size_t, Object*> result;
-	auto log = method<decltype(result)>(nullptr, "", "",
-			base::variable(name, "name"));
-	auto located = locate(name);
+	auto log = as_method<decltype(result)>(nullptr, "", "",
+			Variable<decltype(name)>(name, "std", "name"));
+	auto located = locates(name);
 
 	for (auto found : located)
 		result.emplace(found.first, found.second->second.get());
 
-	return log.returning<decltype(result)&>(result, map_loc);
+	return log.returns<decltype(result)&>(result, write_object_map);
 }
 std::map<size_t, Object*> Location::operator ()(std::type_index type) const {
 	std::map<size_t, Object*> result;
-	auto log = method<decltype(result)>(nullptr, "", "",
-			Variable<decltype(type)&>(typer, "type", type));
-	auto located = locate(type);
+	auto log = as_method<decltype(result)>(nullptr, "", "",
+			Variable<decltype(type)>("type", type));
+	auto located = locates(type);
 
 	for (auto found : located)
 		result.emplace(found.first, found.second->second.get());
 
-	return log.returning<decltype(result)&>(result, map_loc);
+	return log.returns<decltype(result)&>(result, write_object_map);
 }
 void Location::inserts_front(std::string name,
 		std::unique_ptr<Object>&& instance, const Log* caller) {
-	auto log = method<void>(caller, "inserts_front", "",
-			base::variable(name, "name"),
-			base::variable(instance.get(), "instance"));
+	auto log = as_method<void>(caller, "inserts_front", "",
+			Variable<decltype(name)>("name", "std", name),
+			Reference<Object>("instance", instance));
 
-	insert(1, name, std::move(instance), &log);
+	inserts(1, name, std::move(instance), &log);
 }
-void Location::insert(size_t offset, std::string name,
+void Location::inserts(size_t offset, std::string name,
 		std::unique_ptr<Object>&& instance, const Log* caller) {
-	auto log = method<void>(caller, "insert", "",
-			base::variable(offset, "offset"), base::variable(name, "name"),
-			base::variable(instance.get(), "instance"));
+	auto log = as_method<void>(caller, "inserts", "",
+			Variable<decltype(offset)>("offset", "", offset),
+			Variable<decltype(name)>("name", "std", name),
+			Reference<Object>("instance", instance));
 	std::ostringstream message;
 
 	if (instance.get()) {
-		if (offset > containing.size() + 1)
+		if (offset > containing->size() + 1)
 			message << "WARNING invalid argument: offset > 1 + size="
-					<< containing.size() << ".";
+					<< containing->size() << ".";
 		else if (offset) {
-			auto result = locate(offset);
+			auto result = locates(offset);
 
-			result = containing.emplace(result, naming(name), nullptr);
+			result = containing->emplace(result, names(name), nullptr);
 			result->second.swap(instance);
 			result->second->position = this;
 			modification = result->second->modification =
@@ -518,156 +518,143 @@ void Location::insert(size_t offset, std::string name,
 							std::chrono::system_clock::now());
 		} else
 			message << "WARNING invalid argument: offset > 1 + size="
-					<< containing.size() << ".";
+					<< containing->size() << ".";
 	} else
 		message << "ERROR invalid argument: instance cannot be undefined.";
 	if (message.str().length()) {
-		log.message(message.str());
-		log.error(message.str());
+		log.messages(message.str());
+		log.logs_error(message.str());
 
 		throw std::invalid_argument(message.str());
 	}
 }
-void Location::insert_back(std::string name, std::unique_ptr<Object>&& instance,
-		const Log* caller) {
-	auto log = method<void>(caller, "insert_back", "",
-			base::variable(name, "name"),
-			base::variable(instance.get(), "instance"));
+void Location::inserts_back(std::string name,
+		std::unique_ptr<Object>&& instance, const Log* caller) {
+	auto log = as_method<void>(caller, "inserts_back", "",
+			Variable<decltype(name)>("name", "std", name),
+			Reference<Object>("instance", instance));
 
-	insert(containing.size() + 1, name, std::move(instance), &log);
+	inserts(containing->size() + 1, name, std::move(instance), &log);
 }
-void Location::remove(size_t offset, const Log* caller) {
-	auto log = method<void>(caller, "remove", "",
-			base::variable(offset, "offset"));
+void Location::removes(size_t offset, const Log* caller) {
+	auto log = as_method<void>(caller, "removes", "",
+			Variable<size_t>("offset", "", offset));
 
-	remove(locate(offset), &log);
+	removes(locates(offset), &log);
 }
-void Location::remove(std::string name, const Log* caller) {
-	auto log = method<void>(caller, "remove", "", base::variable(name, "name"));
-	auto located = locate(name);
+void Location::removes(std::string name, const Log* caller) {
+	auto log = as_method<void>(caller, "removes", "",
+			Variable<decltype(name)>("name", "std", name));
+	auto located = locates(name);
 
 	for (auto found : located)
-		remove(found.second, &log);
+		removes(found.second, &log);
 }
-void Location::remove(std::type_index type, const Log* caller) {
-	auto log = method<void>(caller, "remove", "",
-			Variable<decltype(type)&>(typer, "type", type));
+void Location::removes(std::type_index type, const Log* caller) {
+	auto log = as_method<void>(caller, "removes", "",
+			Variable<decltype(type)>("type", type));
 
-	auto located = locate(type);
+	auto located = locates(type);
 
 	for (auto found : located)
-		remove(found.second, &log);
+		removes(found.second, &log);
 }
-void Location::remove(const Object& instance, const Log* caller) {
-	auto log = method<void>(caller, "remove", "",
-			instance.variable("instance"));
+void Location::removes(const Object& instance, const Log* caller) {
+	auto log = as_method<void>(caller, "removes", "",
+			instance.gives_variable("instance"));
 
-	remove(locate(instance).second, &log);
+	removes(locates(instance).second, &log);
 }
-std::unique_ptr<Object> Location::extract(size_t offset, const Log* caller) {
+std::unique_ptr<Object> Location::extracts(size_t offset, const Log* caller) {
 	std::unique_ptr<Object> result;
-	auto log = method<decltype(result)>(caller, "extract", "",
-			base::variable(offset, "offset"));
+	auto log = as_method<decltype(result)>(caller, "extracts", "",
+			Variable<decltype(offset)>("offset", "", offset));
 
-	extract(locate(offset), &log).swap(result);
+	extracts(locates(offset), &log).swap(result);
 
-	return log.unique_ptr(std::move(result));
+	return log.returns_reference(std::move(result));
 }
-std::unique_ptr<Object> Location::extract(const Object& instance,
+std::unique_ptr<Object> Location::extracts(const Object& instance,
 		const Log* caller) {
 	std::unique_ptr<Object> result;
-	auto log = method<decltype(result)>(caller, "extract", "",
-			instance.variable("instance"));
+	auto log = as_method<decltype(result)>(caller, "extracts", "",
+			instance.gives_variable("instance"));
 
-	extract(locate(instance).second, &log).swap(result);
-	return log.unique_ptr(std::move(result));
+	extracts(locates(instance).second, &log).swap(result);
+
+	return log.returns_reference(std::move(result));
 }
-void Location::take(size_t source, Location& location, size_t destination,
+void Location::takes(size_t source, Location& location, size_t destination,
 		const Log* caller) {
-	auto log = method<void>(caller, "take", "",
-			base::variable(source, "source"), location.variable("location"),
-			base::variable(destination, "destination"));
-	auto moved = locate(source);
+	auto log = as_method<void>(caller, "takes", "",
+			Variable<decltype(source)>("source", "", source),
+			location.gives_variable("location"),
+			Variable<decltype(destination)>("destination", "", destination));
+	auto moved = locates(source);
 
-	location.insert(destination, moved->first, Location::extract(moved, &log),
+	location.inserts(destination, moved->first, Location::extracts(moved, &log),
 			&log);
 }
-void Location::take(const Object& instance, Location& location, size_t position,
-		const Log* caller) {
-	auto log = method<void>(caller, "take", "", instance.variable("instance"),
-			location.variable("location"),
-			base::variable(position, "position"));
-	auto moved = locate(instance);
+void Location::takes(const Object& instance, Location& location,
+		size_t position, const Log* caller) {
+	auto log = as_method<void>(caller, "takes", "",
+			instance.gives_variable("instance"),
+			location.gives_variable("location"),
+			Variable<decltype(position)>("position", "", position));
+	auto moved = locates(instance);
 
-	location.insert(position, moved.second->first,
-			Location::extract(moved.second, &log), &log);
+	location.inserts(position, moved.second->first,
+			Location::extracts(moved.second, &log), &log);
 }
-size_t Location::size() const {
-	return method("", nullptr, base::variable(containing.size(), "size"));
+size_t Location::has_size() const {
+	return as_method("", nullptr,
+			Variable<size_t>("has_size", "", containing->size()));
 }
-size_t Location::which(const Object& instance) {
+size_t Location::get_position(const Object& instance) {
 	size_t result = 0;
-	auto log = function<decltype(result)>(nullptr, "base", typeid(Object),
-			"which", "", instance.variable("instance"));
+	auto log = as_function<decltype(result)>(nullptr, "base", typeid(Object),
+			"get_position", "", instance.gives_variable("instance"));
 	if (instance.position)
 		result =
-				dynamic_cast<Location*>(instance.position)->locate(instance).first;
+				dynamic_cast<Location*>(instance.position)->locates(instance).first;
 
-	return log.returning(std::move(result));
+	return log.returns_reference(std::move(result));
 }
-std::string Location::who(const Object& instance) {
+std::string Location::get_name(const Object& instance) {
 	std::string result;
-	auto log = function<decltype(result)>(nullptr, "base", typeid(Location),
-			"who", "", instance.variable("instance"));
+	auto log = as_function<decltype(result)>(nullptr, "base", typeid(Location),
+			"get_name", "", instance.gives_variable("instance"));
 
 	if (instance.position)
 		result =
-				dynamic_cast<Location*>(instance.position)->locate(instance).second->first;
+				dynamic_cast<Location*>(instance.position)->locates(instance).second->first;
 
-	return log.returning(std::move(result));
+	return log.returns_reference(std::move(result));
 }
-std::vector<Object*> Location::path(const Object& instance) {
+std::vector<Object*> Location::get_path(const Object& instance) {
 	std::vector<Object*> result;
-	auto log = function<decltype(result)>(nullptr, "base", typeid(Location),
-			"path", "", instance.variable("instance"));
+	auto log = as_function<decltype(result)>(nullptr, "base", typeid(Location),
+			"get_path", "", instance.gives_variable("instance"));
 
 	if (instance.position)
-		result = path(*instance.position);
+		result = get_path(*instance.position);
 	result.push_back(&const_cast<Object&>(instance));
 
-	return log.returning<decltype(result)&>(result,
-			[](std::vector<Object*>& value) {
-				std::stringstream text("{");
-
-				for (auto pointer : value)
-				text << "\t\n" << pointer << ";";
-				text.seekg(0, std::ios::end);
-				text.unget();
-				if (text.peek() == ';') {
-					text.get();
-					text.put('\n');
-				} else
-				text.put(' ');
-
-				return text.str() + "}";
-			});
+	return log.returns<decltype(result)&>(result, write_object_vector);
 }
 std::unique_ptr<Location> Location::construct(
 		std::map<std::string, std::string> attributes, const Log* caller,
 		std::string message) {
-	auto log =
-			Log::function < std::unique_ptr
-					< Location
-							>> (caller, "base", typeid(Location), "construct", "", Variable<
-									std::map<std::string, std::string>&>(lister,
-									"attributes", attributes));
+	auto log = as_function<std::unique_ptr<Location>>(caller, "base",
+			typeid(Location), "construct", "",
+			Variable<decltype(attributes)&>("attributes", "std", attributes));
 
-	return log.unique_ptr(
+	return log.returns_reference(
 			std::unique_ptr<Location>(
 					new Location(nullptr, attributes, &log, "base", false,
 							message)));
 }
-std::string Location::map_loc(std::map<size_t, Object*>& map) {
+std::string Location::write_object_map(std::map<size_t, Object*>& map) {
 	std::stringstream result("{");
 
 	for (auto m : map)
@@ -682,59 +669,72 @@ std::string Location::map_loc(std::map<size_t, Object*>& map) {
 
 	return result.str() + "}";
 }
+std::string Location::write_object_vector(std::vector<Object*>& vector) {
+	std::stringstream result("{");
 
-std::string typer(std::type_index& type) {
-	return type.name();
+	for (auto v : vector)
+		result << "\n\t" << v << ";";
+	result.seekg(0, std::ios::end);
+	result.unget();
+	if (result.peek() == ';') {
+		result.get();
+		result.put('\n');
+	} else
+		result.put(' ');
+
+	return result.str() + "}";
 }
 }
 namespace game {
 
 //Card
-base::Object& Card::side(bool covered) const {
+base::Object& Card::gives_face__uncovered(bool covered) const {
 	Object* result = nullptr;
-	auto log = method<decltype(result)>(nullptr, "side", "",
-			base::variable(covered, "covered"));
+	auto log = as_method<Object&>(nullptr, "gives_face__uncovered", "",
+			base::Variable<decltype(covered)>("covered", "", covered));
 
 	if ((result = (*container)[covered ? 0 : 1]))
-		return *log.returning(result);
+		return log.returns<Object&>(*result, transcodes);
 	else {
 		std::string message = "ERROR the "
 				+ std::string(covered ? "cover" : "face")
 				+ " is not instanced.";
 
-		log.message(message);
-		log.error(message);
+		log.messages(message);
+		log.logs_error(message);
 
 		throw std::length_error(message);
 	}
 }
 base::Object& Card::operator ()() const {
-	auto log = method<Object&>(nullptr, "", "");
+	auto log = as_method<Object&>(nullptr, "", "");
 
-	return *log.returning(&side(covered));
+	return log.returns<Object&>(gives_face__uncovered(covered), transcodes);
 }
-bool Card::facing() const {
-	return method("", nullptr, base::variable(!covered, "facing"));
+bool Card::is_facing() const {
+	return as_method("", nullptr,
+			base::Variable<bool>("is_facing", "", !covered));
 }
-void Card::facing(const Log* caller) {
-	auto log = method<void>(caller, "facing", "");
+void Card::shows_face(const Log* caller) {
+	auto log = as_method<void>(caller, "shows_face", "");
 
 	covered = false;
 	modification = std::chrono::system_clock::to_time_t(
 			std::chrono::system_clock::now());
 }
-bool Card::covering() const {
-	return method("", nullptr, base::variable(covered, "covering"));
+bool Card::is_covering() const {
+	return as_method("", nullptr,
+			base::Variable<bool>("is_covering", "", covered));
 }
-void Card::covering(const Log* caller) {
-	auto log = method<void>(caller, "covering", "");
+void Card::shows_cover(const Log* caller) {
+	auto log = as_method<void>(caller, "shows_cover", "");
 
 	covered = true;
 	modification = std::chrono::system_clock::to_time_t(
 			std::chrono::system_clock::now());
 }
-void Card::flip(const Log* caller) {
-	auto log = method<void>(caller, "flip", "");
+void Card::flips(const Log* caller) {
+	auto log = as_method<void>(caller, "flips", "");
 
 	covered = !covered;
 	modification = std::chrono::system_clock::to_time_t(
@@ -744,12 +744,12 @@ std::unique_ptr<Card> Card::construct(std::unique_ptr<Object>&& cover,
 		std::unique_ptr<Object>&& face, bool covered,
 		std::map<std::string, std::string> attributing, const Log* caller,
 		std::string message) {
-	auto log = function<std::unique_ptr<Card>>(caller, "game", typeid(Card),
-			"construct", "", base::variable(cover.get(), "cover"),
-			base::variable(face.get(), "face"),
-			base::variable(covered, "covered"),
-			base::Variable<std::map<std::string, std::string>&>(lister,
-					"attributing", attributing));
+	auto log = as_function<std::unique_ptr<Card>>(caller, "game", typeid(Card),
+			"construct", "", Reference<Object>("cover", cover),
+			Reference<Object>("face", face),
+			base::Variable<bool>("covered", "", covered),
+			base::Variable<decltype(attributing)&>(
+					"attributing", "std", attributing));
 
 	return log.unique_ptr(
 			std::unique_ptr<Card>(

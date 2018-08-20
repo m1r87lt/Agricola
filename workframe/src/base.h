@@ -137,21 +137,21 @@ public:
 	}
 };
 template<> class Variable<std::type_index> {
-	const std::string Variable<std::type_index>::ns = "std";
+	const std::string ns = "std::";
 	std::string name;
 public:
 	std::type_index instance;
 
-	std::string Variable<std::type_index>::has_type() const {
+	std::string has_type() const {
 		return ns + typeid(std::type_index).name();
 	}
-	std::string Variable<std::type_index>::has_label() const {
+	std::string has_label() const {
 		return name;
 	}
-	std::string Variable<std::type_index>::is() const {
+	std::string is() const {
 		return has_type() + "{" + instance.name() + "}";
 	}
-	std::string Variable<std::type_index>::logs() const {
+	std::string logs() const {
 		return has_type() + " " + has_label() + "=" + instance.name();
 	}
 	operator std::type_index() const {
@@ -165,17 +165,6 @@ public:
 	Variable(std::type_index assigned) :
 			instance(assigned) {
 	}
-	Variable(const Variable<std::type_index>& copy) :
-			instance(copy.instance) {
-		name = copy.name;
-	}
-	Variable<std::type_index>& operator =(
-			const Variable<std::type_index>& copy) {
-		name = copy.name;
-		instance = copy.instance;
-
-		return *this;
-	}
 	Variable(const Variable<std::type_index>& copy, std::string name) :
 			instance(copy.instance) {
 		this->name = name;
@@ -185,19 +174,59 @@ public:
 
 		return *this;
 	}
-	Variable(Variable<std::type_index> && moving) :
-			instance(std::move(moving.instance)) {
-		name = moving.name;
-	}
-	Variable<std::type_index>& operator =(Variable<std::type_index> && moving) {
-		name = moving.name;
-		instance = std::move(moving.instance);
-
-		return *this;
-	}
 	Variable(Variable<std::type_index> && moved, std::string name) :
 			instance(std::move(moved.instance)) {
 		this->name = name;
+	}
+};
+template<typename Class> class Reference {
+	const std::string ns = "std::";
+	std::string name;
+	Class* instance;
+
+	std::string transcodes() const {
+		std::ostringstream result;
+
+		result << instance;
+
+		return result.str();
+	}
+public:
+	std::string has_type() const {
+		return ns + typeid(std::unique_ptr<Class>).name();
+	}
+	std::string has_label() const {
+		return name;
+	}
+	std::string is() const {
+		return has_type() + "{" + transcodes() + "}";
+	}
+	std::string logs() const {
+		return has_type() + " " + has_label() + "=" + transcodes();
+	}
+	operator Variable<Class*>() const {
+		return Variable<Class*>(name, ns, instance);
+	}
+
+	Reference(std::string name, std::unique_ptr<Class>& assigned) {
+		this->name = name;
+		instance = assigned.get();
+	}
+	Reference(std::unique_ptr<Class>& assigned) {
+		instance = assigned.get();
+	}
+	Reference(const Reference<Class>& copy, std::string name) {
+		this->name = name;
+		instance = copy.instance;
+	}
+	Reference<Class>& operator =(std::string name) {
+		this->name = name;
+
+		return *this;
+	}
+	Reference(Reference<Class> && moved, std::string name) {
+		this->name = name;
+		instance = std::move(moved.instance);
 	}
 };
 
@@ -587,8 +616,7 @@ class Location: public Object {
 	void removes(container::const_iterator, const Log*);
 	static std::string write_iterator(const container::const_iterator);
 	static std::string write_map(std::map<size_t, container::const_iterator>);
-	static std::string write_pair(
-			std::pair<size_t, container::const_iterator>);
+	static std::string write_pair(std::pair<size_t, container::const_iterator>);
 protected:
 	template<typename ... Arguments> Location(Location* position,
 			std::map<std::string, std::string> attributing, const Log* caller,
@@ -643,6 +671,7 @@ public:
 	static std::unique_ptr<Location> construct(
 			std::map<std::string, std::string>, const Log*, std::string);
 	static std::string write_object_map(std::map<size_t, Object*>&);
+	static std::string write_object_vector(std::vector<Object*>&);
 
 	virtual ~Location();
 };
