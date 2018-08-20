@@ -66,7 +66,7 @@ void Log::notes(std::string text) const {
 void Log::logs_error(std::string message) const {
 	std::cerr << logs() << messages(message) << std::endl;
 }
-Variable<const Log&> Log::gets_variable(std::string name) const {
+Variable<const Log&> Log::gives_variable(std::string name) const {
 	return Variable<const Log&>(name, ns, *this, transcodes);
 }
 
@@ -133,14 +133,14 @@ time_t Object::exists_since() const {
 	return as_method("", nullptr,
 			Variable<const decltype(creation)&>("exists_since", "", creation));
 }
-std::map<std::string, std::string> Object::gets_attributes() const {
+std::map<std::string, std::string> Object::gives_attributes() const {
 	return as_method("", nullptr,
-			Variable<const decltype(attributing)&>("gets_attributes", "std",
+			Variable<const decltype(attributing)&>("gives_attributes", "std",
 					attributing, write_string_map));
 }
-void Object::sets_attributes(std::map<std::string, std::string> attributing,
+void Object::gets_attributes(std::map<std::string, std::string> attributing,
 		const Log* caller) {
-	auto log = as_method<void>(caller, "sets_attributes", "",
+	auto log = as_method<void>(caller, "gets_attributes", "",
 			Variable<const decltype(attributing)&>("attributing", "",
 					attributing, write_string_map));
 
@@ -157,9 +157,9 @@ void Object::sets_attributes(std::map<std::string, std::string> attributing,
 	modification = std::chrono::system_clock::to_time_t(
 			std::chrono::system_clock::now());
 }
-Object::modifications Object::gets_modifications() {
+Object::modifications Object::gives_modifications() {
 	modifications result;
-	auto log = as_method<decltype(result)>(nullptr, "gets_modifications", "");
+	auto log = as_method<decltype(result)>(nullptr, "gives_modifications", "");
 
 	result.first = modification;
 	for (auto change : changes)
@@ -187,19 +187,19 @@ bool Object::operator !=(const Object& than) const {
 			Variable<const bool>("!=", "", attributing != than.attributing),
 			than.gets_variable("than"), "");
 }
-Variable<const Object&> Object::gets_variable(std::string name) const {
+Variable<const Object&> Object::gives_variable(std::string name) const {
 	return std::forward<Variable<const Object&>>(
 			Variable<const Object&>(name, "base", *this, transcodes));
 }
-std::set<Object*>& Object::gets_all() {
-	Variable<decltype(everything)&> e("gets_all", "std", everything, write_set);
+std::set<Object*>& Object::get_all() {
+	Variable<decltype(everything)&> e("get_all", "std", everything, write_set);
 
 	return as_function("", nullptr, e, "base", typeid(Object));
 }
-std::set<Object*> Object::gets_roots() {
+std::set<Object*> Object::get_roots() {
 	std::set<Object*> result;
 	auto log = as_function<decltype(result)>(nullptr, "base", typeid(Object),
-			"gets_roots", "");
+			"get_roots", "");
 	decltype(result) e = everything;
 
 	for (auto object : e)
@@ -313,7 +313,7 @@ Location::container::iterator Location::locates(size_t offset) const {
 		log.logs_error(message.str());
 	}
 
-	return log.returns<decltype(result)&>(result, writes_iterator);
+	return log.returns<decltype(result)&>(result, write_iterator);
 }
 std::map<size_t, Location::container::iterator> Location::locates(
 		std::string name) const {
@@ -334,7 +334,7 @@ std::map<size_t, Location::container::iterator> Location::locates(
 		log.logs_error(message);
 	}
 
-	return log.returns<decltype(result)&>(result, writes_map);
+	return log.returns<decltype(result)&>(result, write_map);
 }
 std::map<size_t, Location::container::iterator> Location::locates(
 		std::type_index type) const {
@@ -355,13 +355,13 @@ std::map<size_t, Location::container::iterator> Location::locates(
 		log.logs_error(message);
 	}
 
-	return log.returns<decltype(result)&>(result, writes_map);
+	return log.returns<decltype(result)&>(result, write_map);
 }
 std::pair<size_t, Location::container::iterator> Location::locates(
 		const Object& instance) const {
 	auto result = std::make_pair(1, containing->begin());
 	auto log = as_method<decltype(result)>(nullptr, "locates", "",
-			instance.gets_variable("instance"));
+			instance.gives_variable("instance"));
 	auto end = containing->end();
 
 	while (result.second != end && result.second->second.get() != &instance) {
@@ -377,7 +377,7 @@ std::pair<size_t, Location::container::iterator> Location::locates(
 	}
 
 	return log.returns<std::pair<size_t, Location::container::iterator>>(result,
-			writes_pair);
+			write_pair);
 }
 std::unique_ptr<Object> Location::extracts(container::iterator iterator,
 		const Log* caller) {
@@ -385,7 +385,7 @@ std::unique_ptr<Object> Location::extracts(container::iterator iterator,
 	auto log = as_method<decltype(result)>(caller, "extracts", "",
 			Variable<container::iterator&>("iterator",
 					std::string("std::") + typeid(container).name(), iterator,
-					writes_iterator));
+					write_iterator));
 
 	if (iterator == containing->end()) {
 		std::string message =
@@ -406,8 +406,9 @@ std::unique_ptr<Object> Location::extracts(container::iterator iterator,
 }
 void Location::removes(container::const_iterator iterator, const Log* caller) {
 	auto log = as_method<void>(caller, "removes", "",
-			Variable<container::const_iterator&>(iterator, "", "iterator",
-					writes_iterator));
+			Variable<container::const_iterator&>(iterator,
+					std::string("std::") + typeid(container).name(), "iterator",
+					write_iterator));
 
 	if (iterator == containing->end()) {
 		std::string message =
@@ -423,14 +424,14 @@ void Location::removes(container::const_iterator iterator, const Log* caller) {
 				std::chrono::system_clock::now());
 	}
 }
-std::string Location::writes_iterator(container::const_iterator iterator) {
+std::string Location::write_iterator(container::const_iterator iterator) {
 	std::ostringstream result;
 
 	result << iterator->second.get();
 
 	return result.str();
 }
-std::string Location::writes_map(
+std::string Location::write_map(
 		std::map<size_t, container::const_iterator> map) {
 	std::stringstream result("{");
 
@@ -446,7 +447,7 @@ std::string Location::writes_map(
 
 	return result.str() + "}";
 }
-std::string Location::writes_pair(
+std::string Location::write_pair(
 		std::pair<size_t, container::const_iterator> pair) {
 	std::ostringstream result("[");
 
@@ -457,13 +458,13 @@ std::string Location::writes_pair(
 Object* Location::operator [](size_t offset) const {
 	Object* result = nullptr;
 	auto log = as_binary<decltype(result)>(nullptr, "[]",
-			Variable<>(offset, "offset"), "");
-	auto iterator = locate(offset);
+			Variable<size_t>("offset", "", offset), "");
+	auto iterator = locates(offset);
 
-	if (iterator != containing.end())
+	if (iterator != containing->end())
 		result = iterator->second.get();
 
-	return log.returning(result);
+	return log.returns(result);
 }
 std::map<size_t, Object*> Location::operator ()(std::string name) const {
 	std::map<size_t, Object*> result;
@@ -487,9 +488,9 @@ std::map<size_t, Object*> Location::operator ()(std::type_index type) const {
 
 	return log.returning<decltype(result)&>(result, map_loc);
 }
-void Location::insert_front(std::string name,
+void Location::inserts_front(std::string name,
 		std::unique_ptr<Object>&& instance, const Log* caller) {
-	auto log = method<void>(caller, "insert_front", "",
+	auto log = method<void>(caller, "inserts_front", "",
 			base::variable(name, "name"),
 			base::variable(instance.get(), "instance"));
 

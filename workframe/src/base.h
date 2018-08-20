@@ -389,7 +389,7 @@ public:
 
 		return std::move(reference);
 	}
-	Variable<const Log&> gets_variable(std::string) const;
+	Variable<const Log&> gives_variable(std::string) const;
 	virtual Variable<const Log*> derives_variable(std::string) const;
 	template<typename Return, typename Argument> static Log as_unary(
 			const Log* caller, std::string operation,
@@ -521,15 +521,15 @@ public:
 	long long unsigned who_is() const;
 	Object* where_is() const;
 	time_t exists_since() const;
-	std::map<std::string, std::string> gets_attributes() const;
-	void sets_attributes(std::map<std::string, std::string>, const Log*);
-	modifications gets_modifications();
+	std::map<std::string, std::string> gives_attributes() const;
+	void gets_attributes(std::map<std::string, std::string>, const Log*);
+	modifications gives_modifications();
 	Object& operator =(std::map<std::string, std::string>);
 	bool operator ==(const Object&) const;
 	bool operator !=(const Object&) const;
-	Variable<const Object&> gets_variable(std::string) const;
-	static std::set<Object*>& gets_all();
-	static std::set<Object*> gets_roots();
+	Variable<const Object&> gives_variable(std::string) const;
+	static std::set<Object*>& get_all();
+	static std::set<Object*> get_roots();
 	template<typename ... Arguments> static std::unique_ptr<Object> construct(
 			std::map<std::string, std::string> attributes, const Log* caller,
 			std::string message, Arguments&& ... rest) {
@@ -585,9 +585,9 @@ class Location: public Object {
 	std::pair<size_t, container::iterator> locates(const Object&) const;
 	std::unique_ptr<Object> extracts(container::iterator, const Log*);
 	void removes(container::const_iterator, const Log*);
-	static std::string writes_iterator(const container::const_iterator);
-	static std::string writes_map(std::map<size_t, container::const_iterator>);
-	static std::string writes_pair(
+	static std::string write_iterator(const container::const_iterator);
+	static std::string write_map(std::map<size_t, container::const_iterator>);
+	static std::string write_pair(
 			std::pair<size_t, container::const_iterator>);
 protected:
 	template<typename ... Arguments> Location(Location* position,
@@ -642,28 +642,28 @@ public:
 	static std::vector<Object*> get_path(const Object&);
 	static std::unique_ptr<Location> construct(
 			std::map<std::string, std::string>, const Log*, std::string);
-	static std::string write_map(std::map<size_t, Object*>&);
+	static std::string write_object_map(std::map<size_t, Object*>&);
 
 	virtual ~Location();
 };
 }
 namespace game {
-class Card final: public base::Object {
+class Card: public base::Object {
 	bool covered;
 	std::unique_ptr<base::Location> container;
 
-	Object& side(bool) const;
+	Object& gives_face__uncovered(bool) const;
 protected:
 	Card(std::unique_ptr<Object>&&, std::unique_ptr<Object>&&, bool,
 			base::Location*, std::map<std::string, std::string>, const Log*,
 			std::string);
 public:
 	Object& operator ()() const;
-	bool facing() const;
-	void facing(const Log*);
-	bool covering() const;
-	void covering(const Log*);
-	void flip(const Log*);
+	bool is_facing() const;
+	void shows_face(const Log*);
+	bool is_covering() const;
+	void shows_cover(const Log*);
+	void flips(const Log*);
 	static std::unique_ptr<Card> construct(std::unique_ptr<Object>&&,
 			std::unique_ptr<Object>&&, bool, std::map<std::string, std::string>,
 			const Log*, std::string);
@@ -676,41 +676,40 @@ protected:
 	Deck(std::string, base::Location*, std::map<std::string, std::string>,
 			const Log*, std::string);
 public:
-	size_t size() const;
-	const std::string& label() const;
-	std::unique_ptr<Card> draw(const Log*);
-	std::unique_ptr<Card> extract(const Log*);
-	std::unique_ptr<Card> get_bottom(const Log*);
-	void put_up(std::string, std::unique_ptr<Card>&&, const Log*);
-	void insert(std::string, std::unique_ptr<Card>&&, const Log*);
-	void put_down(std::string, std::unique_ptr<Card>&&, const Log*);
-	template<typename CardDerived, typename ... Arguments> void emplace_up(
+	size_t has_size() const;
+	const std::string& has_label() const;
+	std::unique_ptr<Card> draws(const Log*);
+	std::unique_ptr<Card> randomly_extracts(const Log*);
+	std::unique_ptr<Card> gives_from_bottom(const Log*);
+	void gets_up(std::string, std::unique_ptr<Card>&&, const Log*);
+	void randomly_inserts(std::string, std::unique_ptr<Card>&&, const Log*);
+	void gets_down(std::string, std::unique_ptr<Card>&&, const Log*);
+	template<typename CardDerived, typename ... Arguments> void emplaces_up(
 			std::string name, const Log* caller, Arguments&& ... arguments) {
-		auto log = tmethod<void>(caller, "emplace_up", "", name, arguments...);
+		auto log = as_method<void>(caller, "emplaces_up", "",
+				base::Variable<std::string>("name", "std", name), arguments...);
 
-		container->emplace_front<CardDerived>(name, &log, arguments ...);
+		container->emplaces_front<CardDerived>(name, &log, arguments ...);
 	}
-	template<typename CardDerived, typename ... Arguments> void emplace(
+	template<typename CardDerived, typename ... Arguments> void randomly_emplaces(
 			size_t offset, std::string name, const Log* caller,
 			Arguments&& ... arguments) {
-		auto log = method<void>(caller, "emplace", "", offset, name,
-				arguments...);
+		auto log = as_method<void>(caller, "randomly_emplaces", "", offset,
+				base::Variable<std::string>("name", "std", name), arguments...);
 
-		container->emplace<CardDerived>(offset, name, &log, arguments ...);
+		container->emplaces<CardDerived>(offset, name, &log, arguments ...);
 	}
-	template<typename CardDerived, typename ... Arguments> void emplace_down(
+	template<typename CardDerived, typename ... Arguments> void emplaces_down(
 			std::string name, const Log* caller, Arguments&& ... arguments) {
-		auto log = method<void>(caller, "emplace_down", "", name, arguments...);
+		auto log = as_method<void>(caller, "emplaces_down", "",
+				base::Variable<std::string>("name", "std", name), arguments...);
 
-		container->emplace_back<CardDerived>(name, &log, arguments ...);
+		container->emplaces_back<CardDerived>(name, &log, arguments ...);
 	}
-	void shuffle(const Log*);
+	void shuffles(const Log*);
 	static std::unique_ptr<Deck> construct(std::string,
 			std::map<std::string, std::string>, const Log*, std::string);
-
-	virtual ~Deck() = default;
 };
-*/
 }
 
 #endif /* BASE_H_ */
