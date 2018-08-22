@@ -249,7 +249,6 @@ class Log {
 	static std::string transcodes_arguments();
 	static std::string tracks(const Log*);
 	static std::string messages(std::string);
-	static std::string transcodes(const Log&);
 
 	Log(const Log*, std::string, bool);
 	Log(Log&);
@@ -383,7 +382,7 @@ protected:
 		return result;
 	}
 	Log as_destructor(std::string, std::type_index, std::string) const;
-	static std::string derives_transcode(const Log*);
+	static std::string transcodes(const Log&);
 
 	Log(const Log*, std::string, bool, std::string);
 	template<typename Argument, typename ... Arguments> Log(const Log* caller,
@@ -566,8 +565,8 @@ public:
 			std::string message, Arguments&& ... rest) {
 		auto log = Log::as_function<std::unique_ptr<Object>>(typeid(Object),
 				caller, "base", "construct", "",
-				Variable<std::map<std::string, std::string>&>("attributes", "",
-						attributes, write_string_map), rest ...);
+				Variable<decltype(attributes)&>("attributes", "", attributes,
+						write_string_map), rest ...);
 
 		return log.returns_reference(
 				std::unique_ptr<Object>(
@@ -625,7 +624,8 @@ protected:
 			std::map<std::string, std::string> attributing, const Log* caller,
 			std::string ns, bool open, std::string message, Arguments ... rest) :
 			Object(position, attributing, caller, ns, open, message, rest ...) {
-		auto log = as_constructor(caller, "base", typeid(Location), "", rest ...);
+		auto log = as_constructor(caller, "base", typeid(Location), "",
+				rest ...);
 
 		containing = new container;
 	}
@@ -677,6 +677,8 @@ public:
 	static std::string write_object_vector(std::vector<Object*>&);
 
 	virtual ~Location();
+	Location(Location&&);
+	Location& operator =(Location&& moving);
 };
 }
 namespace game {
@@ -719,7 +721,8 @@ public:
 	template<typename CardDerived, typename ... Arguments> void emplaces_up(
 			std::string name, const Log* caller, Arguments&& ... arguments) {
 		auto log = as_method<void>(caller, "emplaces_up", "",
-				base::Variable<std::string>("name", "std", name), arguments...);
+				base::Variable<decltype(name)&>("name", "std", name),
+				arguments...);
 
 		container->emplaces_front<CardDerived>(name, &log, arguments ...);
 	}
@@ -727,14 +730,16 @@ public:
 			size_t offset, std::string name, const Log* caller,
 			Arguments&& ... arguments) {
 		auto log = as_method<void>(caller, "randomly_emplaces", "", offset,
-				base::Variable<std::string>("name", "std", name), arguments...);
+				base::Variable<decltype(name)&>("name", "std", name),
+				arguments...);
 
 		container->emplaces<CardDerived>(offset, name, &log, arguments ...);
 	}
 	template<typename CardDerived, typename ... Arguments> void emplaces_down(
 			std::string name, const Log* caller, Arguments&& ... arguments) {
 		auto log = as_method<void>(caller, "emplaces_down", "",
-				base::Variable<std::string>("name", "std", name), arguments...);
+				base::Variable<decltype(name)&>("name", "std", name),
+				arguments...);
 
 		container->emplaces_back<CardDerived>(name, &log, arguments ...);
 	}
