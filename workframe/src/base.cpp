@@ -79,7 +79,7 @@ Log::Log(const Log* caller, std::string ns, bool open, std::string message) {
 	legacy = tracks(caller);
 	track = ++tracker;
 	this->ns = ns;
-	logging = gets_variable("").is() + "::" + typeid(*this).name() + "()";
+	logging = gives_variable("").is() + "::" + typeid(*this).name() + "()";
 	std::clog << logs() << messages(message)
 			<< (((this->open = open)) ? " {" : "") << std::endl;
 }
@@ -88,7 +88,7 @@ Log::~Log() {
 			&& open)
 		std::clog << tracks() << "  }" << std::endl;
 	else if (!open)
-		std::clog << "~" << gets_variable("").is() << std::endl;
+		std::clog << "~" << gives_variable("").is() << std::endl;
 }
 Log::Log(Log& copy) {
 	legacy = copy.legacy;
@@ -265,7 +265,7 @@ Object::Object(Object&& moving) :
 	everything.emplace(this);
 }
 Object& Object::operator =(Object&& moving) {
-	auto log = as_binary<Object&>(nullptr, "=", moving.gets_variable("moving"),
+	auto log = as_binary<Object&>(nullptr, "=", moving.gives_variable("moving"),
 			"");
 
 	position = moving.position;
@@ -283,7 +283,8 @@ Object& Object::operator =(Object&& moving) {
 std::string Location::names(std::string name) {
 	std::string candidate = name;
 	auto log = as_method<decltype(name)>(nullptr, "names", "",
-			Variable<decltype(name)&>("name", "std", name));
+			Variable<decltype(name)>("name", "std",
+					std::forward<decltype(name)&&>(name)));
 
 	if (candidate.empty())
 		candidate = name = "content";
@@ -318,7 +319,8 @@ std::map<size_t, Location::container::iterator> Location::locates(
 		std::string name) const {
 	std::map<size_t, Location::container::iterator> result;
 	auto log = as_method<decltype(result)&>(nullptr, "locates", "",
-			Variable<decltype(name)>("name", "std", name));
+			Variable<decltype(name)>("name", "std",
+					std::forward<decltype(name)&&>(name)));
 	auto current = std::make_pair(1, containing->begin());
 
 	for (auto end = containing->end(); current.second != end; ++current.first) {
@@ -329,7 +331,7 @@ std::map<size_t, Location::container::iterator> Location::locates(
 	}
 	if (result.empty()) {
 		std::string message = "WARNING no Object exists here with that name.";
-		log.messages(message);
+		log.notes(message);
 		log.logs_error(message);
 	}
 
@@ -350,7 +352,7 @@ std::map<size_t, Location::container::iterator> Location::locates(
 	if (result.empty()) {
 		std::string message =
 				"WARNING invalid argument: the instance is not located here.";
-		log.messages(message);
+		log.notes(message);
 		log.logs_error(message);
 	}
 
@@ -371,7 +373,7 @@ std::pair<size_t, Location::container::iterator> Location::locates(
 		std::string message;
 
 		message = "WARNING invalid argument: the instance is not located here.";
-		log.messages(message);
+		log.notes(message);
 		log.logs_error(message);
 	}
 
@@ -382,15 +384,16 @@ std::unique_ptr<Object> Location::extracts(container::iterator iterator,
 		const Log* caller) {
 	std::unique_ptr<Object> result;
 	auto log = as_method<decltype(result)>(caller, "extracts", "",
-			Variable<container::iterator&>("iterator",
-					std::string("std::") + typeid(container).name(), iterator,
+			Variable<container::iterator>("iterator",
+					std::string("std::") + typeid(container).name(),
+					std::forward<decltype(iterator)&&>(iterator),
 					write_iterator));
 
 	if (iterator == containing->end()) {
 		std::string message =
 				"ERROR invalid argument: iterator is out of range.";
 
-		log.messages(message);
+		log.notes(message);
 		log.logs_error(message);
 
 		throw std::invalid_argument(message);
@@ -403,17 +406,18 @@ std::unique_ptr<Object> Location::extracts(container::iterator iterator,
 
 	return returns_reference(std::move(result));
 }
-void Location::removes(container::const_iterator iterator, const Log* caller) {
+void Location::removes(container::iterator iterator, const Log* caller) {
 	auto log = as_method<void>(caller, "removes", "",
-			Variable<container::const_iterator&>(iterator,
-					std::string("std::") + typeid(container).name(), "iterator",
+			Variable<container::iterator>("iterator",
+					std::string("std::") + typeid(container).name(),
+					std::forward<decltype(iterator)>(iterator),
 					write_iterator));
 
 	if (iterator == containing->end()) {
 		std::string message =
 				"WARNING invalid argument: iterator is out of range.";
 
-		log.messages(message);
+		log.notes(message);
 		log.logs_error(message);
 
 		throw std::invalid_argument(message);
@@ -431,7 +435,7 @@ std::string Location::write_iterator(container::const_iterator iterator) {
 	return result.str();
 }
 std::string Location::write_map(
-		std::map<size_t, container::const_iterator> map) {
+		const std::map<size_t, container::iterator>& map) {
 	std::stringstream result("{");
 
 	for (auto m : map)
@@ -447,7 +451,7 @@ std::string Location::write_map(
 	return result.str() + "}";
 }
 std::string Location::write_pair(
-		std::pair<size_t, container::const_iterator> pair) {
+		const std::pair<size_t, container::iterator>& pair) {
 	std::ostringstream result("[");
 
 	result << pair.first << "]" << pair.second->second.get();
@@ -457,7 +461,8 @@ std::string Location::write_pair(
 Object* Location::operator [](size_t offset) const {
 	Object* result = nullptr;
 	auto log = as_binary<decltype(result)>(nullptr, "[]",
-			Variable<decltype(offset)>("offset", "", offset), "");
+			Variable<decltype(offset)>("offset", "",
+					std::forward<decltype(offset)&&>(offset)), "");
 	auto iterator = locates(offset);
 
 	if (iterator != containing->end())
@@ -468,7 +473,8 @@ Object* Location::operator [](size_t offset) const {
 std::map<size_t, Object*> Location::operator ()(std::string name) const {
 	std::map<size_t, Object*> result;
 	auto log = as_method<decltype(result)>(nullptr, "", "",
-			Variable<decltype(name)>(name, "std", "name"));
+			Variable<decltype(name)>("name", "std",
+					std::forward<decltype(name)&&>(name)));
 	auto located = locates(name);
 
 	for (auto found : located)
@@ -490,17 +496,19 @@ std::map<size_t, Object*> Location::operator ()(std::type_index type) const {
 void Location::inserts_front(std::string name,
 		std::unique_ptr<Object>&& instance, const Log* caller) {
 	auto log = as_method<void>(caller, "inserts_front", "",
-			Variable<decltype(name)>("name", "std", name),
-			Reference<Object>("instance", instance));
+			Variable<decltype(name)>("name", "std",
+					std::forward<decltype(name)&&>(name)),
+			Variable<Object*>("instance", "", instance.get()));
 
 	inserts(1, name, std::move(instance), &log);
 }
 void Location::inserts(size_t offset, std::string name,
 		std::unique_ptr<Object>&& instance, const Log* caller) {
 	auto log = as_method<void>(caller, "inserts", "",
-			Variable<decltype(offset)>("offset", "", offset),
-			Variable<decltype(name)>("name", "std", name),
-			Reference<Object>("instance", instance));
+			Variable<decltype(offset)&>("offset", "", offset),
+			Variable<decltype(name)>("name", "std",
+					std::forward<decltype(name)&&>(name)),
+			(Variable<Object*> ) Reference<Object>("instance", instance));
 	std::ostringstream message;
 
 	if (instance.get()) {
@@ -522,7 +530,7 @@ void Location::inserts(size_t offset, std::string name,
 	} else
 		message << "ERROR invalid argument: instance cannot be undefined.";
 	if (message.str().length()) {
-		log.messages(message.str());
+		log.notes(message.str());
 		log.logs_error(message.str());
 
 		throw std::invalid_argument(message.str());
@@ -531,20 +539,20 @@ void Location::inserts(size_t offset, std::string name,
 void Location::inserts_back(std::string name,
 		std::unique_ptr<Object>&& instance, const Log* caller) {
 	auto log = as_method<void>(caller, "inserts_back", "",
-			Variable<decltype(name)>("name", "std", name),
-			Reference<Object>("instance", instance));
+			Variable<decltype(name)&>("name", "std", name),
+			(Variable<Object*> ) Reference<Object>("instance", instance));
 
 	inserts(containing->size() + 1, name, std::move(instance), &log);
 }
 void Location::removes(size_t offset, const Log* caller) {
 	auto log = as_method<void>(caller, "removes", "",
-			Variable<size_t>("offset", "", offset));
+			Variable<size_t&>("offset", "", offset));
 
 	removes(locates(offset), &log);
 }
 void Location::removes(std::string name, const Log* caller) {
 	auto log = as_method<void>(caller, "removes", "",
-			Variable<decltype(name)>("name", "std", name));
+			Variable<decltype(name)&>("name", "std", name));
 	auto located = locates(name);
 
 	for (auto found : located)
@@ -568,7 +576,7 @@ void Location::removes(const Object& instance, const Log* caller) {
 std::unique_ptr<Object> Location::extracts(size_t offset, const Log* caller) {
 	std::unique_ptr<Object> result;
 	auto log = as_method<decltype(result)>(caller, "extracts", "",
-			Variable<decltype(offset)>("offset", "", offset));
+			Variable<decltype(offset)&>("offset", "", offset));
 
 	extracts(locates(offset), &log).swap(result);
 
@@ -587,9 +595,9 @@ std::unique_ptr<Object> Location::extracts(const Object& instance,
 void Location::takes(size_t source, Location& location, size_t destination,
 		const Log* caller) {
 	auto log = as_method<void>(caller, "takes", "",
-			Variable<decltype(source)>("source", "", source),
+			Variable<decltype(source)&>("source", "", source),
 			location.gives_variable("location"),
-			Variable<decltype(destination)>("destination", "", destination));
+			Variable<decltype(destination)&>("destination", "", destination));
 	auto moved = locates(source);
 
 	location.inserts(destination, moved->first, Location::extracts(moved, &log),
@@ -600,7 +608,7 @@ void Location::takes(const Object& instance, Location& location,
 	auto log = as_method<void>(caller, "takes", "",
 			instance.gives_variable("instance"),
 			location.gives_variable("location"),
-			Variable<decltype(position)>("position", "", position));
+			Variable<decltype(position)&>("position", "", position));
 	auto moved = locates(instance);
 
 	location.inserts(position, moved.second->first,
@@ -618,7 +626,7 @@ size_t Location::get_position(const Object& instance) {
 		result =
 				dynamic_cast<Location*>(instance.position)->locates(instance).first;
 
-	return log.returns_reference(std::move(result));
+	return log.returns(result);
 }
 std::string Location::get_name(const Object& instance) {
 	std::string result;
@@ -629,7 +637,7 @@ std::string Location::get_name(const Object& instance) {
 		result =
 				dynamic_cast<Location*>(instance.position)->locates(instance).second->first;
 
-	return log.returns_reference(std::move(result));
+	return log.returns(result);
 }
 std::vector<Object*> Location::get_path(const Object& instance) {
 	std::vector<Object*> result;
@@ -647,7 +655,8 @@ std::unique_ptr<Location> Location::construct(
 		std::string message) {
 	auto log = as_function<std::unique_ptr<Location>>(caller, "base",
 			typeid(Location), "construct", "",
-			Variable<decltype(attributes)&>("attributes", "std", attributes));
+			Variable<decltype(attributes)&>("attributes", "std", attributes,
+					write_string_map));
 
 	return log.returns_reference(
 			std::unique_ptr<Location>(
@@ -684,188 +693,188 @@ std::string Location::write_object_vector(std::vector<Object*>& vector) {
 
 	return result.str() + "}";
 }
-}
-namespace game {
+/*}
+ namespace game {
 
-//Card
-base::Object& Card::gives_face__uncovered(bool covered) const {
-	Object* result = nullptr;
-	auto log = as_method<Object&>(nullptr, "gives_face__uncovered", "",
-			base::Variable<decltype(covered)>("covered", "", covered));
+ //Card
+ base::Object& Card::gives_face__uncovered(bool covered) const {
+ Object* result = nullptr;
+ auto log = as_method<Object&>(nullptr, "gives_face__uncovered", "",
+ base::Variable<decltype(covered)>("covered", "", covered));
 
-	if ((result = (*container)[covered ? 0 : 1]))
-		return log.returns<Object&>(*result, transcodes);
-	else {
-		std::string message = "ERROR the "
-				+ std::string(covered ? "cover" : "face")
-				+ " is not instanced.";
+ if ((result = (*container)[covered ? 0 : 1]))
+ return log.returns<Object&>(*result, transcodes);
+ else {
+ std::string message = "ERROR the "
+ + std::string(covered ? "cover" : "face")
+ + " is not instanced.";
 
-		log.messages(message);
-		log.logs_error(message);
+ log.messages(message);
+ log.logs_error(message);
 
-		throw std::length_error(message);
-	}
-}
-base::Object& Card::operator ()() const {
-	auto log = as_method<Object&>(nullptr, "", "");
+ throw std::length_error(message);
+ }
+ }
+ base::Object& Card::operator ()() const {
+ auto log = as_method<Object&>(nullptr, "", "");
 
-	return log.returns<Object&>(gives_face__uncovered(covered), transcodes);
-}
-bool Card::is_facing() const {
-	return as_method("", nullptr,
-			base::Variable<bool>("is_facing", "", !covered));
-}
-void Card::shows_face(const Log* caller) {
-	auto log = as_method<void>(caller, "shows_face", "");
+ return log.returns<Object&>(gives_face__uncovered(covered), transcodes);
+ }
+ bool Card::is_facing() const {
+ return as_method("", nullptr,
+ base::Variable<bool>("is_facing", "", !covered));
+ }
+ void Card::shows_face(const Log* caller) {
+ auto log = as_method<void>(caller, "shows_face", "");
 
-	covered = false;
-	modification = std::chrono::system_clock::to_time_t(
-			std::chrono::system_clock::now());
-}
-bool Card::is_covering() const {
-	return as_method("", nullptr,
-			base::Variable<bool>("is_covering", "", covered));
-}
-void Card::shows_cover(const Log* caller) {
-	auto log = as_method<void>(caller, "shows_cover", "");
+ covered = false;
+ modification = std::chrono::system_clock::to_time_t(
+ std::chrono::system_clock::now());
+ }
+ bool Card::is_covering() const {
+ return as_method("", nullptr,
+ base::Variable<bool>("is_covering", "", covered));
+ }
+ void Card::shows_cover(const Log* caller) {
+ auto log = as_method<void>(caller, "shows_cover", "");
 
-	covered = true;
-	modification = std::chrono::system_clock::to_time_t(
-			std::chrono::system_clock::now());
-}
-void Card::flips(const Log* caller) {
-	auto log = as_method<void>(caller, "flips", "");
+ covered = true;
+ modification = std::chrono::system_clock::to_time_t(
+ std::chrono::system_clock::now());
+ }
+ void Card::flips(const Log* caller) {
+ auto log = as_method<void>(caller, "flips", "");
 
-	covered = !covered;
-	modification = std::chrono::system_clock::to_time_t(
-			std::chrono::system_clock::now());
-}
-std::unique_ptr<Card> Card::construct(std::unique_ptr<Object>&& cover,
-		std::unique_ptr<Object>&& face, bool covered,
-		std::map<std::string, std::string> attributing, const Log* caller,
-		std::string message) {
-	auto log = as_function<std::unique_ptr<Card>>(caller, "game", typeid(Card),
-			"construct", "", Reference<Object>("cover", cover),
-			Reference<Object>("face", face),
-			base::Variable<bool>("covered", "", covered),
-			base::Variable<decltype(attributing)&>(
-					"attributing", "std", attributing));
+ covered = !covered;
+ modification = std::chrono::system_clock::to_time_t(
+ std::chrono::system_clock::now());
+ }
+ std::unique_ptr<Card> Card::construct(std::unique_ptr<Object>&& cover,
+ std::unique_ptr<Object>&& face, bool covered,
+ std::map<std::string, std::string> attributing, const Log* caller,
+ std::string message) {
+ auto log = as_function<std::unique_ptr<Card>>(caller, "game", typeid(Card),
+ "construct", "", Reference<Object>("cover", cover),
+ Reference<Object>("face", face),
+ base::Variable<bool>("covered", "", covered),
+ base::Variable<decltype(attributing)&>(
+ "attributing", "std", attributing));
 
-	return log.unique_ptr(
-			std::unique_ptr<Card>(
-					new Card(std::move(cover), std::move(face), covered,
-							nullptr, attributing, &log, message)));
-}
+ return log.unique_ptr(
+ std::unique_ptr<Card>(
+ new Card(std::move(cover), std::move(face), covered,
+ nullptr, attributing, &log, message)));
+ }
 
-Card::Card(std::unique_ptr<Object>&& cover, std::unique_ptr<Object>&& face,
-		bool covered, base::Location* position,
-		std::map<std::string, std::string> attributing, const Log* caller,
-		std::string message) :
-		base::Object(position, attributing, caller, "game", true, message) {
-	base::Location::construct(attributing, this, "").swap(container);
-	this->covered = covered;
-	container->insert_front("cover", std::move(cover), this);
-	container->insert_back("face", std::move(face), this);
-}
+ Card::Card(std::unique_ptr<Object>&& cover, std::unique_ptr<Object>&& face,
+ bool covered, base::Location* position,
+ std::map<std::string, std::string> attributing, const Log* caller,
+ std::string message) :
+ base::Object(position, attributing, caller, "game", true, message) {
+ base::Location::construct(attributing, this, "").swap(container);
+ this->covered = covered;
+ container->insert_front("cover", std::move(cover), this);
+ container->insert_back("face", std::move(face), this);
+ }
 
-//Deck
-size_t Deck::size() const {
-	auto log = method < size_t > (nullptr, "size", "");
+ //Deck
+ size_t Deck::size() const {
+ auto log = method < size_t > (nullptr, "size", "");
 
-	return log.returning(container->size());
-}
-const std::string& Deck::label() const {
-	return method<const std::string&>("", nullptr, base::variable(name, "name"));
-}
-std::unique_ptr<Card> Deck::draw(const Log* caller) {
-	std::unique_ptr<Card> result;
-	auto log = method<decltype(result)>(caller, "draw", "");
+ return log.returning(container->size());
+ }
+ const std::string& Deck::label() const {
+ return method<const std::string&>("", nullptr, base::variable(name, "name"));
+ }
+ std::unique_ptr<Card> Deck::draw(const Log* caller) {
+ std::unique_ptr<Card> result;
+ auto log = method<decltype(result)>(caller, "draw", "");
 
-	result.reset(dynamic_cast<Card*>(container->extract(1, &log).release()));
+ result.reset(dynamic_cast<Card*>(container->extract(1, &log).release()));
 
-	return log.unique_ptr(std::move(result));
-}
-std::unique_ptr<Card> Deck::extract(const Log* caller) {
-	std::unique_ptr<Card> result;
-	auto log = method<decltype(result)>(caller, "extract", "");
-	auto size = container->size();
-	std::default_random_engine generator;
+ return log.unique_ptr(std::move(result));
+ }
+ std::unique_ptr<Card> Deck::extract(const Log* caller) {
+ std::unique_ptr<Card> result;
+ auto log = method<decltype(result)>(caller, "extract", "");
+ auto size = container->size();
+ std::default_random_engine generator;
 
-	result.reset(
-			dynamic_cast<Card*>(container->extract(
-					std::uniform_int_distribution<size_t>(size ? 1 : 0, size)(
-							generator), &log).release()));
+ result.reset(
+ dynamic_cast<Card*>(container->extract(
+ std::uniform_int_distribution<size_t>(size ? 1 : 0, size)(
+ generator), &log).release()));
 
-	return log.unique_ptr(std::move(result));
-}
-std::unique_ptr<Card> Deck::get_bottom(const Log* caller) {
-	std::unique_ptr<Card> result;
-	auto log = method<decltype(result)>(caller, "draw", "");
+ return log.unique_ptr(std::move(result));
+ }
+ std::unique_ptr<Card> Deck::get_bottom(const Log* caller) {
+ std::unique_ptr<Card> result;
+ auto log = method<decltype(result)>(caller, "draw", "");
 
-	result.reset(
-			dynamic_cast<Card*>(container->extract(container->size(), &log).release()));
+ result.reset(
+ dynamic_cast<Card*>(container->extract(container->size(), &log).release()));
 
-	return log.unique_ptr(std::move(result));
-}
-void Deck::put_up(std::string name, std::unique_ptr<Card>&& card,
-		const Log* caller) {
-	auto log = method<void>(caller, "put_up", "", base::variable(name, "name"),
-			base::variable(card.get(), "card"));
+ return log.unique_ptr(std::move(result));
+ }
+ void Deck::put_up(std::string name, std::unique_ptr<Card>&& card,
+ const Log* caller) {
+ auto log = method<void>(caller, "put_up", "", base::variable(name, "name"),
+ base::variable(card.get(), "card"));
 
-	container->insert_front(name, std::unique_ptr<Object>(card.release()),
-			&log);
-}
-void Deck::insert(std::string name, std::unique_ptr<Card>&& card,
-		const Log* caller) {
-	auto log = method<void>(caller, "insert", "", base::variable(name, "name"),
-			base::variable(card.get(), "card"));
-	std::default_random_engine generator;
+ container->insert_front(name, std::unique_ptr<Object>(card.release()),
+ &log);
+ }
+ void Deck::insert(std::string name, std::unique_ptr<Card>&& card,
+ const Log* caller) {
+ auto log = method<void>(caller, "insert", "", base::variable(name, "name"),
+ base::variable(card.get(), "card"));
+ std::default_random_engine generator;
 
-	container->insert(
-			std::uniform_int_distribution<size_t>(1, container->size() + 1)(
-					generator), name, std::unique_ptr<Object>(card.release()),
-			&log);
-}
-void Deck::put_down(std::string name, std::unique_ptr<Card>&& card,
-		const Log* caller) {
-	auto log = method<void>(caller, "put_down", "",
-			base::variable(name, "name"), base::variable(card.get(), "card"));
+ container->insert(
+ std::uniform_int_distribution<size_t>(1, container->size() + 1)(
+ generator), name, std::unique_ptr<Object>(card.release()),
+ &log);
+ }
+ void Deck::put_down(std::string name, std::unique_ptr<Card>&& card,
+ const Log* caller) {
+ auto log = method<void>(caller, "put_down", "",
+ base::variable(name, "name"), base::variable(card.get(), "card"));
 
-	container->insert_back(name, std::unique_ptr<Object>(card.release()), &log);
-}
-void Deck::shuffle(const Log* caller) {
-	auto log = method<void>(caller, "shuffle", "");
-	auto length = container->size();
-	decltype(length) current = 1;
-	std::uniform_int_distribution<size_t> distribution(length ? current : 0,
-			length);
+ container->insert_back(name, std::unique_ptr<Object>(card.release()), &log);
+ }
+ void Deck::shuffle(const Log* caller) {
+ auto log = method<void>(caller, "shuffle", "");
+ auto length = container->size();
+ decltype(length) current = 1;
+ std::uniform_int_distribution<size_t> distribution(length ? current : 0,
+ length);
 
-	for (std::default_random_engine generator; length > 0; --length) {
-		log.message(
-				"current=" + std::to_string(current = distribution(generator)));
-		container->take(current, *container, 0, &log);
-	}
-}
+ for (std::default_random_engine generator; length > 0; --length) {
+ log.message(
+ "current=" + std::to_string(current = distribution(generator)));
+ container->take(current, *container, 0, &log);
+ }
+ }
 
-std::unique_ptr<Deck> Deck::construct(std::string name,
-		std::map<std::string, std::string> attributes, const Log* caller,
-		std::string message) {
-	function<std::unique_ptr<Deck>>(caller, "game", typeid(Deck), name, "",
-			base::variable(name, "name"),
-			base::Variable<std::map<std::string, std::string>&>(lister,
-					"attributes", attributes)).unique_ptr();
+ std::unique_ptr<Deck> Deck::construct(std::string name,
+ std::map<std::string, std::string> attributes, const Log* caller,
+ std::string message) {
+ function<std::unique_ptr<Deck>>(caller, "game", typeid(Deck), name, "",
+ base::variable(name, "name"),
+ base::Variable<std::map<std::string, std::string>&>(lister,
+ "attributes", attributes)).unique_ptr();
 
-	return log.unique_ptr(
-			std::unique_ptr<Deck>(
-					new Deck(name, nullptr, attributes, &log, message)));
-}
+ return log.unique_ptr(
+ std::unique_ptr<Deck>(
+ new Deck(name, nullptr, attributes, &log, message)));
+ }
 
-Deck::Deck(std::string name, base::Location* position,
-		std::map<std::string, std::string> attributes, const Log* caller,
-		std::string message) :
-		Object(position, attributes, caller, "game", true, message) {
-	base::Location::construct(attributes, this, "").swap(container);
-	this->name = name;
-}
-*/
+ Deck::Deck(std::string name, base::Location* position,
+ std::map<std::string, std::string> attributes, const Log* caller,
+ std::string message) :
+ Object(position, attributes, caller, "game", true, message) {
+ base::Location::construct(attributes, this, "").swap(container);
+ this->name = name;
+ }
+ /**/
 }

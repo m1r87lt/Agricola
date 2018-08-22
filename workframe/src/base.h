@@ -64,7 +64,7 @@ public:
 		return has_type() + " " + has_label() + "=" + transcoder(instance);
 	}
 	operator Class() const {
-		return std::forward<Class>(instance);
+		return instance;
 	}
 
 	Variable(std::string name, std::string ns, Class&& assigned,
@@ -116,7 +116,7 @@ public:
 		return *this;
 	}
 	Variable(Variable<Class> && moving) :
-			instance(std::move(moving.instance)) {
+			instance(std::forward<Class&&>(moving.instance)) {
 		name = moving.name;
 		ns = moving.ns;
 		transcoder = moving.transcoder;
@@ -205,7 +205,7 @@ public:
 		return has_type() + " " + has_label() + "=" + transcodes();
 	}
 	operator Variable<Class*>() const {
-		return Variable<Class*>(name, ns, instance);
+		return Variable<Class*>(name, ns, const_cast<Class*>(instance));
 	}
 
 	Reference(std::string name, std::unique_ptr<Class>& assigned) {
@@ -244,7 +244,7 @@ class Log {
 	std::string logs() const;
 	template<typename Argument, typename ... Rest> static std::string transcodes_arguments(
 			Variable<Argument> argument, Rest&& ... rest) {
-		return ", " + argument.logger() + transcodes_arguments(rest ...);
+		return ", " + argument.logs() + transcodes_arguments(rest ...);
 	}
 	static std::string transcodes_arguments();
 	static std::string tracks(const Log*);
@@ -260,7 +260,7 @@ protected:
 		Log result(caller, "", true);
 
 		result.logging = typeid(Return).name();
-		result.logging += " " + operation + gets_variable("").is();
+		result.logging += " " + operation + gives_variable("").is();
 		std::clog << result.logs() << messages(message) << " {" << std::endl;
 
 		return result;
@@ -270,7 +270,7 @@ protected:
 		Log result(caller, "", false);
 
 		result.logging = returning.has_type() + " " + returning.has_label()
-				+ gets_variable("").is();
+				+ gives_variable("").is();
 		std::clog << result.logs() << messages(message) << "=" << returning.is()
 				<< std::endl;
 
@@ -283,10 +283,10 @@ protected:
 
 		result.logging = typeid(Return).name();
 		if (operation == "[]")
-			result.logging += " " + gets_variable("").is() + "["
+			result.logging += " " + gives_variable("").is() + "["
 					+ righthand.is() + "]";
 		else
-			result.logging += " " + gets_variable("").is() + " " + operation
+			result.logging += " " + gives_variable("").is() + " " + operation
 					+ " " + righthand.is();
 		std::clog << result.logs() << messages(message) << " {" << std::endl;
 
@@ -297,11 +297,13 @@ protected:
 			Variable<Righthand> righthand, std::string message) const {
 		Log result(caller, "", false);
 		if (returning.has_label() == "[]")
-			result.logging = returning.has_type() + " " + gets_variable("").is()
-					+ "[" + returning.is() + "]" + righthand.is();
+			result.logging = returning.has_type() + " "
+					+ gives_variable("").is() + "[" + returning.is() + "]"
+					+ righthand.is();
 		else
-			result.logging = returning.has_type() + " " + gets_variable("").is()
-					+ " " + returning.has_label() + " " + righthand.is();
+			result.logging = returning.has_type() + " "
+					+ gives_variable("").is() + " " + returning.has_label()
+					+ " " + righthand.is();
 		std::clog << result.logs() << messages(message) << "=" << returning.is()
 				<< std::endl;
 
@@ -312,7 +314,7 @@ protected:
 		Log result(caller, "", true);
 
 		result.logging = typeid(Return).name();
-		result.logging += " " + gets_variable("").is();
+		result.logging += " " + gives_variable("").is();
 		if (name.size())
 			result.logging += ".";
 		result.logging += name + "()";
@@ -326,7 +328,7 @@ protected:
 		Log result(caller, "", true);
 
 		result.logging = typeid(Return).name();
-		result.logging += " " + gets_variable("").is();
+		result.logging += " " + gives_variable("").is();
 		if (name.size())
 			result.logging += ".";
 		result.logging += name + "(" + argument.logs()
@@ -340,7 +342,7 @@ protected:
 		Log result(caller, "", false);
 		auto label = returning.has_label();
 
-		result.logging = returning.has_type() + " " + gets_variable("").is();
+		result.logging = returning.has_type() + " " + gives_variable("").is();
 		if (label.size())
 			result.logging += ".";
 		result.logging += label + "()";
@@ -355,7 +357,7 @@ protected:
 		Log result(caller, "", false);
 		auto label = returning.has_label();
 
-		result.logging = returning.type() + " " + gets_variable("").is();
+		result.logging = returning.type() + " " + gives_variable("").is();
 		if (label.size())
 			result.logging += ".";
 		result.logging += label + "(" + argument.logs()
@@ -390,7 +392,7 @@ protected:
 		legacy = tracks(caller);
 		track = ++tracker;
 		this->ns = ns;
-		logging = gets_variable("").is() + "::" + typeid(*this).name() + "("
+		logging = gives_variable("").is() + "::" + typeid(*this).name() + "("
 				+ argument.logs() + transcodes_arguments(rest ...) + ")";
 		std::clog << logs() << messages(message)
 				<< (((this->open = open)) ? " {" : "") << std::endl;
@@ -613,16 +615,17 @@ class Location: public Object {
 	std::map<size_t, container::iterator> locates(std::type_index) const;
 	std::pair<size_t, container::iterator> locates(const Object&) const;
 	std::unique_ptr<Object> extracts(container::iterator, const Log*);
-	void removes(container::const_iterator, const Log*);
-	static std::string write_iterator(const container::const_iterator);
-	static std::string write_map(std::map<size_t, container::const_iterator>);
-	static std::string write_pair(std::pair<size_t, container::const_iterator>);
+	void removes(container::iterator, const Log*);
+	static std::string write_iterator(container::const_iterator);
+	static std::string write_map(const std::map<size_t, container::iterator>&);
+	static std::string write_pair(
+			const std::pair<size_t, container::iterator>&);
 protected:
 	template<typename ... Arguments> Location(Location* position,
 			std::map<std::string, std::string> attributing, const Log* caller,
 			std::string ns, bool open, std::string message, Arguments ... rest) :
 			Object(position, attributing, caller, ns, open, message, rest ...) {
-		auto log = as_constructor(caller, "base", "", rest ...);
+		auto log = as_constructor(caller, "base", typeid(Location), "", rest ...);
 
 		containing = new container;
 	}
