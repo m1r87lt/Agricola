@@ -9,7 +9,7 @@
 #define EXECUTABLE_H_
 
 #include "player.h"
-
+/*
 #define EX_A_BUILD1ROOM_TRAVELINGPLAYERS "Build 1 Room+Traveling Players"
 #define EX_A_DAYLABORER "Day Laborer"
 #define EX_A_FISHING "Fishing"
@@ -69,5 +69,5 @@ public:
 
 	virtual ~Executable() = default;
 };
-
+*/
 #endif /* EXECUTABLE_H_ */

@@ -5,7 +5,7 @@
  *      Author: MLaRosa
  */
 
-#include "state_machine.h"
+#include "state_machine.h"/*
 #include <algorithm>
 #define SM_ACTION "action"
 #define SM_BEG "beg"
@@ -180,7 +180,7 @@ void phase1_draw_a_new_round_card_1_3(base::Log track) {
 	 * on this card is available to all players, and
 	 * can be used not only in this round but in all
 	 * subsequent rounds. */
-	if ((k = (keying = keys()).find(SM_NEW_ROUND_CARD)) == (K = keying.end()) && PHASE == 1 && STEP == 3 && !HARVEST) {
+/*	if ((k = (keying = keys()).find(SM_NEW_ROUND_CARD)) == (K = keying.end()) && PHASE == 1 && STEP == 3 && !HARVEST) {
 		auto roundDeck = deck(B_ROUND_CARDS);
 		Card::Round* roundSpace = nullptr;
 		Card::Round* roundFace = nullptr;
@@ -261,7 +261,7 @@ void phase1_start_the_round_1_4(base::Log track) {
 	 * these are distributed to the appropriate
 	 * players (who earned them by playing an
 	 * Occupation or Improvement). */
-	if ((k = (keying = keys()).find(SM_ROUND_START)) == (K = keying.end())
+/*	if ((k = (keying = keys()).find(SM_ROUND_START)) == (K = keying.end())
 			&& PHASE == 1 && STEP == 4 && !HARVEST) {
 		keying.emplace(SM_ROUND_START);
 		std::clog << track() << instant() << " " << SM_ROUND_START << std::endl;
@@ -300,7 +300,7 @@ void phase2_replenish_2_3(base::Log track) {
 	// Players Action spaces receive 1 Food each round. These
 	// goods and Food are taken from the general supply and can
 	// build up over several rounds – there is no upper limit.
-	if ((k = (keying = keys()).find(SM_REPLENISH)) == (K = keying.end())
+/*	if ((k = (keying = keys()).find(SM_REPLENISH)) == (K = keying.end())
 			&& PHASE == 2 && STEP == 3 && !HARVEST) {
 		keying.emplace(SM_REPLENISH);
 		std::clog << track() << instant() << " " << SM_REPLENISH << std::endl;
@@ -330,7 +330,7 @@ void phase3_work_3_3(base::Log track) {
 	log << track.tracker() << "void phase3_work_3_3()";
 	std::clog << log.str() << " {" << std::endl;
 	/* In clockwise order, starting with the Starting player,*/
-	if ((k = (keying = keys()).find(SM_WORK)) == (K = keying.end()) && PHASE == 3 && STEP == 3 && !HARVEST) {
+	/*if ((k = (keying = keys()).find(SM_WORK)) == (K = keying.end()) && PHASE == 3 && STEP == 3 && !HARVEST) {
 		auto fp = first_player();
 
 		keying.emplace(SM_WORK);
@@ -367,7 +367,7 @@ void phase3_work_3_(base::Log track) {
 	 * that action. Play continues until all Family members have
 	 * been placed. A player may only ever place one Family member
 	 * at a time. */
-	if ((k = (keying = keys()).find(SM_WORK)) != (K = keying.end())
+/*	if ((k = (keying = keys()).find(SM_WORK)) != (K = keying.end())
 			&& PHASE == 3 && STEP > 3 && !HARVEST) {
 		if (player > Player::quantity())
 			STEP = (player = 1) + 3;
@@ -449,7 +449,7 @@ void phase4_return_home_4_3(base::Log track) {
 	std::clog << log.str() << " {" << std::endl;
 	/* Players remove their Family members from the game
 	 * boards and return them to their home. */
-	if ((k = (keying = keys()).find(SM_RETURN_HOME)) == (K = keying.end())
+	/*if ((k = (keying = keys()).find(SM_RETURN_HOME)) == (K = keying.end())
 			&& PHASE == 4 && STEP == 3 && !HARVEST) {
 		keying.emplace(SM_RETURN_HOME);
 		STEP = 3 + first_player();
@@ -480,7 +480,7 @@ void phase4_return_home_4_(base::Log track) {
 	std::clog << log.str() << " {" << std::endl;
 	/* Players remove their Family members from the game
 	 * boards and return them to their home. */
-	if ((k = (keying = keys()).find(SM_RETURN_HOME)) != (K = keying.end())
+/*	if ((k = (keying = keys()).find(SM_RETURN_HOME)) != (K = keying.end())
 			&& PHASE == 4 && STEP > 3 && !HARVEST) {
 		if ((k = find_key_containing(std::string(SM_RETURN_HOME) + " ")) != K)
 			if (++STEP - 3 > Player::quantity())
@@ -567,7 +567,7 @@ void harvest_phase1_field_1_(base::Log track) {
 	 * in their farmyard and place them in their personal supply. */
 	// Players may also receive additional Food from Occupation or
 	// Improvement cards that they have played.
-	if (player > Player::quantity())
+	/*if (player > Player::quantity())
 		STEP = (player = 1) + 3;
 	if ((k = (keying = keys()).find(SM_HARVEST)) != (K = keying.end())
 			&& PHASE == 1 && STEP > 3 && HARVEST) {
@@ -660,7 +660,7 @@ void harvest_phase2_feeding_the_family_2_(base::Log track) {
 	 * must feed his or her family by paying 2 Food per Family member. Offspring that
 	 * were born during the current round only consume 1 Food for this round, but
 	 * will require 2 Food in future Harvests. */
-	if (player > Player::quantity())
+	/*if (player > Player::quantity())
 		STEP = (player = 1) + 3;
 	if ((k = (keying = keys()).find(SM_FEEDING)) != (K = keying.end())
 			&& PHASE == 2 && STEP > 3 && HARVEST) {
@@ -773,7 +773,7 @@ void harvest_phase3_breeding_3_(base::Log track) {
 	 * birth; they simply run away if they cannot be accommodated.
 	 * The animals breed regardless of where the parent animals are
 	 * placed – the parents may be in separate areas. */
-	if (player > Player::quantity())
+	/*if (player > Player::quantity())
 		STEP = (player = 1) + 3;
 	if ((k = (keying = keys()).find(SM_BREEDING)) != (K = keying.end()) && PHASE == 3 && STEP > 3 && HARVEST && k != K) {
 		auto freed = find_key_containing(SM_FREED);
@@ -1026,4 +1026,4 @@ void stage_end(base::Log track) {
 	keys() = keying;
 	std::clog << track() << "}" << std::endl;
 }
-
+*/

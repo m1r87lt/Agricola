@@ -9,7 +9,7 @@
 #define STATE_MACHINE_H_
 
 #include "management.h"
-
+/*
 bool new_stage();
 std::string status();
 std::string instant();
@@ -41,5 +41,5 @@ void round_end(base::Log track = base::Log());
 void harvest_start(base::Log track = base::Log());
 void stage_start(base::Log track = base::Log());
 void stage_end(base::Log track = base::Log());
-
+*/
 #endif /* STATE_MACHINE_H_ */

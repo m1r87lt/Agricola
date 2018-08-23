@@ -8,7 +8,7 @@
 #ifndef BOARD_H_
 #define BOARD_H_
 
-#include "components.h"
+#include "components.h"/*
 #define B_ACTION_CARDS "Action cards"
 #define B_MINORIMPROVEMENTS "Minor Improvements"
 #define B_OCCUPATIONS "Occupations"
@@ -34,5 +34,5 @@ game::Deck* deck(std::string);
 MajorImprovementBoard* major_improvement_board();
 
 Card::Round* former_empty(unsigned round, unsigned span);
-
+*/
 #endif /* BOARD_H_ */

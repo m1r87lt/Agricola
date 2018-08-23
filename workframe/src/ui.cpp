@@ -6,8 +6,8 @@
  */
 
 #include "ui.h"
-/*
-namespace base {
+
+namespace base {/*
 std::pair<bool, std::map<std::string, std::string>> dialog(std::string caption,
 		std::map<std::string, std::pair<std::set<std::string>, std::string>> variables,
 		Log track) {
@@ -176,5 +176,5 @@ std::string tree(const base::Object* object, size_t nesting) {
 		result << "- " << display(object) << "\n";
 
 	return result.str();
-}
+}*/
 } /* namespace base */

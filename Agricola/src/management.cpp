@@ -5,7 +5,7 @@
  *      Author: m1r
  */
 
-#include "management.h"
+#include "management.h"/*
 #include <src/ui.h>
 #include <algorithm>
 #include <random>
@@ -139,7 +139,7 @@ void preparing_to_play(std::vector<std::string> playerNames, bool family,
 	std::clog << log.str() << " {" << std::endl;
 	/* Place the three game boards */
 	// as shown in the illustration to the right.
-	if (family) {
+	/*if (family) {
 		gameboard0->emplace_back<Action>(EX_A_ROOMS_STABLES, track,
 		EX_A_ROOMS_STABLES, Data(track), "{t}Build room(s){t}"
 				"{r}Wooden hut:#5(W)+2(R)#\n"
@@ -222,10 +222,10 @@ void preparing_to_play(std::vector<std::string> playerNames, bool family,
 	gameboard2->emplace_back<Card::Round>(B_R13, track, 5, 12, 13, track);
 	gameboard2->emplace_back<Card::Round>(B_R14, track, 6, 14, 14, track);
 	/* Each player */
-
+/*
 	for (size_t p = 0; p < P; ++p) {
 		/* chooses a color */
-		Player* player = nullptr;
+	/*	Player* player = nullptr;
 		Farmyard* farmyard = nullptr;
 		Farmyard::Space* space = nullptr;
 		std::map<std::string, std::pair<std::set<std::string>, std::string>> variables;
@@ -253,7 +253,7 @@ void preparing_to_play(std::vector<std::string> playerNames, bool family,
 		/* and takes the playing pieces in that color, */
 		// These are placed in front of the player (facing whichever direction
 		// the player chooses).
-		for (auto n = 0; n < 5; ++n)
+/*		for (auto n = 0; n < 5; ++n)
 			player->insert_back(Wooden::familyMemberType,
 					Wooden::family_member(p + 1, track), track);
 		for (auto n = 0; n < 4; ++n)
@@ -263,10 +263,10 @@ void preparing_to_play(std::vector<std::string> playerNames, bool family,
 			player->insert_back(Wooden::fenceType, Wooden::fence(p + 1, track),
 					track);
 		/* as well as one farmyard. */
-		player->emplace<Farmyard>(0, Farmyard::type, track, p + 1, track);
+	/*	player->emplace<Farmyard>(0, Farmyard::type, track, p + 1, track);
 		/* On each of the two building spaces on this farmyard, players first
 		 * place a Wooden hut room tile */
-		(space =
+	/*	(space =
 				(farmyard = dynamic_cast<Farmyard*>(player->operator [](0)))->space(
 						1, 1))->insert(0, Tile::woodenHutType,
 				Tile::wooden_hut(track), track);
@@ -275,7 +275,7 @@ void preparing_to_play(std::vector<std::string> playerNames, bool family,
 				player->extract(*player->find_former(Wooden::familyMemberType),
 						track), track);
 		/* and then (in each of these rooms) one of their Family members. */
-		(space = farmyard->space(2, 1))->insert(0, Tile::woodenHutType,
+	/*	(space = farmyard->space(2, 1))->insert(0, Tile::woodenHutType,
 				Tile::wooden_hut(track), track);
 		dynamic_cast<Tile*>(space->operator [](0))->insert_back(
 				Wooden::familyMemberType,
@@ -303,7 +303,7 @@ void a(base::Log track) {
 	 * with the cards for Stage 6 at the bottom, Stage 5 on top of that,
 	 * etc – finishing with the four cards for Stage 1 on the top. */
 	// The Round cards make new actions available during the game.
-	for (auto stage = rounds.end(); rounds.size();
+/*	for (auto stage = rounds.end(); rounds.size();
 			stage = rounds.erase(stage)) {
 		auto round = (--stage)->begin();
 
@@ -331,7 +331,7 @@ void b(bool family, base::Log track) {
 	 * of the first game board. The order in which the cards are laid out is
 	 * irrelevant. In a 3-player game, there are 4 cards, in 4- and 5-player
 	 * games there are 6 cards. */
-	switch (Player::quantity()) {
+/*	switch (Player::quantity()) {
 	case 3:
 		gameboard0->insert(0, Card::Action::type + "[3]",
 				Card::action(3,
@@ -531,7 +531,7 @@ void b(bool family, base::Log track) {
 		break;
 	}
 	/* In solo and 2-player games, no green Action cards are used. */
-	std::clog << track() << "}" << std::endl;
+/*	std::clog << track() << "}" << std::endl;
 }
 // C.
 void c(base::Log track) {
@@ -545,7 +545,7 @@ void c(base::Log track) {
 	//TODO Occupation cards
 	/* Cards that are not in use are removed from the game; the full deck
 	 * of Occupation cards is only available in a 4- or 5-player game. */
-	for (unsigned c = 11; c < CARDS; ++c)
+/*	for (unsigned c = 11; c < CARDS; ++c)
 		try {
 			occupations->put_down(Card::Occupation::type,
 					Card::occupation(c, track), track);
@@ -553,10 +553,10 @@ void c(base::Log track) {
 			std::clog << track.close();
 		}
 	/* Shuffle the cards. */
-	occupations->shuffle(track);
+/*	occupations->shuffle(track);
 	/* Each player is dealt a hand of 7 Occupation cards and may look
 	 * through them. */
-	P = Player::quantity();
+	/*P = Player::quantity();
 	for (short unsigned p = 1; p <= P; ++p) {
 		auto player = Player::player(p);
 
@@ -594,12 +594,12 @@ void d(base::Log track) {
 			std::clog << track.close();
 		}
 	/* Shuffle the orange Minor Improvement cards. */
-	minorImprovements->shuffle(track);
+	/*minorImprovements->shuffle(track);
 	/* Each player
 	 * is dealt a hand of 7 Minor Improvement cards and may look
 	 * through them. The remaining Minor Improvement cards are put
 	 * to one side. */
-	for (short unsigned p = 1; p <= P; ++p) {
+/*	for (short unsigned p = 1; p <= P; ++p) {
 		auto player = Player::player(p);
 
 		player->insert(0, Card::Improvement::minorType,
@@ -623,7 +623,7 @@ void d(base::Log track) {
 void e(base::Log track) {
 	std::clog << track.tracker() << "void e() {" << std::endl;
 	/* Place the 10 red Major Improvement cards face up on*/
-	for (unsigned c = 1; c < 10; ++c)
+/*	for (unsigned c = 1; c < 10; ++c)
 		major_improvement_board()->insert_back(Card::Improvement::majorType,
 				Card::improvement(c, track), track);
 	// As soon as 9 Major Improvements have been bought,
@@ -932,7 +932,7 @@ Action* choose_an_action(short unsigned player, base::Log track) {
 			// effects.
 			// Players are not allowed to hide their personal supply from other
 			// players or to completely cover cards that they have played.
-			if (!result->find_former(Wooden::familyMemberType)
+	/*		if (!result->find_former(Wooden::familyMemberType)
 					&& (!((*root)->what() == typeid(Player).name()
 							&& ((*ancestor)->what() != typeid(Played).name()
 									|| (*ancestor)->what()
@@ -1368,4 +1368,4 @@ void end_of_the_game(base::Log track) {
 	// TODO: end of the game
 	std::clog << track() << "}" << std::endl;
 }
-
+*/

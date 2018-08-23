@@ -6,7 +6,7 @@
  */
 
 #include "executable.h"
-
+/*
 //Executable
 Executable::operator const char*() const {
 	return base::Log::unary(nullptr,
@@ -34,4 +34,4 @@ Executable::Executable(std::string name, const base::Log* caller) :
 	active = nullptr;
 	this->name = name;
 }
-
+*/

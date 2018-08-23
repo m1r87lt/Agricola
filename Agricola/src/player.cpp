@@ -5,8 +5,8 @@
  *      Author: MLaRosa
  */
 
-#include "player.h"
-#include <chrono>
+#include "player.h"/*
+#include <chrono>*/
 
 //Color
 const std::map<Color, std::string> names = { { Color::Which::No, "No" }, {
@@ -56,7 +56,7 @@ Color::Color(std::string which) {
 	base::Log::function("", nullptr, variable("::"), "", typeid(Color),
 			base::variable(which, "which"));
 }
-
+/*
 //Player
 std::vector<std::unique_ptr<Player>> Player::players;
 

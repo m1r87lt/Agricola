@@ -5,7 +5,7 @@
  *      Author: m1r
  */
 
-#include "components.h"
+#include "components.h"/*
 #include <chrono>
 
 #define OCCUPATIONS_DB "occupations.txt"
@@ -2119,4 +2119,4 @@ Token::Token(std::string type, base::Log track) :
 	std::clog << track.tracker() << "Token::Token(std::string type="
 			<< type << ")=" << this << std::endl;
 }
-
+*/

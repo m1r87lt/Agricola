@@ -5,20 +5,20 @@
 // Copyright   : m1r
 // Description : Hello World in C++, Ansi-style
 //============================================================================
-
+/*
 #define INPUT "input.txt"
 #define LOG "log.txt"
-#include <iostream>
+#include <iostream>*/
 using namespace std;
-
+/*
 #include <fstream>
 #include "state_machine.h"
 #include <src/ui.h>
 #include <chrono>
 #include <typeinfo>
-#define S_GAMEOVER "end of the game"
+#define S_GAMEOVER "end of the game"*/
 
-int main() {
+int main() {/*
 	bool family = false;
 	vector<string> player_names;
 	std::string parameter;
@@ -251,7 +251,7 @@ int main() {
 	log.close();
 #endif
 	base::end();
-
+*/
 	return 0;
 }
 

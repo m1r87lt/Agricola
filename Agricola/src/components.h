@@ -7,7 +7,7 @@
 
 #ifndef COMPONENTS_H_
 #define COMPONENTS_H_
-
+/*
 #define FARMYARD_PERSONALSUPPLY "Personal Supply"
 #define FARMYARD_SPACE_FENCE "Farmyard Fence Space"
 #define FARMYARD_SPACE_SPACE "Farmyard Space"
@@ -422,5 +422,5 @@ public:
 
 	Token(std::string, base::Log);
 };
-
+*/
 #endif /* COMPONENTS_H_ */

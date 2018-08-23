@@ -6,7 +6,7 @@
  */
 
 #include "board.h"
-
+/*
 base::Log logging() {
 	return base::Log();
 }
@@ -97,4 +97,4 @@ Card::Round* former_empty(unsigned round, unsigned span) {
 
 	return result;
 }
-
+*/

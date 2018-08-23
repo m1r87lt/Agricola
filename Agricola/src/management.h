@@ -8,7 +8,7 @@
 #ifndef MANAGEMENT_H_
 #define MANAGEMENT_H_
 
-#include "board.h"
+#include "board.h"/*
 #include <array>
 
 std::set<std::string>& keys();
@@ -76,6 +76,6 @@ std::set<Data> player_animals(Player&);
 std::set<Data> breed(short unsigned, base::Log track = base::Log());
 
 void end_of_the_game(base::Log track = base::Log());
-
+*/
 #endif /* MANAGEMENT_H_ */
 
