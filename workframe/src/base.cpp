@@ -183,10 +183,6 @@ bool Object::operator !=(const Object& than) const {
 			Variable<const bool>("!=", "", attributing != than.attributing),
 			than.gives_variable("than"), "");
 }
-Variable<const Object&> Object::gives_variable(std::string name) const {
-	return std::forward<Variable<const Object&>>(
-			Variable<const Object&>(name, "base", *this, transcode));
-}
 std::set<Object*>& Object::get_all() {
 	Variable<decltype(everything)&> e("get_all", "std", everything, write_set);
 
@@ -250,7 +246,7 @@ Object::~Object() {
 Object::Object(Object&& moving) :
 		Log(std::move(moving)) {
 	auto log = as_constructor(this, "base", typeid(Object), "",
-			moving.derives_variable("moving"));
+			moving.gives_variable("moving"));
 
 	position = moving.position;
 	creation = moving.creation;
@@ -638,19 +634,6 @@ std::vector<Object*> Location::get_path(const Object& instance) {
 
 	return log.returns<decltype(result)&>(result, write_object_vector);
 }
-std::unique_ptr<Location> Location::construct(
-		std::map<std::string, std::string> attributes, const Log* caller,
-		std::string message) {
-	auto log = as_function<std::unique_ptr<Location>>(caller, "base",
-			typeid(Location), "construct", "",
-			Variable<decltype(attributes)&>("attributes", "std", attributes,
-					write_string_map));
-
-	return log.returns_reference(
-			std::unique_ptr<Location>(
-					new Location(nullptr, attributes, &log, "base", false,
-							message)));
-}
 std::string Location::write_object_map(std::map<size_t, Object*>& map) {
 	std::stringstream result("{");
 
@@ -688,13 +671,13 @@ Location::~Location() {
 Location::Location(Location&& moving) :
 		Object(std::move(moving)) {
 	auto log = as_constructor(this, "base", typeid(Location), "",
-			moving.derives_variable("moving"));
+			moving.gives_variable("moving"));
 
 	containing.swap(moving.containing);
 }
 Location& Location::operator =(Location&& moving) {
-	auto log = as_binary<Location&>(nullptr, "=", moving.gives_variable("moving"),
-			"");
+	auto log = as_binary<Location&>(nullptr, "=",
+			moving.gives_variable("moving"), "");
 
 	Object::operator =(std::move(moving));
 	containing.swap(moving.containing);
@@ -759,32 +742,36 @@ void Card::flips(const Log* caller) {
 }
 std::unique_ptr<Card> Card::construct(std::unique_ptr<Object>&& cover,
 		std::unique_ptr<Object>&& face, bool covered,
-		std::map<std::string, std::string> attributing, const Log* caller,
+		std::map<std::string, std::string> attributes, const Log* caller,
 		std::string message) {
 	auto log = as_function<std::unique_ptr<Card>>(caller, "game", typeid(Card),
 			"construct", "",
 			(base::Variable<Object*>) base::Reference<Object>("cover", cover),
 			(base::Variable<Object*>) base::Reference<Object>("face", face),
 			base::Variable<decltype(covered)&>("covered", "", covered),
-			base::Variable<decltype(attributing)&>("attributing", "std",
-					attributing, write_string_map));
+			base::Variable<decltype(attributes)&>("attributes", "std",
+					attributes, write_string_map));
 
 	return log.returns_reference(
 			std::unique_ptr<Card>(
 					new Card(std::move(cover), std::move(face), covered,
-							nullptr, attributing, &log, message)));
+							nullptr, attributes, &log, message)));
 }
 
 Card::Card(std::unique_ptr<Object>&& cover, std::unique_ptr<Object>&& face,
 		bool covered, base::Location* position,
-		std::map<std::string, std::string> attributing, const Log* caller,
+		std::map<std::string, std::string> attributes, const Log* caller,
 		std::string message) :
-		base::Object(position, attributing, caller, "game", true, message,
+		base::Object(position, attributes, caller, "game", true, message,
 				(base::Variable<Object*>) base::Reference<Object>("cover",
 						cover),
 				(base::Variable<Object*>) base::Reference<Object>("face", face),
 				base::Variable<decltype(covered)&>("covered", "", covered)) {
-	base::Location::construct(attributing, this, "").swap(container);
+	base::Location::construct(attributes, this, "",
+			(base::Variable<Object*>) base::Reference<Object>("cover", cover),
+			(base::Variable<Object*>) base::Reference<Object>("face", face),
+			base::Variable<decltype(covered)&>("covered", "", covered)).swap(
+			container);
 	this->covered = covered;
 	container->inserts_front("cover", std::move(cover), this);
 	container->inserts_back("face", std::move(face), this);
@@ -795,7 +782,7 @@ Card::~Card() {
 Card::Card(Card&& moving) :
 		Object(std::move(moving)) {
 	auto log = as_constructor(this, "game", typeid(Card), "",
-			moving.derives_variable("moving"));
+			moving.gives_variable("moving"));
 
 	covered = moving.covered;
 	container.swap(moving.container);
@@ -911,7 +898,9 @@ Deck::Deck(std::string name, base::Location* position,
 		std::string message) :
 		Object(position, attributes, caller, "game", true, message,
 				base::Variable<decltype(name)&>("name", "std", name)) {
-	base::Location::construct(attributes, this, "").swap(container);
+	base::Location::construct(attributes, this, "",
+			base::Variable<decltype(name)&>("name", "std", name)).swap(
+			container);
 	this->name = name;
 }
 Deck::~Deck() {
@@ -920,7 +909,7 @@ Deck::~Deck() {
 Deck::Deck(Deck&& moving) :
 		Object(std::move(moving)) {
 	auto log = as_constructor(this, "game", typeid(Deck), "",
-			moving.derives_variable("moving"));
+			moving.gives_variable("moving"));
 
 	name = moving.name;
 	container.swap(moving.container);

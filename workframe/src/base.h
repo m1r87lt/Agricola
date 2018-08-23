@@ -423,8 +423,7 @@ public:
 
 		return std::move(reference);
 	}
-	Variable<const Log&> gives_variable(std::string) const;
-	virtual Variable<const Log*> derives_variable(std::string) const;
+	virtual Variable<const Log&> gives_variable(std::string) const;
 	template<typename Return, typename Argument> static Log as_unary(
 			const Log* caller, std::string operation,
 			Variable<Argument> argument, std::string message) {
@@ -565,21 +564,20 @@ public:
 	Object& operator =(std::map<std::string, std::string>);
 	bool operator ==(const Object&) const;
 	bool operator !=(const Object&) const;
-	Variable<const Object&> gives_variable(std::string) const;
 	static std::set<Object*>& get_all();
 	static std::set<Object*> get_roots();
 	template<typename ... Arguments> static std::unique_ptr<Object> construct(
 			std::map<std::string, std::string> attributes, const Log* caller,
 			std::string message, Arguments&& ... rest) {
 		auto log = Log::as_function<std::unique_ptr<Object>>(typeid(Object),
-				caller, "base", "construct", "",
+				caller, "base", "construct", message,
 				Variable<decltype(attributes)&>("attributes", "", attributes,
 						write_string_map), rest ...);
 
 		return log.returns_reference(
 				std::unique_ptr<Object>(
-						new Object(nullptr, attributes, &log, "base", false,
-								message, rest ...)));
+						new Object(nullptr, attributes, &log, "base", false, "",
+								rest ...)));
 	}
 	static std::string write_string_map(
 			const std::map<std::string, std::string>&);
@@ -594,8 +592,10 @@ protected:
 
 	template<typename ... Arguments> Object(Object* position,
 			std::map<std::string, std::string> attributes, const Log* caller,
-			std::string ns, bool open, std::string message, Arguments ... rest) :
-			Log(caller, ns, open, message, derives_variable("position"),
+			std::string ns, bool open, std::string message,
+			Arguments&& ... rest) :
+			Log(caller, ns, open, message,
+					Variable<decltype(position)&>("position", "base", position),
 					Variable<const decltype(attributes)&>("attributes", "",
 							attributes, write_string_map), rest ...) {
 		auto log = as_constructor(caller, "base", typeid(Object), "", rest...);
@@ -629,9 +629,10 @@ class Location: public Object {
 			const std::pair<size_t, container::iterator>&);
 protected:
 	template<typename ... Arguments> Location(Location* position,
-			std::map<std::string, std::string> attributing, const Log* caller,
-			std::string ns, bool open, std::string message, Arguments ... rest) :
-			Object(position, attributing, caller, ns, open, message, rest ...) {
+			std::map<std::string, std::string> attributes, const Log* caller,
+			std::string ns, bool open, std::string message,
+			Arguments&& ... rest) :
+			Object(position, attributes, caller, ns, open, message, rest ...) {
 		auto log = as_constructor(caller, "base", typeid(Location), "",
 				rest ...);
 
@@ -681,8 +682,19 @@ public:
 	static size_t get_position(const Object&);
 	static std::string get_name(const Object&);
 	static std::vector<Object*> get_path(const Object&);
-	static std::unique_ptr<Location> construct(
-			std::map<std::string, std::string>, const Log*, std::string);
+	template<typename ... Arguments> static std::unique_ptr<Location> construct(
+			std::map<std::string, std::string> attributes, const Log* caller,
+			std::string message, Arguments&& ... rest) {
+		auto log = as_function<std::unique_ptr<Location>>(caller, "base",
+				typeid(Location), "construct", message,
+				Variable<decltype(attributes)&>("attributes", "std", attributes,
+						write_string_map), rest ...);
+
+		return log.returns_reference(
+				std::unique_ptr<Location>(
+						new Location(nullptr, attributes, &log, "base", false,
+								"")));
+	}
 	static std::string write_object_map(std::map<size_t, Object*>&);
 	static std::string write_object_vector(std::vector<Object*>&);
 
@@ -690,7 +702,7 @@ public:
 };
 }
 namespace game {
-class Card: public base::Object {
+class Card final: public base::Object {
 	bool covered;
 	std::unique_ptr<base::Location> container;
 
@@ -700,7 +712,7 @@ protected:
 			base::Location*, std::map<std::string, std::string>, const Log*,
 			std::string);
 	Card(Card&&);
-	Card& operator= (Card&&);
+	Card& operator=(Card&&);
 public:
 	Object& operator ()() const;
 	bool is_facing() const;
@@ -712,10 +724,10 @@ public:
 			std::unique_ptr<Object>&&, bool, std::map<std::string, std::string>,
 			const Log*, std::string);
 
-	virtual ~Card();
+	~Card();
 };
 
-class Deck: public base::Object {
+class Deck final: public base::Object {
 	std::string name;
 	std::unique_ptr<base::Location> container;
 protected:
@@ -761,7 +773,7 @@ public:
 	static std::unique_ptr<Deck> construct(std::string,
 			std::map<std::string, std::string>, const Log*, std::string);
 
-	virtual ~Deck();
+	~Deck();
 };
 }
 
