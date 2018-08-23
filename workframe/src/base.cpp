@@ -804,7 +804,7 @@ size_t Deck::has_size() const {
 	return log.returns(container->has_size());
 }
 const std::string& Deck::has_label() const {
-	return as_method<const std::string&>("", nullptr,
+	return as_method("", nullptr,
 			base::Variable<const std::string&>("has_label", "std", name));
 }
 std::unique_ptr<Card> Deck::draws(const Log* caller) {
