@@ -423,7 +423,7 @@ public:
 
 		return std::move(reference);
 	}
-	virtual Variable<const Log&> gives_variable(std::string) const;
+	Variable<const Log&> gives_variable(std::string) const;
 	template<typename Return, typename Argument> static Log as_unary(
 			const Log* caller, std::string operation,
 			Variable<Argument> argument, std::string message) {
@@ -598,7 +598,7 @@ protected:
 					Variable<decltype(position)&>("position", "base", position),
 					Variable<const decltype(attributes)&>("attributes", "",
 							attributes, write_string_map), rest ...) {
-		auto log = as_constructor(caller, "base", typeid(Object), "", rest...);
+		as_constructor(caller, "base", typeid(Object), "", rest...);
 
 		modification = creation = std::chrono::system_clock::to_time_t(
 				std::chrono::system_clock::now());
@@ -633,7 +633,7 @@ protected:
 			std::string ns, bool open, std::string message,
 			Arguments&& ... rest) :
 			Object(position, attributes, caller, ns, open, message, rest ...) {
-		auto log = as_constructor(caller, "base", typeid(Location), "",
+		as_constructor(caller, "base", typeid(Location), "",
 				rest ...);
 
 		containing.reset(new container);

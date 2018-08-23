@@ -245,9 +245,6 @@ Object::~Object() {
 }
 Object::Object(Object&& moving) :
 		Log(std::move(moving)) {
-	auto log = as_constructor(this, "base", typeid(Object), "",
-			moving.gives_variable("moving"));
-
 	position = moving.position;
 	creation = moving.creation;
 	attributing = moving.attributing;
@@ -670,8 +667,6 @@ Location::~Location() {
 }
 Location::Location(Location&& moving) :
 		Object(std::move(moving)) {
-	auto log = as_constructor(this, "base", typeid(Location), "",
-			moving.gives_variable("moving"));
 
 	containing.swap(moving.containing);
 }
@@ -781,9 +776,6 @@ Card::~Card() {
 }
 Card::Card(Card&& moving) :
 		Object(std::move(moving)) {
-	auto log = as_constructor(this, "game", typeid(Card), "",
-			moving.gives_variable("moving"));
-
 	covered = moving.covered;
 	container.swap(moving.container);
 }
@@ -908,9 +900,6 @@ Deck::~Deck() {
 }
 Deck::Deck(Deck&& moving) :
 		Object(std::move(moving)) {
-	auto log = as_constructor(this, "game", typeid(Deck), "",
-			moving.gives_variable("moving"));
-
 	name = moving.name;
 	container.swap(moving.container);
 }

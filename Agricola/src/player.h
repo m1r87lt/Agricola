@@ -10,7 +10,7 @@
 
 #include <src/base.h>
 
-struct Color: private base::Log {
+struct Color final: private base::Log {
 	enum class Which {
 		No,
 		White,
@@ -28,9 +28,9 @@ struct Color: private base::Log {
 
 	std::string has_name() const;
 	operator Which() const;
+	base::Variable<const Color&> gives_variable(std::string) const;
 	static Color which_color(std::string);
 	static std::string transcode(const Color&);
-	static std::string name(const Which&);
 
 	Color(const Log*);
 	Color(Which, const Log*);
@@ -40,43 +40,44 @@ struct Color: private base::Log {
 private:
 	static const std::map<Color::Which, std::string> names;
 
+	static std::string name(const Which&);
+
 	Color();
 };
-/*
- class Player: public base::Location {
- std::string name;
- Color colored;
- static std::vector<std::unique_ptr<Player>> players;
 
- Player(std::string, Color, const Log*, std::string);
- public:
- const std::string& identity() const;
- short unsigned number() const;
- const Color& color() const;
- Location* played() const;
- static Player* player(short unsigned);
- static Player* player(std::string);
- static Player* player(Color);
- static short unsigned quantity();
- static short unsigned construct(std::string, Color, const Log*);
- static void construct(std::initializer_list<std::pair<std::string, Color>>,
- const Log*, std::string);
- };
+class Player: public base::Location {
+	std::string name;
+	Color color;
+	static std::vector<std::unique_ptr<Player>> players;
 
- class Owned {
- Player* owner;
+	Player(std::string, Color, const Log*);
+public:
+	const std::string& has_identity() const;
+	const Color& has_color() const;
+	short unsigned is_number() const;
+	Location* played() const;
+	static Player* player(std::string);
+	static Player* player(Color);
+	static Player* player(short unsigned);
+	static short unsigned quantity();
+	static short unsigned construct(std::string, Color, const Log*,
+			std::string);
+	static void construct(std::initializer_list<std::pair<std::string, Color>>,
+			const Log*, std::string);
+};
+class Owned: private base::Log {
+	Player* owner;
 
- static std::string transcode(Owned);
- base::Variable<Owned> variable() const;
- base::Variable<Owned> variable(std::string) const;
- public:
- Player* player() const;
+	static std::string transcode(const Owned&);
+public:
+	Player* player() const;
 
- Owned(short unsigned, const base::Log*);
- Owned(std::string, const base::Log*);
- Owned(Color, const base::Log*);
- Owned(const Player&, const base::Log*);
- virtual ~Owned() = default;
- };
- */
+	Owned(short unsigned, const base::Log*);
+	Owned(std::string, const base::Log*);
+	Owned(Color, const base::Log*);
+	Owned(const Player&, const base::Log*);
+	Owned(const Owned&);
+	Owned& operator =(const Owned&);
+};
+
 #endif /* PLAYER_H_ */
