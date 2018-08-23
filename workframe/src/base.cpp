@@ -28,22 +28,22 @@ std::string Log::tracks() const {
 std::string Log::logs() const {
 	return tracks() + ": " + logging;
 }
-std::string Log::transcodes_arguments() {
+std::string Log::transcode_arguments() {
 	return "";
 }
-std::string Log::tracks(const Log* caller) {
+std::string Log::create_track(const Log* caller) {
 	if (caller)
 		return caller->legacy + "." + std::to_string(caller->track) + ".";
 	else
 		return ".";
 }
-std::string Log::messages(std::string message) {
+std::string Log::make_message(std::string message) {
 	if (message.length())
 		message = " \"" + message + "\"";
 
 	return message;
 }
-std::string Log::transcodes(const Log& log) {
+std::string Log::transcode(const Log& log) {
 	return std::to_string(log.track);
 }
 Log Log::as_destructor(std::string ns, std::type_index type,
@@ -52,32 +52,32 @@ Log Log::as_destructor(std::string ns, std::type_index type,
 	auto typer = type.name();
 
 	result.logging = ns + "::" + typer + "::~" + typer;
-	std::clog << result.logs() << messages(message) << std::endl;
+	std::clog << result.logs() << make_message(message) << std::endl;
 
 	return result;
 }
 void Log::notes(std::string text) const {
-	std::clog << tracks() + " " + messages(text) << std::endl;
+	std::clog << tracks() + " " + make_message(text) << std::endl;
 }
 void Log::logs_error(std::string message) const {
-	std::cerr << logs() << messages(message) << std::endl;
+	std::cerr << logs() << make_message(message) << std::endl;
 }
 Variable<const Log&> Log::gives_variable(std::string name) const {
-	return Variable<const Log&>(name, ns, *this, transcodes);
+	return Variable<const Log&>(name, ns, *this, transcode);
 }
 
 Log::Log(const Log* caller, std::string ns, bool open) {
-	legacy = tracks(caller);
+	legacy = create_track(caller);
 	track = ++tracker;
 	this->open = open;
 	this->ns = ns;
 }
 Log::Log(const Log* caller, std::string ns, bool open, std::string message) {
-	legacy = tracks(caller);
+	legacy = create_track(caller);
 	track = ++tracker;
 	this->ns = ns;
 	logging = gives_variable("").is() + "::" + typeid(*this).name() + "()";
-	std::clog << logs() << messages(message)
+	std::clog << logs() << make_message(message)
 			<< (((this->open = open)) ? " {" : "") << std::endl;
 }
 Log::~Log() {
@@ -171,7 +171,7 @@ Object& Object::operator =(std::map<std::string, std::string> map) {
 
 	gets_attributes(map, &log);
 
-	return log.returns<Object&>(*this, transcodes);
+	return log.returns<Object&>(*this, transcode);
 }
 bool Object::operator ==(const Object& than) const {
 	return as_binary(nullptr,
@@ -185,7 +185,7 @@ bool Object::operator !=(const Object& than) const {
 }
 Variable<const Object&> Object::gives_variable(std::string name) const {
 	return std::forward<Variable<const Object&>>(
-			Variable<const Object&>(name, "base", *this, transcodes));
+			Variable<const Object&>(name, "base", *this, transcode));
 }
 std::set<Object*>& Object::get_all() {
 	Variable<decltype(everything)&> e("get_all", "std", everything, write_set);
@@ -245,8 +245,7 @@ std::string Object::write_set(const std::set<Object*>& set) {
 Object::~Object() {
 	if (running())
 		everything.erase(this);
-	if (!open)
-		as_destructor("base", typeid(Object), "");
+	as_destructor("base", typeid(Object), "");
 }
 Object::Object(Object&& moving) :
 		Log(std::move(moving)) {
@@ -273,7 +272,7 @@ Object& Object::operator =(Object&& moving) {
 			std::chrono::system_clock::now());
 	Log::operator =(std::move(moving));
 
-	return log.returns<Object&>(*this, transcodes);
+	return log.returns<Object&>(*this, transcode);
 }
 
 //Location
@@ -290,10 +289,10 @@ std::string Location::names(std::string name) {
 	return log.returns(candidate);
 }
 Location::container::iterator Location::locates(size_t offset) const {
-	auto result = const_cast<container*>(containing)->begin();
+	auto result = containing.get()->begin();
 	auto log = as_method<decltype(result)>(nullptr, "locates", "",
 			Variable<decltype(offset)&>("offset", "", offset));
-	auto end = const_cast<container*>(containing)->end();
+	auto end = containing.get()->end();
 	size_t index = 1;
 
 	if (offset)
@@ -682,6 +681,26 @@ std::string Location::write_object_vector(std::vector<Object*>& vector) {
 
 	return result.str() + "}";
 }
+
+Location::~Location() {
+	as_destructor("base", typeid(Location), "");
+}
+Location::Location(Location&& moving) :
+		Object(std::move(moving)) {
+	auto log = as_constructor(this, "base", typeid(Location), "",
+			moving.derives_variable("moving"));
+
+	containing.swap(moving.containing);
+}
+Location& Location::operator =(Location&& moving) {
+	auto log = as_binary<Location&>(nullptr, "=", moving.gives_variable("moving"),
+			"");
+
+	Object::operator =(std::move(moving));
+	containing.swap(moving.containing);
+
+	return log.returns<Location&>(*this, transcode);
+}
 }
 namespace game {
 
@@ -692,7 +711,7 @@ base::Object& Card::gives_face__uncovered(bool covered) const {
 			base::Variable<decltype(covered)&>("covered", "", covered));
 
 	if ((result = (*container)[covered ? 0 : 1]))
-		return log.returns<Object&>(*result, transcodes);
+		return log.returns<Object&>(*result, transcode);
 	else {
 		std::string message = "ERROR the "
 				+ std::string(covered ? "cover" : "face")
@@ -707,7 +726,7 @@ base::Object& Card::gives_face__uncovered(bool covered) const {
 base::Object& Card::operator ()() const {
 	auto log = as_method<Object&>(nullptr, "", "");
 
-	return log.returns<Object&>(gives_face__uncovered(covered), transcodes);
+	return log.returns<Object&>(gives_face__uncovered(covered), transcode);
 }
 bool Card::is_facing() const {
 	return as_method("", nullptr,
@@ -769,6 +788,26 @@ Card::Card(std::unique_ptr<Object>&& cover, std::unique_ptr<Object>&& face,
 	this->covered = covered;
 	container->inserts_front("cover", std::move(cover), this);
 	container->inserts_back("face", std::move(face), this);
+}
+Card::~Card() {
+	as_destructor("game", typeid(Card), "");
+}
+Card::Card(Card&& moving) :
+		Object(std::move(moving)) {
+	auto log = as_constructor(this, "game", typeid(Card), "",
+			moving.derives_variable("moving"));
+
+	covered = moving.covered;
+	container.swap(moving.container);
+}
+Card& Card::operator =(Card&& moving) {
+	auto log = as_binary<Card&>(nullptr, "=", moving.gives_variable("moving"),
+			"");
+
+	Object::operator =(std::move(moving));
+	container.swap(moving.container);
+
+	return log.returns<Card&>(*this, transcode);
 }
 
 //Deck
@@ -875,4 +914,25 @@ Deck::Deck(std::string name, base::Location* position,
 	base::Location::construct(attributes, this, "").swap(container);
 	this->name = name;
 }
+Deck::~Deck() {
+	as_destructor("game", typeid(Deck), "");
+}
+Deck::Deck(Deck&& moving) :
+		Object(std::move(moving)) {
+	auto log = as_constructor(this, "game", typeid(Deck), "",
+			moving.derives_variable("moving"));
+
+	name = moving.name;
+	container.swap(moving.container);
+}
+Deck& Deck::operator =(Deck&& moving) {
+	auto log = as_binary<Deck&>(nullptr, "=", moving.gives_variable("moving"),
+			"");
+
+	Object::operator =(std::move(moving));
+	container.swap(moving.container);
+
+	return log.returns<Deck&>(*this, transcode);
+}
+
 }

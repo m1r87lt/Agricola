@@ -10,7 +10,7 @@
 
 #include <src/base.h>
 
-struct Color {
+struct Color: private base::Log {
 	enum class Which {
 		No,
 		White,
@@ -26,11 +26,11 @@ struct Color {
 		Purple
 	} instance;
 
-	std::string name() const;
+	std::string has_name() const;
 	operator Which() const;
-	base::Variable<Color> variable() const;
-	base::Variable<Color> variable(std::string label) const;
-	static Which color(std::string);
+	base::Variable<Color> gives_variable() const;
+	base::Variable<Color> gives_variable(std::string label) const;
+	static Which which_color(std::string);
 
 	Color(Which);
 	Color(std::string);
@@ -38,9 +38,9 @@ private:
 	static const std::map<Color, std::string> names;
 
 	static std::string transcode(Color);
-	static std::string naming(Which);
+	static std::string name(Which);
 };
-
+/*
 class Player: public base::Location {
 	std::string name;
 	Color colored;
@@ -76,5 +76,5 @@ public:
 	Owned(const Player&, const base::Log*);
 	virtual ~Owned() = default;
 };
-
+*/
 #endif /* PLAYER_H_ */

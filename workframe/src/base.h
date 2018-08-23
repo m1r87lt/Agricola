@@ -242,13 +242,13 @@ class Log {
 
 	std::string tracks() const;
 	std::string logs() const;
-	template<typename Argument, typename ... Rest> static std::string transcodes_arguments(
+	template<typename Argument, typename ... Rest> static std::string transcode_arguments(
 			Variable<Argument> argument, Rest&& ... rest) {
-		return ", " + argument.logs() + transcodes_arguments(rest ...);
+		return ", " + argument.logs() + transcode_arguments(rest ...);
 	}
-	static std::string transcodes_arguments();
-	static std::string tracks(const Log*);
-	static std::string messages(std::string);
+	static std::string transcode_arguments();
+	static std::string create_track(const Log*);
+	static std::string make_message(std::string);
 
 	Log(const Log*, std::string, bool);
 	Log(Log&);
@@ -260,7 +260,8 @@ protected:
 
 		result.logging = typeid(Return).name();
 		result.logging += " " + operation + gives_variable("").is();
-		std::clog << result.logs() << messages(message) << " {" << std::endl;
+		std::clog << result.logs() << make_message(message) << " {"
+				<< std::endl;
 
 		return result;
 	}
@@ -270,8 +271,8 @@ protected:
 
 		result.logging = returning.has_type() + " " + returning.has_label()
 				+ gives_variable("").is();
-		std::clog << result.logs() << messages(message) << "=" << returning.is()
-				<< std::endl;
+		std::clog << result.logs() << make_message(message) << "="
+				<< returning.is() << std::endl;
 
 		return returning;
 	}
@@ -287,7 +288,8 @@ protected:
 		else
 			result.logging += " " + gives_variable("").is() + " " + operation
 					+ " " + righthand.is();
-		std::clog << result.logs() << messages(message) << " {" << std::endl;
+		std::clog << result.logs() << make_message(message) << " {"
+				<< std::endl;
 
 		return result;
 	}
@@ -303,8 +305,8 @@ protected:
 			result.logging = returning.has_type() + " "
 					+ gives_variable("").is() + " " + returning.has_label()
 					+ " " + righthand.is();
-		std::clog << result.logs() << messages(message) << "=" << returning.is()
-				<< std::endl;
+		std::clog << result.logs() << make_message(message) << "="
+				<< returning.is() << std::endl;
 
 		return returning;
 	}
@@ -317,7 +319,8 @@ protected:
 		if (name.size())
 			result.logging += ".";
 		result.logging += name + "()";
-		std::clog << result.logs() << messages(message) << " {" << std::endl;
+		std::clog << result.logs() << make_message(message) << " {"
+				<< std::endl;
 
 		return result;
 	}
@@ -331,8 +334,9 @@ protected:
 		if (name.size())
 			result.logging += ".";
 		result.logging += name + "(" + argument.logs()
-				+ transcodes_arguments(rest ...) + ")";
-		std::clog << result.logs() << messages(message) << " {" << std::endl;
+				+ transcode_arguments(rest ...) + ")";
+		std::clog << result.logs() << make_message(message) << " {"
+				<< std::endl;
 
 		return result;
 	}
@@ -345,8 +349,8 @@ protected:
 		if (label.size())
 			result.logging += ".";
 		result.logging += label + "()";
-		std::clog << result.logs() << messages(message) << "=" << returning.is()
-				<< std::endl;
+		std::clog << result.logs() << make_message(message) << "="
+				<< returning.is() << std::endl;
 
 		return returning;
 	}
@@ -360,9 +364,9 @@ protected:
 		if (label.size())
 			result.logging += ".";
 		result.logging += label + "(" + argument.logs()
-				+ transcodes_arguments(rest ...) + ")";
-		std::clog << result.logs() << messages(message) << "=" << returning.is()
-				<< std::endl;
+				+ transcode_arguments(rest ...) + ")";
+		std::clog << result.logs() << make_message(message) << "="
+				<< returning.is() << std::endl;
 
 		return returning;
 	}
@@ -374,26 +378,26 @@ protected:
 
 		result.logging =
 				ns + "::" + typer + "::" + typer + "("
-						+ transcodes_arguments(
+						+ transcode_arguments(
 								std::forward<Arguments&&>(rest)...).substr(1)
 						+ ")";
-		std::clog << result.logs() << messages(message) << std::endl;
+		std::clog << result.logs() << make_message(message) << std::endl;
 
 		return result;
 	}
 	Log as_destructor(std::string, std::type_index, std::string) const;
-	static std::string transcodes(const Log&);
+	static std::string transcode(const Log&);
 
 	Log(const Log*, std::string, bool, std::string);
 	template<typename Argument, typename ... Arguments> Log(const Log* caller,
 			std::string ns, bool open, std::string message,
 			Variable<Argument> argument, Arguments&& ... rest) {
-		legacy = tracks(caller);
+		legacy = create_track(caller);
 		track = ++tracker;
 		this->ns = ns;
 		logging = gives_variable("").is() + "::" + typeid(*this).name() + "("
-				+ argument.logs() + transcodes_arguments(rest ...) + ")";
-		std::clog << logs() << messages(message)
+				+ argument.logs() + transcode_arguments(rest ...) + ")";
+		std::clog << logs() << make_message(message)
 				<< (((this->open = open)) ? " {" : "") << std::endl;
 	}
 public:
@@ -428,7 +432,8 @@ public:
 
 		result.logging = typeid(Return).name();
 		result.logging += " " + operation + argument.is();
-		std::clog << result.logs() << messages(message) << " {" << std::endl;
+		std::clog << result.logs() << make_message(message) << " {"
+				<< std::endl;
 
 		return result;
 	}
@@ -439,8 +444,8 @@ public:
 
 		result.logging = returning.has_type() + " " + returning.has_label()
 				+ argument.is();
-		std::clog << result.logs() << messages(message) << "=" << returning.is()
-				<< std::endl;
+		std::clog << result.logs() << make_message(message) << "="
+				<< returning.is() << std::endl;
 
 		return returning;
 	}
@@ -453,7 +458,8 @@ public:
 		result.logging = typeid(Return).name();
 		result.logging += " " + lefthand.is() + " " + operation + " "
 				+ righthand.is();
-		std::clog << result.logs() << messages(message) << " {" << std::endl;
+		std::clog << result.logs() << make_message(message) << " {"
+				<< std::endl;
 
 		return result;
 	}
@@ -465,8 +471,8 @@ public:
 
 		result.logging = returning.has_type() + " " + lefthand.is() + " "
 				+ returning.has_label() + " " + righthand.is();
-		std::clog << result.logs() << messages(message) << "=" << returning()
-				<< std::endl;
+		std::clog << result.logs() << make_message(message) << "="
+				<< returning() << std::endl;
 
 		return returning;
 	}
@@ -480,7 +486,8 @@ public:
 		if (object != typeid(void))
 			result.logging += std::string(object.name()) + "::";
 		result.logging += name + "()";
-		std::clog << result.logs() << messages(message) << " {" << std::endl;
+		std::clog << result.logs() << make_message(message) << " {"
+				<< std::endl;
 
 		return result;
 	}
@@ -495,8 +502,9 @@ public:
 		if (object != typeid(void))
 			result.logging += std::string(object.name()) + "::";
 		result.logging += name + "(" + argument.logs()
-				+ transcodes_arguments(rest ...) + ")";
-		std::clog << result.logs() << messages(message) << " {" << std::endl;
+				+ transcode_arguments(rest ...) + ")";
+		std::clog << result.logs() << make_message(message) << " {"
+				<< std::endl;
 
 		return result;
 	}
@@ -509,8 +517,8 @@ public:
 		if (object != typeid(void))
 			result.logging += std::string(object.name()) + "::";
 		result.logging += returning.has_label() + "()";
-		std::clog << result.logs() << messages(message) << "=" << returning.is()
-				<< std::endl;
+		std::clog << result.logs() << make_message(message) << "="
+				<< returning.is() << std::endl;
 
 		return returning;
 	}
@@ -524,9 +532,9 @@ public:
 		if (object != typeid(void))
 			result.logging += std::string(object.name()) + "::";
 		result.logging += returning.has_label() + "(" + argument.logs()
-				+ transcodes_arguments(rest ...) + ")";
-		std::clog << result.logs() << messages(message) << "=" << returning.is()
-				<< std::endl;
+				+ transcode_arguments(rest ...) + ")";
+		std::clog << result.logs() << make_message(message) << "="
+				<< returning.is() << std::endl;
 
 		return returning;
 	}
@@ -580,9 +588,7 @@ public:
 
 	virtual ~Object();
 	Object(const Object&) = delete;
-	Object(Object&&);
 	Object& operator =(const Object&) = delete;
-	Object& operator =(Object&&);
 protected:
 	time_t modification;
 
@@ -600,13 +606,15 @@ protected:
 		attributing = attributes;
 		everything.emplace(this);
 	}
+	Object(Object&&);
+	Object& operator =(Object&&);
 };
 
 class Location: public Object {
 	using content = std::pair<std::string, std::unique_ptr<Object>>;
 	using container = std::list<content>;
 
-	container* containing;
+	std::unique_ptr<container> containing;
 
 	std::string names(std::string);
 	container::iterator locates(size_t) const;
@@ -627,8 +635,10 @@ protected:
 		auto log = as_constructor(caller, "base", typeid(Location), "",
 				rest ...);
 
-		containing = new container;
+		containing.reset(new container);
 	}
+	Location(Location&&);
+	Location& operator =(Location&& moving);
 public:
 	Object* operator [](size_t) const;
 	std::map<size_t, Object*> operator ()(std::string) const;
@@ -677,8 +687,6 @@ public:
 	static std::string write_object_vector(std::vector<Object*>&);
 
 	virtual ~Location();
-	Location(Location&&);
-	Location& operator =(Location&& moving);
 };
 }
 namespace game {
@@ -691,6 +699,8 @@ protected:
 	Card(std::unique_ptr<Object>&&, std::unique_ptr<Object>&&, bool,
 			base::Location*, std::map<std::string, std::string>, const Log*,
 			std::string);
+	Card(Card&&);
+	Card& operator= (Card&&);
 public:
 	Object& operator ()() const;
 	bool is_facing() const;
@@ -701,6 +711,8 @@ public:
 	static std::unique_ptr<Card> construct(std::unique_ptr<Object>&&,
 			std::unique_ptr<Object>&&, bool, std::map<std::string, std::string>,
 			const Log*, std::string);
+
+	virtual ~Card();
 };
 
 class Deck: public base::Object {
@@ -709,6 +721,8 @@ class Deck: public base::Object {
 protected:
 	Deck(std::string, base::Location*, std::map<std::string, std::string>,
 			const Log*, std::string);
+	Deck(Deck&&);
+	Deck& operator =(Deck&&);
 public:
 	size_t has_size() const;
 	const std::string& has_label() const;
@@ -746,6 +760,8 @@ public:
 	void shuffles(const Log*);
 	static std::unique_ptr<Deck> construct(std::string,
 			std::map<std::string, std::string>, const Log*, std::string);
+
+	virtual ~Deck();
 };
 }
 
