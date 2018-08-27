@@ -269,18 +269,6 @@ Object& Object::operator =(Object&& moving) {
 }
 
 //Location
-std::string Location::names(std::string name) {
-	std::string candidate = name;
-	auto log = as_method<decltype(name)>(nullptr, "names", "",
-			Variable<decltype(name)&>("name", "std", name));
-
-	if (candidate.empty())
-		candidate = name = "content";
-	for (auto suffix = 0; operator ()(candidate).size(); ++suffix)
-		candidate = name + "_" + std::to_string(suffix);
-
-	return log.returns(candidate);
-}
 Location::container::iterator Location::locates(size_t offset) const {
 	auto result = containing.get()->begin();
 	auto log = as_method<decltype(result)>(nullptr, "locates", "",
@@ -499,7 +487,7 @@ void Location::inserts(size_t offset, std::string name,
 		else if (offset) {
 			auto result = locates(offset);
 
-			result = containing->emplace(result, names(name), nullptr);
+			result = containing->emplace(result, label(name, *this), nullptr);
 			result->second.swap(instance);
 			result->second->position = this;
 			modification = result->second->modification =

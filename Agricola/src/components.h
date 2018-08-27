@@ -7,147 +7,134 @@
 
 #ifndef COMPONENTS_H_
 #define COMPONENTS_H_
-/*
-#define FARMYARD_PERSONALSUPPLY "Personal Supply"
-#define FARMYARD_SPACE_FENCE "Farmyard Fence Space"
-#define FARMYARD_SPACE_SPACE "Farmyard Space"
-#define FARMYARD "Farmyard"
 
 #include "executable.h"
 
-struct Farmyard: public Owned, public base::Object {
-	class PersonalSupply: public base::Location {
-		PersonalSupply(Farmyard*, const Log*);
-		friend Farmyard;
-	public:
-		virtual std::map<std::string, std::string> evaluate(
-				std::map<std::string, std::string>);
+#define C_FARMYARD "Farmyard"
+#define C_PERSONAL_SUPPLY "Personal Supply"
+#define C_SPACE "Space"
+#define C_FARMYARD_FENCE_SPACE C_FARMYARD + std::string("Fence") + C_SPACE
+#define C_FARMYARD_SPACE C_FARMYARD + std::string(C_SPACE)
+
+class Farmyard final: public base::Object, public Owned {
+	Farmyard(Player*, const Log*);
+	friend Player;
+public:
+	struct PersonalSupply final: public base::Location {
+		PersonalSupply(const Log*);
 	};
-	class Space: public base::Location {
-		Space(Farmyard*, const Log*);
-		friend Farmyard;
-	public:
-		virtual std::map<std::string, std::string> evaluate(
-				std::map<std::string, std::string>);
+	struct Space final: public base::Location {
+		Space(const Log);
+	};
+	struct FenceSpace final: public base::Location {
+		FenceSpace(const Log*);
 	};
 	class Row: public Log {
 		Farmyard* owner;
-		size_t row;
+		short unsigned row;
 
-		Row(size_t, Farmyard*, const Log*);
+		Row(short unsigned, Farmyard*, const Log*);
 		friend Farmyard;
 	public:
-		Space* operator [](size_t);
+		base::Location* operator [](short unsigned);
 	};
 
-	PersonalSupply* personal_supply() const;
-	Space* space(size_t, size_t) const;
-	Space* fence(size_t, size_t, bool, bool) const;
-	Row operator [](size_t) const;
-
-	Farmyard(Player*, const Log*);
-	virtual ~Farmyard() = default;
+	base::Location* personal_supply() const;
+	base::Location* space(short unsigned, short unsigned) const;
+	base::Location* fence(short unsigned, short unsigned, bool, bool) const;
+	Row operator [](short unsigned) const;
 };
-struct Gameboard: public base::Location {
-	virtual std::string what() const;
-	virtual Object* enter(std::string, size_t, unsigned) const;
-	virtual std::string field(std::string, unsigned) const;
-	virtual void field(std::string, size_t, std::string, unsigned);
-
-	Gameboard(base::Log);
-
-	virtual ~Gameboard() = default;
+struct Board: public base::Location {
+	Board(const Log*);
 };
-struct MajorImprovementBoard: public base::Location {
-	MajorImprovementBoard(base::Log);
-
-	virtual ~MajorImprovementBoard() = default;
+class MajorImprovements final: public Board {
+	MajorImprovements(const Log*);
 public:
-	virtual std::string what() const;
-	virtual Object* enter(std::string, size_t, unsigned) const;
-	virtual std::string field(std::string, unsigned) const;
-	virtual void field(std::string, size_t, std::string, unsigned);
-
-	std::list<std::string> MajorImprovements() const;
-
-	static MajorImprovementBoard* construct(base::Log);
+	std::vector<std::string> gives_them() const;
+	static MajorImprovements* construct(const Log*);
 };
 
 struct Data {
 	int quantity;
-	std::string label;
-	unsigned player;
+	std::type_index type;
+	short unsigned player;
 	std::string note;
 
 	operator const char*() const;
+	static std::string transcode(const Data&);
 
-	Data(base::Log);
-	Data(int, std::string, unsigned, std::string, base::Log);
+	Data();
+	Data(int, std::type_index, short unsigned, std::string, const base::Log*);
 };
-class Cover: public base::Location {
-	std::string label;
-	std::string text;
-	std::string type;
-public:
-	const std::string& name() const;
+struct Description {
+	std::vector<std::string> text;
+	std::vector<Data> symbols;
+
+	operator const char*() const;
+	static std::string transcode(const Description&);
+
+	Description();
+	Description(std::string, const base::Log*);
+};
+
+struct Cover: public base::Location {
+	enum class Type {
+		no, round, occupation, minorImprovement, majorImprovement
+	};
+	std::string has_name() const;
 	const std::string& caption() const;
+	operator Type() const;
+	base::Variable<const Cover&> gives_variable(std::string) const;
+	static Type which(std::string);
+	static std::string transcode(const Cover&);
 
-	virtual std::string what() const;
-	virtual Object* enter(std::string, size_t, unsigned) const;
-	virtual std::string field(std::string, unsigned) const;
-	virtual void field(std::string, size_t, std::string, unsigned);
+	Cover(const Log*);
+	Cover(Type, const Log*);
+	Cover(std::string, const Log*);
+	Cover(const Cover&);
+	Cover& operator =(const Cover&);
+private:
+	Type type;
+	Description description;
+	static const std::map<Type, std::string> names;
 
-	Cover(std::string, std::string, std::string, base::Log);
+	static std::string name(const Type&);
 
-	virtual ~Cover() = default;
+	Cover();
 };
 class Face: public base::Location {
-	std::vector<Data> pr;
-	std::string l;
-	std::vector<Data> c;
-	unsigned n;
-	char e;
-	std::vector<std::unique_ptr<Executable>> events;
-
+	std::vector<Data> prerequisites;
+	std::string name;
+	std::vector<Data> costs;
+	unsigned label;
+	char edition;
 	static std::map<unsigned, Face*> cards;
 protected:
-	std::string caption;
-
-	static std::string list_cards();
-
-	virtual Object* enter(std::string, size_t, unsigned) const;
-	virtual std::string field(std::string, unsigned) const;
-	virtual void field(std::string, size_t, std::string, unsigned);
+	Description caption;
 
 	Face(std::vector<Data>, std::string, std::vector<Data>, unsigned, char,
-			std::string, std::vector<std::unique_ptr<Executable>>, Location*,
-			base::Log);
+			std::string, Location*, std::map<std::string, std::string>,
+			const base::Log*);
 public:
-	const std::vector<Data>& prerequisites() const;
-	const std::string& name() const;
-	const std::vector<Data>& costs() const;
-	unsigned number() const;
-	char edition() const;
-	std::vector<std::string> executables() const;
-	Executable& operator ()(size_t);
+	const std::vector<Data>& has_prerequisites() const;
+	const std::string& has_name() const;
+	const std::vector<Data>& has_costs() const;
+	unsigned has_label() const;
+	char has_edition() const;
+	std::vector<std::string> gives_executables() const;
+	std::string has_caption() const;
+	virtual Executable& operator ()(size_t) = 0;
 
 	virtual ~Face();
 };
 class Action: public base::Location, public Executable {
 	Data collection;
-	std::string caption;
+	Description caption;
 public:
-	const Data& collect() const;
-
-	virtual std::string what() const;
-	virtual std::string description() const;
-	virtual Object* enter(std::string, size_t, unsigned) const;
-	virtual std::string field(std::string, unsigned) const;
-	virtual void field(std::string, size_t, std::string, unsigned);
+	std::vector<Data>& is_collecting() const;
+	void collects() const;
 
 	Action(std::string, Data, std::string, base::Log);
-
-	virtual ~Action() = default;
 };
 class Effect: public Executable {
 	std::string caption;
@@ -316,8 +303,6 @@ public:
 			short unsigned,
 			std::vector<std::tuple<std::string, Data, std::string>>, base::Log);
 	static std::unique_ptr<Card> begging(base::Log);
-
-	virtual ~Card() = default;
 };
 
 struct Wooden: public base::Object, public Owned {

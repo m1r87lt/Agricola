@@ -9,7 +9,7 @@
 #define EXECUTABLE_H_
 
 #include "player.h"
-/*
+
 #define EX_A_BUILD1ROOM_TRAVELINGPLAYERS "Build 1 Room+Traveling Players"
 #define EX_A_DAYLABORER "Day Laborer"
 #define EX_A_FISHING "Fishing"
@@ -54,20 +54,22 @@
 #define EX_R5_FIELD_SOW "1 Field+Sow"
 #define EX_R6_RENOVATION_FENCES "Renovation+Fences"
 
-class Executable {
-	std::string name;
+class Executable: private base::Log {
+	std::string label;
+	static std::map<std::string, Executable*> index;
 protected:
 	Executable(std::string, const base::Log*);
 public:
 	Player* active;
 
-	operator const char*() const;
-	int operator ()(std::string, bool, const base::Log*);
-	virtual int execute(std::string, const base::Log*) = 0;
-	virtual int attempt(std::string, const base::Log*) = 0;
-	static int null(Player*, bool, const base::Log*);
+	const std::string& has_name() const;
+	int operator ()(bool, const base::Log*);
+	std::vector<std::string> operator ()(std::string) const;
+	virtual int executes(const base::Log*) = 0;
+	virtual int attempts(const base::Log*) = 0;
+	static int gives_null();
 
 	virtual ~Executable() = default;
 };
-*/
+
 #endif /* EXECUTABLE_H_ */

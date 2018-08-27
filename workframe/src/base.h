@@ -542,6 +542,18 @@ public:
 	Log(Log&&);
 	Log& operator =(Log&&);
 };
+template<typename Class> std::string label(std::string name, Class& instance) {
+	std::string candidate = name;
+	auto log = Log::as_function<decltype(name)>(nullptr, "base", typeid(void),
+			"label", "", Variable<decltype(name)&>("name", "std", name));
+
+	if (candidate.empty())
+		candidate = name = "content";
+	for (auto suffix = 0; instance(candidate).size(); ++suffix)
+		candidate = name + "_" + std::to_string(suffix);
+
+	return log.returns(candidate);
+}
 
 class Object: public Log {
 	Object* position;
@@ -616,7 +628,6 @@ class Location: public Object {
 
 	std::unique_ptr<container> containing;
 
-	std::string names(std::string);
 	container::iterator locates(size_t) const;
 	std::map<size_t, container::iterator> locates(std::string) const;
 	std::map<size_t, container::iterator> locates(std::type_index) const;
@@ -633,8 +644,7 @@ protected:
 			std::string ns, bool open, std::string message,
 			Arguments&& ... rest) :
 			Object(position, attributes, caller, ns, open, message, rest ...) {
-		as_constructor(caller, "base", typeid(Location), "",
-				rest ...);
+		as_constructor(caller, "base", typeid(Location), "", rest ...);
 
 		containing.reset(new container);
 	}

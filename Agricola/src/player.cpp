@@ -5,18 +5,17 @@
  *      Author: MLaRosa
  */
 
-#include "player.h"/*
-#include <chrono>*/
+#include "player.h"
 
 //Color
-const std::map<Color::Which, std::string> names = { { Color::Which::No, "No" },
-		{ Color::Which::White, "White" }, { Color::Which::Gray, "Gray" }, {
-				Color::Which::Black, "Black" }, { Color::Which::Crimson,
-				"Crimson" }, { Color::Which::Red, "Red" }, {
-				Color::Which::Brown, "Brown" },
-		{ Color::Which::Orange, "Orange" }, { Color::Which::Yellow, "Yellow" },
-		{ Color::Which::Green, "Green" }, { Color::Which::Blue, "Blue" }, {
-				Color::Which::Purple, "Purple" } };
+const std::map<Color::Which, std::string> names = { { Color::Which::no, "no" },
+		{ Color::Which::white, "white" }, { Color::Which::gray, "gray" }, {
+				Color::Which::black, "black" }, { Color::Which::crimson,
+				"crimson" }, { Color::Which::red, "red" }, {
+				Color::Which::brown, "brown" },
+		{ Color::Which::orange, "orange" }, { Color::Which::yellow, "yellow" },
+		{ Color::Which::green, "green" }, { Color::Which::blue, "blue" }, {
+				Color::Which::purple, "purple" } };
 
 std::string Color::has_name() const {
 	return as_method("", nullptr,
@@ -53,7 +52,7 @@ std::string Color::name(const Which& which) {
 Color::Color() :
 		Log(nullptr, "", true, "") {
 	as_constructor(nullptr, "", typeid(Color), "");
-	instance = Which::No;
+	instance = Which::no;
 }
 Color::Color(Which which, const Log* caller) :
 		Log(caller, "", true, "",
@@ -231,12 +230,12 @@ Player::Player(std::string name, Color color, const Log* caller) :
 			base::Variable<decltype(color)&>("color", "", color,
 					Color::transcode));
 
-	if (color != Color::Which::White && color != Color::Which::Red
-			&& color != Color::Which::Green && color != Color::Which::Blue
-			&& color != Color::Which::Purple) {
+	if (color != Color::Which::white && color != Color::Which::red
+			&& color != Color::Which::green && color != Color::Which::blue
+			&& color != Color::Which::purple) {
 		std::string message =
 				"ERROR invalid arguent: possible player colors only are"
-						" 'White'/'Red'/'Green'/'Blue'/'Purple'.";
+						" 'white'/'red'/'green'/'blue'/'purple'.";
 
 		log.notes(message);
 		log.logs_error(message);

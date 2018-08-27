@@ -12,18 +12,18 @@
 
 struct Color final: private base::Log {
 	enum class Which {
-		No,
-		White,
-		Gray,
-		Black,
-		Crimson,
-		Red,
-		Brown,
-		Orange,
-		Yellow,
-		Green,
-		Blue,
-		Purple
+		no,
+		white,
+		gray,
+		black,
+		crimson,
+		red,
+		brown,
+		orange,
+		yellow,
+		green,
+		blue,
+		purple
 	} instance;
 
 	std::string has_name() const;
@@ -38,7 +38,7 @@ struct Color final: private base::Log {
 	Color(const Color&);
 	Color& operator =(const Color& copy);
 private:
-	static const std::map<Color::Which, std::string> names;
+	static const std::map<Which, std::string> names;
 
 	static std::string name(const Which&);
 
