@@ -62,6 +62,7 @@ struct Data {
 
 	operator const char*() const;
 	static std::string transcode(const Data&);
+	static Data interpret(std::string);
 
 	Data();
 	Data(int, std::type_index, short unsigned, std::string, const base::Log*);
@@ -75,6 +76,37 @@ struct Description {
 
 	Description();
 	Description(std::string, const base::Log*);
+};
+class Slot: public Executable, public base::Location {
+	Description caption;
+	std::function<int(const Log*)> action;
+public:
+	virtual std::string description() const = 0;
+	virtual int executes(const Log*);
+	virtual int attempts(const Log*);
+
+	Slot(std::string, std::string, int*(const Log*), const Log*);
+	virtual ~Slot() = default;
+};
+class Action: public Slot {
+	std::vector<Data> collection;
+public:
+	std::vector<Data>& is_collecting() const;
+	void collects(const Log*);
+	virtual std::string description() const;
+
+	Action(std::string, std::string, int*(const Log*), std::string, const Log*);
+	virtual ~Action();
+};
+class Effect: public Slot {
+	std::map<std::string, std::string> conditions;
+public:
+	bool verifies() const;
+	virtual std::string description() const;
+
+	Effect(std::string, std::string, int*(const Log*),
+			std::map<std::string, std::string>, const base::Log*);
+	virtual ~Effect();
 };
 
 struct Cover: public base::Location {
@@ -121,29 +153,10 @@ public:
 	const std::vector<Data>& has_costs() const;
 	unsigned has_label() const;
 	char has_edition() const;
-	std::vector<std::string> gives_executables() const;
 	std::string has_caption() const;
 	virtual Executable& operator ()(size_t) = 0;
 
 	virtual ~Face();
-};
-class Action: public base::Location, public Executable {
-	Data collection;
-	Description caption;
-public:
-	std::vector<Data>& is_collecting() const;
-	void collects() const;
-
-	Action(std::string, Data, std::string, base::Log);
-};
-class Effect: public Executable {
-	std::string caption;
-public:
-	virtual std::string description() const;
-	virtual std::string field(std::string, unsigned) const;
-	virtual void field(std::string, size_t, std::string, unsigned);
-
-	Effect(std::string, std::string, base::Log);
 };
 class Card: public game::Card {
 	std::string type;
