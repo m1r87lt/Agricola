@@ -44,7 +44,7 @@ public:
 	base::Location* fence(short unsigned, short unsigned, bool, bool) const;
 	Row operator [](short unsigned) const;
 };
-class Board final: public base::Location {
+class Board: public base::Location {
 	Board(const Log*);
 public:
 	static Board* construct(const Log*);
@@ -121,7 +121,7 @@ public:
 	short unsigned with_players() const;
 	const Color& has_color() const;
 	std::string has_caption() const;
-	virtual base::Variable<const Face&> gives_variable(std::string) const;
+	base::Variable<const Face&> gives_variable(std::string) const;
 	virtual std::string has_name() const = 0;
 	static std::unique_ptr<Location> construct(Color, short unsigned,
 			std::string, std::map<std::string, std::string>, const Log*);
@@ -169,7 +169,7 @@ public:
 	short is_worth() const;
 	unsigned has_label() const;
 	char has_edition() const;
-	virtual base::Variable<const Sheet&> gives_variable(std::string) const;
+	base::Variable<const Sheet&> gives_variable(std::string) const;
 	virtual std::string has_name() const;
 	virtual Event& happens(size_t) = 0;
 	static std::string transcode(const Sheet&);

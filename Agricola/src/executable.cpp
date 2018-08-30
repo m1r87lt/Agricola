@@ -18,7 +18,7 @@ int Executable::operator ()(bool attempting, Player* beneficiary,
 		const base::Log* caller) {
 	auto log = as_method<int>(caller, "", "",
 			base::Variable<decltype(attempting)&>("attempting", "", attempting),
-			base::Variable<decltype(beneficiary)>("beneficiary", "",
+			base::Variable<decltype(beneficiary)&>("beneficiary", "",
 					beneficiary));
 
 	return log.returns(effect(attempting, beneficiary, &log));
