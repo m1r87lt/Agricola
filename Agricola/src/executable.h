@@ -56,20 +56,20 @@
 
 class Executable: private base::Log {
 	std::string label;
+	std::function<int(bool, Player*, const Log*)> effect;
 	static std::map<std::string, Executable*> index;
 protected:
-	Executable(std::string, const base::Log*);
+	Executable(std::string, int (*)(bool, Player*, const Log*), const Log*);
 public:
 	Player* active;
 
 	const std::string& has_name() const;
-	int operator ()(bool, const base::Log*);
+	int operator ()(bool, Player*, const Log*);
 	std::vector<std::string> operator ()(std::string) const;
-	virtual int executes(const base::Log*) = 0;
-	virtual int attempts(const base::Log*) = 0;
+	virtual std::string has_caption() const = 0;
 	static int gives_null();
 
-	virtual ~Executable() = default;
+	virtual ~Executable();
 };
 
 #endif /* EXECUTABLE_H_ */

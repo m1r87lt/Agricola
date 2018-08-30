@@ -22,7 +22,7 @@
 #include <vector>
 
 namespace base {
-bool is_running();
+bool running_process();
 void end();
 
 template<typename Parameter, typename Class> Class get_former_if(

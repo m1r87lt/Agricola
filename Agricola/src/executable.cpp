@@ -14,15 +14,14 @@ const std::string& Executable::has_name() const {
 	return as_method("", nullptr,
 			base::Variable<const decltype(label)&>("has_name", "std", label));
 }
-int Executable::operator ()(bool attempting, const base::Log* caller) {
+int Executable::operator ()(bool attempting, Player* beneficiary,
+		const base::Log* caller) {
 	auto log = as_method<int>(caller, "", "",
-			base::Variable<decltype(attempting)&>("attempting", "",
-					attempting));
+			base::Variable<decltype(attempting)&>("attempting", "", attempting),
+			base::Variable<decltype(beneficiary)>("beneficiary", "",
+					beneficiary));
 
-	if (attempting)
-		return log.returns(attempts(&log));
-	else
-		return log.returns(executes(&log));
+	return log.returns(effect(attempting, beneficiary, &log));
 }
 std::vector<std::string> Executable::operator ()(std::string name) const {
 	std::vector<std::string> result;
@@ -41,9 +40,18 @@ int Executable::gives_null() {
 			"", typeid(Executable));
 }
 
-Executable::Executable(std::string name, const base::Log* caller) :
-		Log(caller, "", false, "") {
-	label = name;
+Executable::Executable(std::string name,
+		int (*function)(bool, Player*, const Log*), const base::Log* caller) :
+		Log(caller, "", true, "") {
+	label = base::label(name, *this);
+	effect = function;
 	active = nullptr;
+	index[name] = this;
+}
+
+Executable::~Executable() {
+	if (base::running_process())
+		index.erase(label);
+	as_destructor("", typeid(Executable), "");
 }
 

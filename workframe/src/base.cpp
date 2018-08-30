@@ -12,7 +12,7 @@
 namespace base {
 bool run = true;
 
-bool running() {
+bool running_process() {
 	return run;
 }
 void end() {
@@ -239,7 +239,7 @@ std::string Object::write_set(const std::set<Object*>& set) {
 	return result.str() + " }";
 }
 Object::~Object() {
-	if (running())
+	if (running_process())
 		everything.erase(this);
 	as_destructor("base", typeid(Object), "");
 }
