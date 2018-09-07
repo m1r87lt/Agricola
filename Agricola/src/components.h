@@ -16,18 +16,21 @@
 #define C_FARMYARD_FENCE_SPACE C_FARMYARD + std::string("Fence") + C_SPACE
 #define C_FARMYARD_SPACE C_FARMYARD + std::string(C_SPACE)
 
-class Farmyard final: public base::Object, public Owned {
-	Farmyard(Player*, const Log*);
+class Farmyard final: private base::Location, public Owned {
+	Farmyard(const Player&, const Log*);
 	friend Player;
 public:
-	struct PersonalSupply final: public base::Location {
-		PersonalSupply(const Log*);
+	class PersonalSupply final: public base::Location {
+		PersonalSupply(Farmyard*, const Log*);
+		friend Farmyard;
 	};
-	struct Space final: public base::Location {
-		Space(const Log);
+	class Space final: public base::Location {
+		Space(Farmyard*, const Log*);
+		friend Farmyard;
 	};
-	struct FenceSpace final: public base::Location {
-		FenceSpace(const Log*);
+	class FenceSpace final: public base::Location {
+		FenceSpace(Farmyard*, const Log*);
+		friend Farmyard;
 	};
 	class Row: public Log {
 		Farmyard* owner;
@@ -36,12 +39,12 @@ public:
 		Row(short unsigned, Farmyard*, const Log*);
 		friend Farmyard;
 	public:
-		base::Location* operator [](short unsigned);
+		Space* operator [](short unsigned);
 	};
 
-	base::Location* personal_supply() const;
-	base::Location* space(short unsigned, short unsigned) const;
-	base::Location* fence(short unsigned, short unsigned, bool, bool) const;
+	PersonalSupply* personal_supply() const;
+	Space* space(short unsigned, short unsigned) const;
+	FenceSpace* fence(short unsigned, short unsigned, bool, bool) const;
 	Row operator [](short unsigned) const;
 };
 class Board: public base::Location {

@@ -259,7 +259,7 @@ Player* Owned::player() const {
 			base::Variable<Player* const &>("player", "", owner));
 }
 
-Owned::Owned(short unsigned number, const base::Log* caller) :
+Owned::Owned(short unsigned number, const Log* caller) :
 		Log(caller, "", true, "",
 				base::Variable<decltype(number)&>("number", "", number)) {
 	auto log = as_constructor(this, "", typeid(Owned), "",
@@ -267,7 +267,7 @@ Owned::Owned(short unsigned number, const base::Log* caller) :
 
 	owner = Player::player(number);
 }
-Owned::Owned(std::string name, const base::Log* caller) :
+Owned::Owned(std::string name, const Log* caller) :
 		Log(caller, "", true, "",
 				base::Variable<decltype(name)&>("name", "", name)) {
 	auto log = as_constructor(this, "", typeid(Owned), "",
@@ -275,14 +275,14 @@ Owned::Owned(std::string name, const base::Log* caller) :
 
 	owner = Player::player(name);
 }
-Owned::Owned(Color color, const base::Log* caller) :
+Owned::Owned(Color color, const Log* caller) :
 		Log(caller, "", true, "", color.gives_variable("color")) {
 	auto log = as_constructor(this, "", typeid(Owned), "",
 			color.gives_variable("color"));
 
 	owner = Player::player(color);
 }
-Owned::Owned(const Player& player, const base::Log* caller) :
+Owned::Owned(const Player& player, const Log* caller) :
 		Log(caller, "", true, "", player.gives_variable("player")) {
 	as_constructor(this, "", typeid(Owned), "",
 			player.gives_variable("player"));
