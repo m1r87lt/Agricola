@@ -39,12 +39,12 @@ public:
 		Row(short unsigned, Farmyard*, const Log*);
 		friend Farmyard;
 	public:
-		Space* operator [](short unsigned);
+		Space& operator [](short unsigned);
 	};
 
-	PersonalSupply* personal_supply() const;
-	Space* space(short unsigned, short unsigned) const;
-	FenceSpace* fence(short unsigned, short unsigned, bool, bool) const;
+	PersonalSupply& personal_supply() const;
+	Space& space(short unsigned, short unsigned) const;
+	FenceSpace& fence(short unsigned, short unsigned, bool, bool) const;
 	Row operator [](short unsigned) const;
 };
 class Board: public base::Location {
