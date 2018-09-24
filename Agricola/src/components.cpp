@@ -146,20 +146,26 @@ Board::Board(const Log* caller) :
 }
 
 //MajorImprovements
-std::string list_transcode(const std::vector<std::string>& vector) {
-	std::string string = "{";
-
-	for (auto v : vector)
-		string += "\n\t" + v + ",";
-	string.back() = string.back() == ',' ? '\n' : ' ';
-
-	return string + "}";
-}
 std::vector<std::string> MajorImprovements::gives_them() const {
 	std::vector<std::string> result;
 	auto log = as_method<decltype(result)>(nullptr, "gives_them", "");
 
-	return log.returns(result, list_transcode);
+	for (size_t position = 0; position < 10; ++position)
+		Location::get_name(*operator [](position));
+
+	return log.returns<decltype(result)&>(result, list_vector);
+}
+std::string MajorImprovements::list_vector(const std::vector<std::string>& vector) {
+	std::string result = "{";
+
+	for (auto v : vector)
+		result += "\n\t" + v + ",";
+	if (result.back() == ',')
+		result.back() = '\n';
+	else
+		result += " ";
+
+	return result + "}";
 }
 MajorImprovements* MajorImprovements::construct(const Log* caller) {
 	auto log = as_function<MajorImprovements*>(caller, "",
@@ -169,8 +175,7 @@ MajorImprovements* MajorImprovements::construct(const Log* caller) {
 }
 
 MajorImprovements::MajorImprovements(const Log* caller) :
-		Location(nullptr, std::map<std::string, std::string>(), caller, "",
-				false, "") {
+		Board(caller) {
 }
 
 //Data

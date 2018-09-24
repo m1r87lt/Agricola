@@ -56,6 +56,7 @@ class MajorImprovements final: public Board {
 	MajorImprovements(const Log*);
 public:
 	std::vector<std::string> gives_them() const;
+	static std::string list_vector(const std::vector<std::string>&);
 	static MajorImprovements* construct(const Log*);
 };
 
