@@ -3,7 +3,7 @@
 	<name>Agricola</name>
 	<comment></comment>
 	<projects>
-		<project>workframe</project>
+		<project>Workframe</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
