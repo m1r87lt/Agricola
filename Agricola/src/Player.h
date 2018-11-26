@@ -21,8 +21,7 @@ public:
 	base::Class<Color> has_color(const Log* = nullptr) const;
 
 	Colored(base::Class<Color>, base::Class<std::string>, const Log* = nullptr);
-	~Colored(base::Class<Color>, base::Class<std::string>,
-			const Log* = nullptr);
+	~Colored();
 	Colored(const Colored&);
 	Colored& operator =(const Colored&);
 	Colored(Colored&&);
@@ -41,12 +40,13 @@ public:
 	base::Class<std::string> who_is(const Log* = nullptr) const;
 	base::Primitive<short> which_is(const Log* = nullptr) const;
 	base::Class<std::set<base::Element*>> owns(const Log* = nullptr);
-	static base::Primitive<short> give_number(const Log* = nullptr) const;
-	static Player& give(base::Primitive<short>, const Log* = nullptr) const;
-	static Player& give(base::Class<Color>, const Log* = nullptr) const;
-	static Player& give(base::Class<std::string>, const Log* = nullptr) const;
+	virtual std::ostringstream prints() const;
+	static base::Primitive<short> give_number(const Log* = nullptr);
+	static Player& give(base::Primitive<short>, const Log* = nullptr);
+	static Player& give(base::Class<Color>, const Log* = nullptr);
+	static Player& give(base::Class<std::string>, const Log* = nullptr);
 	template<short N> static void construct_all(
-			base::Class<std::array<N, std::pair<Color, std::string>>>,
+			base::Class<std::array<std::pair<Color, std::string>, N>>,
 			const Log* = nullptr);
 
 	~Player();

@@ -58,11 +58,11 @@ base::Unique_ptr Farmyard::construct(const Log* caller) {
 			base::Unique_ptr::construct<Farmyard>(caller, caller));
 }
 
-Farmyard::Farmyard(const Log* caller) :
+Farmyard::Farmyard(const Log* caller, base::Fields attributes) :
 		Object(caller, base::make_scopes(__func__, "a")), Log(caller,
 				base::make_scopes(__func__, "a"), true), Board(
 				base::Class<std::string>(base::make_scopes(__func__, "a"),
-						caller), caller) {
+						caller), caller, attributes) {
 	base::Primitive<const Log*> it(this, this);
 
 	for (short row = 3; row; --row)
@@ -124,14 +124,14 @@ base::Primitive<base::Element*> Farmyard::Space::operator ()(
 			direction);
 }
 
-Farmyard::Space::Space(const Log* caller) :
+Farmyard::Space::Space(const Log* caller, base::Fields attributes) :
 		Object(caller,
 				base::make_scopes(__func__, "a", typeid(Farmyard).name())), Log(
 				caller,
 				base::make_scopes(__func__, "a", typeid(Farmyard).name()),
 				false), Ensemble(
 				base::make_scopes(__func__, "a", typeid(Farmyard).name()),
-				caller), fences { nullptr, nullptr, nullptr, nullptr } {
+				caller, attributes), fences { nullptr, nullptr, nullptr, nullptr } {
 }
 Farmyard::Space::~Space() {
 	as_destructor("a", base::make_scopes(__func__, typeid(Farmyard).name()));
@@ -176,3 +176,12 @@ Farmyard::Row::~Row() {
 }
 
 } /* namespace a */
+
+namespace card {
+
+const std::string Occupation::type = CARD_OCCUPATION;
+const std::string MinorImprovement::type = CARD_MINOR_IMPROVEMENT;
+const std::string MajorImprovement::type = CARD_MAJOR_IMPROVEMENT;
+const std::string Round::type = CARD_ROUND;
+
+} /*namespace card */

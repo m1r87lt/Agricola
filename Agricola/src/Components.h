@@ -112,6 +112,7 @@ class Cover: public base::Ensemble, virtual public Colored {
 			base::Fields = nullptr);
 public:
 	base::Class<std::string> is_label(const Log* = nullptr) const;
+	virtual std::ostringstream prints() const;
 
 	~Cover();
 };
@@ -123,19 +124,20 @@ class Actions: public base::Ensemble, virtual public Colored {
 			base::Fields = nullptr);
 public:
 	base::Class<std::vector<a::Action*>> has_actions(const Log* = nullptr);
+	virtual std::ostringstream prints() const;
 
 	virtual ~Actions();
 };
 
-struct WoodenPiece: public base::Element, virtual public Colored {
-	enum class Shape {
-		disc, house, bar, cube
-	};
-	enum class Type {
-		Family_member, Stable, Fence, token, counter
-	};
+/*struct WoodenPiece: public base::Element, virtual public Colored {
+ enum class Shape {
+ disc, house, bar, cube
+ };
+ enum class Type {
+ Family_member, Stable, Fence, token, counter
+ };
 
-};
+ };*/
 
 } /* namespace a */
 
@@ -144,7 +146,7 @@ namespace card {
 class Occupation final: public a::Face, public virtual a::CardNumber {
 	short player_number;
 	bool plus;
-	static const std::string type = CARD_OCCUPATION;
+	static const std::string type;
 	static const a::Color color = a::Color::Yellow;
 
 	Occupation(base::Primitive<unsigned>, const Log* = nullptr, base::Fields =
@@ -163,17 +165,18 @@ class Improvement: public a::Face, public virtual a::CardNumber {
 	bool oven;
 	bool kitchen;
 
-	Improvement(base::Primitive<unsigned>, base::Class<Color>, const Log* =
+	Improvement(base::Primitive<unsigned>, base::Class<a::Color>, const Log* =
 			nullptr, base::Fields = nullptr);
 public:
 	base::Primitive<short> has_victory_points(const Log* = nullptr) const;
 	base::Primitive<bool> is_oven(const Log* = nullptr) const;
 	base::Primitive<bool> is_kitchen(const Log* = nullptr) const;
+	virtual std::ostringstream prints() const;
 
 	virtual ~Improvement();
 };
 class MinorImprovement final: public Improvement {
-	static const std::string type = CARD_MINOR_IMPROVEMENT;
+	static const std::string type;
 	static const a::Color color = a::Color::Orange;
 
 	MinorImprovement(base::Primitive<unsigned>, const Log* = nullptr,
@@ -186,7 +189,7 @@ public:
 	~MinorImprovement();
 };
 class MajorImprovement final: public Improvement {
-	static const std::string type = CARD_MAJOR_IMPROVEMENT;
+	static const std::string type;
 	static const a::Color color = a::Color::Red;
 
 	MajorImprovement(base::Primitive<unsigned>, const Log* = nullptr,
@@ -199,7 +202,7 @@ public:
 	~MajorImprovement();
 };
 class Round final: public a::Actions {
-	static const std::string type = CARD_ROUND;
+	static const std::string type;
 	static const a::Color color = a::Color::Blue;
 
 	Round(base::Class<std::vector<a::Action*>>, base::Class<a::Color>,
@@ -211,7 +214,7 @@ public:
 			const Log* = nullptr, base::Fields = nullptr);
 
 	~Round();
-}
+};
 class Action final: public a::Actions {
 	Action(base::Class<std::vector<a::Action*>>,
 			base::Class<std::vector<a::Action*>>, const Log* = nullptr,
@@ -231,8 +234,8 @@ class Begging final: public a::Face {
 	Begging(const Log*, base::Fields = nullptr);
 public:
 	virtual std::ostringstream prints() const;
-	static game::Deck::Unique_ptr construct(const Log* = nullptr,
-			base::Fields = nullptr);
+	static game::Deck::Unique_ptr construct(const Log* = nullptr, base::Fields =
+			nullptr);
 
 	~Begging();
 };
