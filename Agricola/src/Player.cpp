@@ -6,17 +6,22 @@
  */
 
 #include "Player.h"
+#define COLOR(##)
 
 namespace a {
 
-/*Player::Player(base::Class<std::string> name, base::Class<Color> color, const Log* caller,
-		base::Fields attributes) {
-	// TODO Auto-generated constructor stub
+std::ostringstream Color::prints() const {
+	std::ostringstream result;
+
 
 }
 
-Player::~Player() {
-	// TODO Auto-generated destructor stub
-}*/
+Color::Color(const Log* caller) {
+
+}
+Color(Which, std::string, const Log* = nullptr);
+~Color();
+Color(const Color&);
+Color& operator =(const Color&);
 
 } /* namespace a */

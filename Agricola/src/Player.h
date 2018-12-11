@@ -12,20 +12,20 @@
 
 namespace a {
 
-enum class Color {
-	Black, Brown, Red, Orange, Yellow, Grey, Green, Blue, Purple, White
-};
-class Colored: public base::Log {
-	Color color;
-public:
-	base::Class<Color> has_color(const Log* = nullptr) const;
+struct Color: public base::Log {
+	enum class Which {
+		No, Black, Brown, Red, Orange, Yellow, Grey, Green, Blue, Purple, White
+	};
 
-	Colored(base::Class<Color>, base::Class<std::string>, const Log* = nullptr);
-	~Colored();
-	Colored(const Colored&);
-	Colored& operator =(const Colored&);
-	Colored(Colored&&);
-	Colored& operator =(Colored&&);
+	virtual std::ostringstream prints() const;
+
+	Color(const Log*);
+	Color(Which, std::string, const Log* = nullptr);
+	~Color();
+	Color(const Color&);
+	Color& operator =(const Color&);
+private:
+	Which which;
 };
 
 class Player final: public base::Ensemble, virtual public Colored {
