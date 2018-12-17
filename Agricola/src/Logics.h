@@ -7,7 +7,7 @@
 
 #ifndef LOGICS_H_
 #define LOGICS_H_
-
+/*
 #include "Player.h"
 
 namespace a {

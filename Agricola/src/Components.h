@@ -8,7 +8,7 @@
 #ifndef COMPONENTS_H_
 #define COMPONENTS_H_
 
-#include <src/Gamecard.h>
+/*#include <src/Gamecard.h>
 #include <array>
 #include "Logics.h"
 #define CARD_MAJOR_IMPROVEMENT "Major Improvement"
@@ -137,10 +137,10 @@ public:
  Family_member, Stable, Fence, token, counter
  };
 
- };*/
+ };
 
 } /* namespace a */
-
+/*
 namespace card {
 
 class Occupation final: public a::Face, public virtual a::CardNumber {

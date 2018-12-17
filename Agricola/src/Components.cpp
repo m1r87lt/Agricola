@@ -4,7 +4,7 @@
  *  Created on: 13 nov 2018
  *      Author: m1rma
  */
-
+/*
 #include "Components.h"
 
 namespace a {
@@ -176,7 +176,7 @@ Farmyard::Row::~Row() {
 }
 
 } /* namespace a */
-
+/*
 namespace card {
 
 const std::string Occupation::type = CARD_OCCUPATION;
