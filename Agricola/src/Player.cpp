@@ -10,11 +10,6 @@
 namespace agr {
 
 //Color
-template<> std::function<std::ostringstream(const std::set<base::Element*>&)> base::Class<
-		std::set<base::Element*>>::printer = print_std__set<Element*>;
-template<> std::function<std::ostringstream(const std::vector<Player*>&)> base::Class<
-		std::vector<Player*>>::printer = print_std__vector<Player*>;
-
 base::Primitive<bool> Color::operator ==(Color operand) const {
 	return base::binary_primitive(*this, __func__, operand,
 			which == operand.which);
@@ -139,3 +134,13 @@ Player::~Player() {
 }
 
 } /* namespace agr */
+
+namespace base {
+
+template<> std::function<std::ostringstream(const std::set<Element*>&)> Class<
+		std::set<base::Element*>>::printer = print_std__set<Element*>;
+template<> std::function<std::ostringstream(const std::vector<agr::Player*>&)> Class<
+		std::vector<agr::Player*>>::printer = print_std__vector<agr::Player*>;
+
+} /* namespace base */
+
