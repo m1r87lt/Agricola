@@ -137,8 +137,6 @@ Player::~Player() {
 
 namespace base {
 
-template<> std::function<std::ostringstream(const std::set<Element*>&)> Class<
-		std::set<base::Element*>>::printer = print_std__set<Element*>;
 template<> std::function<std::ostringstream(const std::vector<agr::Player*>&)> Class<
 		std::vector<agr::Player*>>::printer = print_std__vector<agr::Player*>;
 
