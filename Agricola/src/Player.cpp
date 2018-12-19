@@ -7,6 +7,34 @@
 
 #include "Player.h"
 
+namespace base {
+
+template<> std::function<std::ostringstream(const std::vector<agr::Player*>&)> Class<
+		std::vector<agr::Player*>>::printer = print_std__vector<agr::Player*>;
+
+std::ostringstream print_std__vector_std__pair_std__string_agr__color__(
+		const std::vector<std::pair<std::string, agr::Color>>& array) {
+	std::ostringstream result("{");
+
+	for (auto pair : array)
+		result << "\n\t{\"" << pair.first << "\", "
+				<< pair.second.prints().str() << "}";
+	if (result.str() == "{")
+		result << " ";
+	else
+		result << "\n";
+	result << "}";
+
+	return result;
+}
+template<> std::function<
+		std::ostringstream(
+				const std::vector<std::pair<std::string, agr::Color>>&)> Class<
+		std::vector<std::pair<std::string, agr::Color>>>::printer =
+		print_std__vector_std__pair_std__string_agr__color__;
+
+} /* namespace base */
+
 namespace agr {
 
 //Color
@@ -60,7 +88,7 @@ base::Class<std::string> Player::who_is(const Log* caller) const {
 Color Player::how_is(const Log* caller) const {
 	return as_method(__func__, caller, typeid(Color)).returns(Color(color));
 }
-base::Class<std::set<base::Element*>> Player::owns(const Log* caller) {
+base::Class<std::set<Owned*>> Player::owns(const Log* caller) {
 	return as_method(__func__, caller,
 			typeid(base::Class<std::set<base::Element*>>)).returns(
 			base::Class<std::set<base::Element*>>(pieces));
@@ -134,11 +162,4 @@ Player::~Player() {
 }
 
 } /* namespace agr */
-
-namespace base {
-
-template<> std::function<std::ostringstream(const std::vector<agr::Player*>&)> Class<
-		std::vector<agr::Player*>>::printer = print_std__vector<agr::Player*>;
-
-} /* namespace base */
 

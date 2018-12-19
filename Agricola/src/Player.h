@@ -32,10 +32,11 @@ private:
 	Which which;
 };
 
+class Owned;
 class Player final: public base::Ensemble {
 	base::Class<std::string> name;
 	Color color;
-	base::Class<std::set<base::Element*>> pieces;
+	base::Class<std::set<Owned*>> pieces;
 	static base::Class<std::vector<Player*>> players;
 
 	Player(base::Class<std::string>, Color, const Log* = nullptr, base::Fields =
@@ -44,7 +45,8 @@ public:
 	base::Primitive<short> which_is(const Log* = nullptr) const;
 	base::Class<std::string> who_is(const Log* = nullptr) const;
 	Color how_is(const Log* = nullptr) const;
-	base::Class<std::set<base::Element*>> owns(const Log* = nullptr);
+	base::Class<std::set<Owned*>> owns(const Log* = nullptr);
+	void owns(Owned*, const Log* = nullptr);
 	virtual std::ostringstream prints() const;
 	static base::Primitive<short> give_number(const Log* = nullptr);
 	static Player& give(base::Primitive<short>, const Log* = nullptr);
@@ -60,31 +62,12 @@ public:
 	~Player();
 };
 
+class Owned: virtual public base::Log {
+	Player* onwer;
+public:
+
+};
+
 } /* namespace agr */
-
-namespace base {
-
-std::ostringstream print_std__vector_std__pair_std__string_agr__color__(
-		const std::vector<std::pair<std::string, agr::Color>>& array) {
-	std::ostringstream result("{");
-
-	for (auto pair : array)
-		result << "\n\t{\"" << pair.first << "\", "
-				<< pair.second.prints().str() << "}";
-	if (result.str() == "{")
-		result << " ";
-	else
-		result << "\n";
-	result << "}";
-
-	return result;
-}
-template<> std::function<
-		std::ostringstream(
-				const std::vector<std::pair<std::string, agr::Color>>&)> Class<
-		std::vector<std::pair<std::string, agr::Color>>>::printer =
-		print_std__vector_std__pair_std__string_agr__color__;
-
-} /* namespace base */
 
 #endif /* PLAYER_H_ */
