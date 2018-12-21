@@ -4,96 +4,78 @@
  *  Created on: 13 nov 2018
  *      Author: m1rma
  */
-/*
+
 #include "Components.h"
 
-namespace a {
+namespace base {
+
+std::ostringstream print_std__tuple_Farmyard__short_short__(
+		const std::tuple<agr::Farmyard*, short, short>& position) {
+	return Container_Printer(std::string(), position, "{ ", ": ", ", \"",
+			"\" }")(false);
+}
+template<> std::function<
+		std::ostringstream(const std::tuple<agr::Farmyard*, short, short>&)> base::Class<
+		std::tuple<agr::Farmyard*, short, short>>::printer =
+		print_std__tuple_Farmyard__short_short__;
+
+} /* namespace base */
+
+namespace agr {
+
 // Board
-Board::Board(base::Class<std::string> label, const Log* caller = nullptr,
+Board::Board(std::string label, const Log* caller = nullptr,
 		base::Fields attributes) :
-		base::Object(caller, label.is()), base::Log(caller, label.is(), false), base::Ensemble(
-				label, caller, attributes) {
-	as_constructor("a", __func__, caller, label, attributes);
-}
-Board::~Board() {
-	as_destructor("a", __func__);
-}
+		ENSEMBLE(
+				false, label, caller, attributes) {
+			as_constructor(AGR, __func__, caller, label, attributes);
+		}
+		Board::~Board() {
+			as_destructor(AGR, __func__);
+		}
 
 // Farmyard
-template<typename Primitive> std::out_of_range throw_out_of_range(
-		base::Primitive<Primitive>& value, Primitive threshold,
-		const base::Log& log) {
-	return std::out_of_range(
-			log.logs_error(
-					std::ostringstream(
-							"ERROR: " + value.prints().str() + " "
-									+ (value < threshold ?
-											"<" :
-											(value > threshold ? ">" : "="))
-									+ " " + std::to_string(threshold) + ".")));
-}
-base::Ensemble& Farmyard::personal_supply(const Log* caller) const {
-	auto log = as_method(__func__, caller, typeid(Ensemble&));
+		base::Ensemble& Farmyard::personal_supply(const Log* caller) const {
+			return as_method<false>(__func__, caller, typeid(Ensemble&)).returns(
+					dynamic_cast<Ensemble&>(Ensemble::operator [](0)));
+		}
+		Farmyard::Row Farmyard::operator [](base::Primitive<short> row) const {
+			auto log = as_binary(__func__, row, typeid(Row));
 
-	return log.returns(dynamic_cast<Ensemble&>(Ensemble::operator [](0)));
-}
-Farmyard::Row Farmyard::operator [](base::Primitive<short> row) const {
-	auto log = as_binary("[]", row, nullptr, typeid(Row));
+			if (row == 0 || row > 3)
+			throw base::throw_out_of_range_0(
+					base::Primitive<long long unsigned>(row, &log),
+					base::Primitive<long long unsigned>(3, &log), log);
 
-	if (row == 0 || row > 3)
-		throw throw_out_of_range<short>(row, row > 3 ? 3 : 0, log);
+			return log.returns(Row(row, *this, &log));
+		}
+		base::Unique_ptr Farmyard::construct(const Log* caller) {
+			auto log = as_method(base::make_scopes(AGR, __func__, TYPEID(Farmyard)),
+					false, caller, typeid(base::Unique_ptr));
 
-	return log.returns(
-			Row(row,
-					base::Primitive<Farmyard*>(const_cast<Farmyard*>(this),
-							&log), &log));
-}
-template<> std::function<
-		std::ostringstream(const std::map<std::string, std::string>&)> base::Class<
-		std::map<std::string, std::string>>::printer = base::print_std__map<
-		std::string, std::string>;
-base::Unique_ptr Farmyard::construct(const Log* caller) {
-	return as_method(base::make_scopes(__func__, "a", typeid(Farmyard).name()),
-			false, caller, typeid(base::Unique_ptr)).returns(
-			base::Unique_ptr::construct<Farmyard>(caller, caller));
-}
+			return log.returns(base::Unique_ptr::construct<Farmyard>(&log, &log));
+		}
 
-Farmyard::Farmyard(const Log* caller, base::Fields attributes) :
-		Object(caller, base::make_scopes(__func__, "a")), Log(caller,
-				base::make_scopes(__func__, "a"), true), Board(
-				base::Class<std::string>(base::make_scopes(__func__, "a"),
-						caller), caller, attributes) {
-	base::Primitive<const Log*> it(this, this);
+		Farmyard::Farmyard(const Log* caller, base::Fields attributes) :
+		NEW_BOARD(caller, base::make_scopes(AGR, __func__), true, attributes) {
+			auto log = as_constructor(AGR, __func__, caller);
+			base::Primitive<const Log*> it(&log, &log);
 
-	for (short row = 3; row; --row)
-		for (short column = 5; column; --column)
-			generates<Space>(
-					"Space" + std::to_string(row) + std::to_string(column), 1,
-					this, it);
-	generates<Ensemble>(base::Class<std::string>("Personal Supply", this),
-			base::Primitive<size_t>(1, this), this,
-			base::Class<std::string>(typeid(Ensemble).name(), this), it);
-}
-Farmyard::~Farmyard() {
-	as_destructor("a", __func__);
-}
+			for (short row = 3; row; --row)
+			for (short column = 5; column; --column)
+			generates<Space>(base::Class<std::string>(
+							SPACE_NAME + std::to_string(row) + std::to_string(column), &log),
+					base::Primitive<size_t>(1, &log), &log, it);
+			generates<Ensemble>(base::Class<std::string>(PERSONAL_SUPPLY_NAME, &log),
+					base::Primitive<size_t>(1, &log), &log, TYPEID(Ensemble));
+		}
+		Farmyard::~Farmyard() {
+			as_destructor(AGR, __func__);
+		}
 
 // Farmyard::Space
-std::ostringstream class_std__tuple_Farmyard__short_short__(
-		const std::tuple<Farmyard*, short, short>& position) {
-	std::ostringstream result("{ ");
-
-	result << std::get<0>(position) << "; " << std::get<1>(position) << "; "
-			<< std::get<2>(position) << " }";
-
-	return result;
-}
-template<> std::function<
-		std::ostringstream(const std::tuple<Farmyard*, short, short>&)> base::Class<
-		std::tuple<Farmyard*, short, short>>::printer =
-		a::class_std__tuple_Farmyard__short_short__;
-base::Class<std::tuple<Farmyard*, short, short>> Farmyard::Space::is_located(
-		const Log* caller) const {
+		base::Class<std::tuple<Farmyard*,
+short, short>> Farmyard::Space::is_located(const Log* caller) const {
 	using Result = base::Class<std::tuple<Farmyard*, short, short>>;
 	auto log = as_method(__func__, caller, typeid(Result));
 	auto position = Ensemble::localize(*this, &log).is();
@@ -101,17 +83,11 @@ base::Class<std::tuple<Farmyard*, short, short>> Farmyard::Space::is_located(
 	auto offset = std::get<1>(position) - 1;
 	auto column = std::get<1>(position) % 5;
 
-	if (location)
-		throw base::throw_root_element(*this, log);
+	if (!location)
+	throw base::throw_not_root(*this, log);
 	if (offset == 0 && offset > 15)
-		throw std::domain_error(
-				log.logs_error(
-						std::ostringstream(
-								"ERROR: the element " + prints().str()
-										+ " is in a wrong position="
-										+ std::to_string(++offset)
-										+ " in the location "
-										+ location->prints().str() + ".")));
+	throw base::throw_out_of_range_0(base::Primitive<size_t>(offset, &log),
+			base::Primitive<size_t>(15, &log), log);
 
 	return log.returns(
 			Result(
@@ -120,21 +96,16 @@ base::Class<std::tuple<Farmyard*, short, short>> Farmyard::Space::is_located(
 }
 base::Primitive<base::Element*> Farmyard::Space::operator ()(
 		base::Primitive<Direction> direction, const Log* caller) {
-	return base::method_primitive(fences[direction], *this, "", caller,
-			direction);
+	return as_method("", caller, typeid(base::Primitive<base::Element*>),
+			direction).returns(fences.is()[direction]->which);
 }
 
 Farmyard::Space::Space(const Log* caller, base::Fields attributes) :
-		Object(caller,
-				base::make_scopes(__func__, "a", typeid(Farmyard).name())), Log(
-				caller,
-				base::make_scopes(__func__, "a", typeid(Farmyard).name()),
-				false), Ensemble(
-				base::make_scopes(__func__, "a", typeid(Farmyard).name()),
+		ENSEMBLE(false, base::make_scopes(AGR, TYPEID(Farmyard), __func__),
 				caller, attributes), fences { nullptr, nullptr, nullptr, nullptr } {
 }
 Farmyard::Space::~Space() {
-	as_destructor("a", base::make_scopes(__func__, typeid(Farmyard).name()));
+	as_destructor(AGR, base::make_scopes(__func__, TYPEID(Farmyard)));
 }
 
 // Row
@@ -175,13 +146,13 @@ Farmyard::Row::~Row() {
 	as_destructor("a", base::make_scopes(__func__, typeid(Farmyard).name()));
 }
 
-} /* namespace a */
+} /* namespace agr */
 /*
-namespace card {
+ namespace card {
 
-const std::string Occupation::type = CARD_OCCUPATION;
-const std::string MinorImprovement::type = CARD_MINOR_IMPROVEMENT;
-const std::string MajorImprovement::type = CARD_MAJOR_IMPROVEMENT;
-const std::string Round::type = CARD_ROUND;
+ const std::string Occupation::type = CARD_OCCUPATION;
+ const std::string MinorImprovement::type = CARD_MINOR_IMPROVEMENT;
+ const std::string MajorImprovement::type = CARD_MAJOR_IMPROVEMENT;
+ const std::string Round::type = CARD_ROUND;
 
-} /*namespace card */
+ } /*namespace card */

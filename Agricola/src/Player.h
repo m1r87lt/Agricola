@@ -37,8 +37,8 @@ class Player final: public base::Ensemble {
 	base::Class<std::string> name;
 	Color color;
 	base::Class<std::set<Owned*>> pieces;
+	friend class Owned;
 	static base::Class<std::vector<Player*>> players;
-
 	Player(base::Class<std::string>, Color, const Log* = nullptr, base::Fields =
 			nullptr);
 public:
@@ -46,26 +46,30 @@ public:
 	base::Class<std::string> who_is(const Log* = nullptr) const;
 	Color how_is(const Log* = nullptr) const;
 	base::Class<std::set<Owned*>> owns(const Log* = nullptr);
-	void owns(Owned*, const Log* = nullptr);
 	virtual std::ostringstream prints() const;
 	static base::Primitive<short> give_number(const Log* = nullptr);
 	static Player& give(base::Primitive<short>, const Log* = nullptr);
 	static Player& give(base::Class<std::string>, const Log* = nullptr);
 	static Player& give(Color, const Log* = nullptr);
 	static void construct_all(
-			base::Class<std::vector<std::pair<std::string, Color>>> players,
-			const Log* caller = nullptr) {
-		auto log = as_method(base::make_scopes(AGR, TYPEID(Player), __func__),
-				true, caller, typeid(void), players);
-	}
+			base::Class<std::vector<std::pair<std::string, Color>>>,
+			const Log* = nullptr);
 
 	~Player();
 };
 
 class Owned: virtual public base::Log {
-	Player* onwer;
+	base::Primitive<Player*> owner;
 public:
+	Player& gives_owner(const Log* = nullptr);
+	virtual std::ostringstream prints() const = 0;
 
+	Owned(Player&, const Log* = nullptr);
+	virtual ~Owned();
+	Owned(const Owned&);
+	Owned& operator =(const Owned&);
+	Owned(Owned&&);
+	Owned& operator =(Owned&&);
 };
 
 } /* namespace agr */
