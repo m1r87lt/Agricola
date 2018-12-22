@@ -28,7 +28,7 @@ Board::Board(std::string label, const Log* caller = nullptr,
 		base::Fields attributes) :
 		ENSEMBLE(
 				false, label, caller, attributes) {
-			as_constructor(AGR, __func__, caller, label, attributes);
+			as_constructor(AGR, __func__, caller, label);
 		}
 		Board::~Board() {
 			as_destructor(AGR, __func__);
@@ -44,8 +44,8 @@ Board::Board(std::string label, const Log* caller = nullptr,
 
 			if (row == 0 || row > 3)
 			throw base::throw_out_of_range_0(
-					base::Primitive<long long unsigned>(row, &log),
-					base::Primitive<long long unsigned>(3, &log), log);
+					base::Primitive<size_t>((short) row, &log),
+					base::Primitive<size_t>(3, &log), log);
 
 			return log.returns(Row(row, *this, &log));
 		}
@@ -102,45 +102,46 @@ base::Primitive<base::Element*> Farmyard::Space::operator ()(
 
 Farmyard::Space::Space(const Log* caller, base::Fields attributes) :
 		ENSEMBLE(false, base::make_scopes(AGR, TYPEID(Farmyard), __func__),
-				caller, attributes), fences { nullptr, nullptr, nullptr, nullptr } {
-}
-Farmyard::Space::~Space() {
-	as_destructor(AGR, base::make_scopes(__func__, TYPEID(Farmyard)));
-}
+				caller, attributes) {
+			as_constructor(AGR, base::make_scopes(TYPEID(Farmyard), __func__), caller);
+		}
+		Farmyard::Space::~Space() {
+			as_destructor(AGR, base::make_scopes(__func__, TYPEID(Farmyard)));
+		}
 
 // Row
-Farmyard::Space& Farmyard::Row::operator [](
-		base::Primitive<short> column) const {
-	auto log = as_binary("[]", column, nullptr, typeid(Space&));
+		Farmyard::Space& Farmyard::Row::operator [](
+				base::Primitive<short> column) const {
+			auto log = as_binary(__func__, column, typeid(Space&));
 
-	if (column == 0 || column > 5)
-		throw throw_out_of_range<short>(column, column > 5 ? 5 : 0, log);
+			if (column == 0 || column > 5)
+			throw base::throw_out_of_range_0(base::Primitive<size_t>((short) column, &log),
+					base::Primitive<size_t>(5, &log), log);
 
-	return log.returns(
-			dynamic_cast<Space&>(owner->Board::operator [](
-					(row - 1) * 3 + column + 1)));
-}
-Farmyard::Row::Row(base::Primitive<short> row, base::Primitive<Farmyard*> owner,
-		const Log* caller) :
-		Object(caller, __func__), Log(caller,
-				base::make_scopes(__func__, "a", typeid(Farmyard).name()),
-				false) {
-	this->row = row;
-	this->owner = owner;
+			return log.returns(
+					dynamic_cast<Space&>(((Farmyard*) owner)->operator [](
+									(row - 1) * 3 + column + 1)));
+		}
+		Farmyard::Row::Row(base::Primitive<short> row, const Farmyard& owner,
+				const Log* caller) :
+		NEW_LOG(caller, base::make_scopes(AGR, TYPEID(Farmyard), __func__), false),
+row(row), owner(base::Primitive<Farmyard*>(&owner, &log)) {
+	as_constructor(AGR, base::make_scopes(TYPEID(Farmyard), __func__), caller, row, owner);
+	this->row = row;;
 }
 Farmyard::Row::Row(const Row& copy) :
-		Object(copy), Log(nullptr,
-				base::make_scopes(__func__, "a", typeid(Farmyard).name()),
-				false) {
-	row = copy.row;
-	owner = copy.owner;
+		Object(copy), Log(&copy,
+				base::make_scopes(AGR, TYPEID(Farmyard), __func__), false), row(
+				copy.row), owner(copy.owner) {
+	as_constructor(AGR, base::make_scopes(TYPEID(Farmyard), __func__), &copy,
+			copy);
 }
 Farmyard::Row& Farmyard::Row::operator =(const Row& copy) {
-	Object::operator =(copy);
+	auto log = as_binary(__func__, copy, typeid(Row&));
 	row = copy.row;
 	owner = copy.owner;
 
-	return returns(*this);
+	return log.returns(*this);
 }
 Farmyard::Row::~Row() {
 	as_destructor("a", base::make_scopes(__func__, typeid(Farmyard).name()));

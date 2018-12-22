@@ -33,11 +33,9 @@ struct Farmyard final: protected Board {
 			base::Primitive<Element*> which;
 			base::Primitive<bool> vertical;
 			base::Class<std::array<Space*, 2>> spaces;
-
-			Fence(base::Primitive<bool>, base::Primitive<bool>, const Log* =
-					nullptr);
 		};
 		friend class Row;
+		friend Farmyard;
 		base::Class<std::array<Fence*, 4>> fences;
 
 		Space(const Log*, base::Fields = nullptr);
