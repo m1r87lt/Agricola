@@ -170,9 +170,6 @@ Player::Player(base::Class<std::string> name, Color color, const Log* caller,
 				name), color(color), pieces( { }) {
 	as_constructor<false>(AGR, __func__, caller, name, color, attributes);
 }
-Player::~Player() {
-	as_destructor(AGR, __func__);
-}
 
 //Owned
 Player& Owned::gives_owner(const Log* caller) {

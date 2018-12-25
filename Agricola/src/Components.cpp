@@ -15,26 +15,40 @@ std::ostringstream print_std__tuple_Farmyard__short_short__(
 			"\" }")(false);
 }
 template<> std::function<
-		std::ostringstream(const std::tuple<agr::Farmyard*, short, short>&)> base::Class<
+		std::ostringstream(const std::tuple<agr::Farmyard*, short, short>&)> Class<
 		std::tuple<agr::Farmyard*, short, short>>::printer =
 		print_std__tuple_Farmyard__short_short__;
+template<> std::function<
+		std::ostringstream(const std::array<agr::Farmyard::Space*, 2>&)> Class<
+		std::array<agr::Farmyard::Space*, 2>>::printer = agr::print_std__array<
+		agr::Farmyard::Space*, 2>;
+template<> std::function<
+		std::ostringstream(const std::array<agr::Farmyard::Space::Fence*, 4>&)> Class<
+		std::array<agr::Farmyard::Space::Fence*, 4>>::printer =
+		agr::print_std__array<agr::Farmyard::Space::Fence*, 4>;
+template<> std::function<std::ostringstream(const std::vector<agr::Condition*>&)> Class<
+		std::vector<agr::Condition*>>::printer = print_std__vector<
+		agr::Condition*>;
+template<> std::function<
+		std::ostringstream(const std::map<std::type_index, int>&)> Class<
+		std::map<std::type_index, int>>::printer =
+		agr::unprint_std__map_std__type_info_second_<std::type_index, int>;
+template<> std::function<std::ostringstream(const std::vector<agr::Event*>&)> Class<
+		std::vector<agr::Event*>>::printer = print_std__vector<agr::Event*>;
 
 } /* namespace base */
 
 namespace agr {
 
-// Board
+//Board
 Board::Board(std::string label, const Log* caller = nullptr,
 		base::Fields attributes) :
 		ENSEMBLE(
 				false, label, caller, attributes) {
-			as_constructor(AGR, __func__, caller, label);
-		}
-		Board::~Board() {
-			as_destructor(AGR, __func__);
+			as_constructor(AGR, __func__, caller);
 		}
 
-// Farmyard
+//Farmyard
 		base::Ensemble& Farmyard::personal_supply(const Log* caller) const {
 			return as_method<false>(__func__, caller, typeid(Ensemble&)).returns(
 					dynamic_cast<Ensemble&>(Ensemble::operator [](0)));
@@ -67,13 +81,10 @@ Board::Board(std::string label, const Log* caller = nullptr,
 							SPACE_NAME + std::to_string(row) + std::to_string(column), &log),
 					base::Primitive<size_t>(1, &log), &log, it);
 			generates<Ensemble>(base::Class<std::string>(PERSONAL_SUPPLY_NAME, &log),
-					base::Primitive<size_t>(1, &log), &log, TYPEID(Ensemble));
-		}
-		Farmyard::~Farmyard() {
-			as_destructor(AGR, __func__);
+					base::Primitive<size_t>(1, &log), &log);
 		}
 
-// Farmyard::Space
+//Farmyard::Space
 		base::Class<std::tuple<Farmyard*,
 short, short>> Farmyard::Space::is_located(const Log* caller) const {
 	using Result = base::Class<std::tuple<Farmyard*, short, short>>;
@@ -102,49 +113,163 @@ base::Primitive<base::Element*> Farmyard::Space::operator ()(
 
 Farmyard::Space::Space(const Log* caller, base::Fields attributes) :
 		ENSEMBLE(false, base::make_scopes(AGR, TYPEID(Farmyard), __func__),
-				caller, attributes) {
-			as_constructor(AGR, base::make_scopes(TYPEID(Farmyard), __func__), caller);
-		}
-		Farmyard::Space::~Space() {
-			as_destructor(AGR, base::make_scopes(__func__, TYPEID(Farmyard)));
-		}
+				caller, attributes), fences(std::array<Fence*, 4>(), this) {
+	as_constructor<false>(AGR, base::make_scopes(TYPEID(Farmyard), __func__),
+			caller);
+}
 
-// Row
-		Farmyard::Space& Farmyard::Row::operator [](
-				base::Primitive<short> column) const {
-			auto log = as_binary(__func__, column, typeid(Space&));
+//Farmyard::Space::Fence
+std::ostringstream Farmyard::Space::Fence::prints() const {
+	std::ostringstream result;
 
-			if (column == 0 || column > 5)
-			throw base::throw_out_of_range_0(base::Primitive<size_t>((short) column, &log),
-					base::Primitive<size_t>(5, &log), log);
+	result << has_label() << "{"
 
-			return log.returns(
-					dynamic_cast<Space&>(((Farmyard*) owner)->operator [](
-									(row - 1) * 3 + column + 1)));
-		}
-		Farmyard::Row::Row(base::Primitive<short> row, const Farmyard& owner,
-				const Log* caller) :
+	return result;
+}
+
+//Farmyard::Row
+Farmyard::Space& Farmyard::Row::operator [](
+		base::Primitive<short> column) const {
+	auto log = as_binary(__func__, column, typeid(Space&));
+
+	if (column == 0 || column > 5)
+		throw base::throw_out_of_range_0(
+				base::Primitive<size_t>((short) column, &log),
+				base::Primitive<size_t>(5, &log), log);
+
+	return log.returns(
+			dynamic_cast<Space&>(((Farmyard*) owner)->Ensemble::operator [](
+					(row - 1) * 3 + column + 1)));
+}
+Farmyard::Row::Row(base::Primitive<short> row, const Farmyard& owner,
+		const Log* caller) :
 		NEW_LOG(caller, base::make_scopes(AGR, TYPEID(Farmyard), __func__), false),
-row(row), owner(base::Primitive<Farmyard*>(&owner, &log)) {
-	as_constructor(AGR, base::make_scopes(TYPEID(Farmyard), __func__), caller, row, owner);
-	this->row = row;;
+		row(row), owner(
+				base::Primitive<Farmyard*>(const_cast<Farmyard*>(&owner), this)) {
+	as_constructor<false>(AGR, base::make_scopes(TYPEID(Farmyard), __func__),
+			caller, row, dynamic_cast<const Object&>(owner));
+	this->row = row;
+	;
 }
 Farmyard::Row::Row(const Row& copy) :
 		Object(copy), Log(&copy,
 				base::make_scopes(AGR, TYPEID(Farmyard), __func__), false), row(
 				copy.row), owner(copy.owner) {
-	as_constructor(AGR, base::make_scopes(TYPEID(Farmyard), __func__), &copy,
-			copy);
+	as_constructor<false>(AGR, base::make_scopes(TYPEID(Farmyard), __func__),
+			&copy, copy);
 }
 Farmyard::Row& Farmyard::Row::operator =(const Row& copy) {
 	auto log = as_binary(__func__, copy, typeid(Row&));
+
 	row = copy.row;
 	owner = copy.owner;
 
 	return log.returns(*this);
 }
-Farmyard::Row::~Row() {
-	as_destructor("a", base::make_scopes(__func__, typeid(Farmyard).name()));
+
+//Colored
+Color Colored::has_color(const Log* caller) const {
+	return as_method(__func__, caller, typeid(Color)).returns(color);
+}
+
+Colored::Colored(Color color, const Log* caller) :
+		NEW_LOG(caller, base::make_scopes(AGR, __func__), false), color(color) {
+	as_constructor<false>(AGR, __func__, caller, color);
+}
+Colored::Colored(const Colored& copy) :
+		Object(copy), Log(&copy, base::make_scopes(AGR, __func__), false), color(
+				copy.color) {
+	as_constructor<false>(AGR, __func__, &copy, copy);
+}
+Colored& Colored::operator =(const Colored& copy) {
+	auto log = as_binary(__func__, copy, typeid(Colored));
+
+	color = copy.color;
+
+	return log.returns(*this);
+}
+
+//Face
+base::Class<std::vector<Condition*>> Face::has_prerequisites(
+		const Log* caller) const {
+	return as_method<false>(__func__, caller,
+			typeid(base::Class<std::vector<Condition*>>)).returns(prerequisite);
+}
+base::Class<std::string> Face::has_name(const Log* caller) const {
+	return as_method<false>(__func__, caller, typeid(base::Class<std::string>)).returns(
+			name);
+}
+base::Class<std::map<std::type_index, int>> Face::has_cost(
+		const Log* caller) const {
+	return as_method<false>(__func__, caller,
+			typeid(base::Class<std::map<std::type_index, int>>)).returns(cost);
+}
+base::Primitive<char> Face::belongs(const Log* caller) const {
+	return as_method<false>(__func__, caller, typeid(base::Primitive<char>)).returns(
+			deck);
+}
+base::Class<std::vector<Event*>> Face::has_events(const Log* caller) const {
+	return as_method<false>(__func__, caller,
+			typeid(base::Class<std::vector<Event*>>)).returns(events);
+}
+base::Primitive<bool> Face::has_bonus_points(const Log* caller) const {
+	return as_method<false>(__func__, caller, typeid(base::Primitive<bool>)).returns(
+			bonus_points);
+}
+
+Face::Face(base::Class<std::vector<Condition*>> prerequisite,
+		base::Class<std::string> name,
+		base::Class<std::map<std::type_index, int>> cost,
+		base::Primitive<char> deck, base::Class<std::vector<Event*>> events,
+		base::Primitive<bool> bonus_points, Color color, std::string label,
+		const Log* caller, base::Fields attributes) :
+		ENSEMBLE(false, label, caller, attributes), Colored(color, caller), prerequisite(
+				prerequisite), name(name), cost(cost), deck(deck), events(
+				events), bonus_points(bonus_points) {
+	as_constructor<false>(AGR, __func__, caller, prerequisite, name, cost, deck,
+			events, bonus_points, color);
+}
+
+//Cover
+Cover::Cover(base::Class<std::string> name, Color color, const Log* caller,
+		base::Fields attributes) :
+		ENSEMBLE(false, __func__, caller, attributes), Colored(color, caller), name(
+				name) {
+	as_constructor<false>(AGR, __func__, caller, name, color);
+}
+base::Class<std::string> Cover::has_name(const Log* caller) const {
+	return as_method(__func__, caller, typeid(base::Class<std::string>)).returns(
+			name);
+}
+std::ostringstream Cover::prints() const {
+	std::ostringstream result;
+
+
+
+	return result;
+}
+
+//Numbered
+base::Primitive<unsigned> Numbered::is_number(const Log* caller) {
+	return as_method(__func__, caller, typeid(base::Primitive<unsigned>)).returns(
+			number);
+}
+
+Numbered::Numbered(base::Primitive<unsigned> number, const Log* caller) :
+		NEW_LOG(caller, base::make_scopes(AGR, __func__), false), number(number) {
+	as_constructor<false>(AGR, __func__, caller, number);
+}
+Numbered::Numbered(const Numbered& copy) :
+		Object(copy), Log(&copy, base::make_scopes(AGR, __func__), false), number(
+				copy.number) {
+	as_constructor<false>(AGR, __func__, &copy, copy);
+}
+Numbered& Numbered::operator =(const Numbered& copy) {
+	auto log = as_binary(__func__, copy, typeid(Numbered));
+
+	number = copy.number;
+
+	return log.returns(*this);
 }
 
 } /* namespace agr */

@@ -22,25 +22,26 @@
 namespace agr {
 
 struct Board: public base::Ensemble {
-	virtual ~Board();
+	virtual ~Board() = default;
 protected:
 	Board(std::string, const Log*, base::Fields = nullptr);
 };
 
-struct Farmyard final: protected Board {
-	class Space final: public Ensemble {
+template<typename Type, size_t N> std::ostringstream print_std__array(
+		const std::array<Type, N>& container) {
+	return base::Container_Printer(container, "\t", "")();
+}
+struct Farmyard final: private Board {
+	struct Space final: public Ensemble {
 		struct Fence: public Log {
 			base::Primitive<Element*> which;
 			base::Primitive<bool> vertical;
 			base::Class<std::array<Space*, 2>> spaces;
-		};
-		friend class Row;
-		friend Farmyard;
-		base::Class<std::array<Fence*, 4>> fences;
 
-		Space(const Log*, base::Fields = nullptr);
-		//friend base::Unique_ptr;
-	public:
+			virtual std::ostringstream prints() const;
+
+			Fence(const Log*);
+		};
 		enum Direction {
 			N, S, W, E
 		};
@@ -49,8 +50,12 @@ struct Farmyard final: protected Board {
 				nullptr) const;
 		base::Primitive<Element*> operator ()(base::Primitive<Direction>,
 				const Log* = nullptr);
-
-		~Space();
+	private:
+		base::Class<std::array<Fence*, 4>> fences;
+		friend class Row;
+		friend Farmyard;
+		friend base::Unique_ptr;
+		Space(const Log*, base::Fields = nullptr);
 	};
 	class Row final: public Log {
 		base::Primitive<short> row;
@@ -61,71 +66,87 @@ struct Farmyard final: protected Board {
 		Row& operator =(const Row&);
 	public:
 		Space& operator [](base::Primitive<short>) const;
-
-		~Row();
 	};
 //	friend Space;
 //	friend Row;
 	Ensemble& personal_supply(const Log* = nullptr) const;
 	Row operator [](base::Primitive<short>) const;
 	static base::Unique_ptr construct(const Log* = nullptr);
-
-	~Farmyard();
 private:
 	Farmyard(const Log*, base::Fields = nullptr);
 	friend base::Unique_ptr;
 };
-/*
- class Face: public base::Ensemble, virtual public Colored {
- std::vector<Condition*> prerequisite;
- std::string name;
- std::vector<Quantity*> cost;
- char edition;
- std::vector<Event*> events;
- bool bonus_points;
 
- Face(base::Class<std::vector<Condition*>>, base::Class<std::string>,
- base::Class<std::vector<Quantity*>>, base::Primitive<char>,
- base::Class<std::vector<Event*>>, base::Primitive<bool>,
- base::Class<Color>, base::Class<std::string>, const Log* = nullptr,
- base::Fields = nullptr);
- public:
- base::Class<std::vector<Condition*>> has_prerequisites(
- const Log* = nullptr) const;
- base::Class<std::string> has_name(const Log* = nullptr) const;
- base::Class<std::vector<Quantity*>> has_cost(const Log* = nullptr) const;
- base::Primitive<char> is_edtion(const Log* = nullptr) const;
- base::Class<std::vector<Event*>> has_events(const Log* = nullptr) const;
- base::Primitive<bool> has_bonus_points(const Log* = nullptr) const;
- virtual std::ostringstream prints() const = 0;
+class Colored: virtual public base::Log {
+	Color color;
+public:
+	Color has_color(const Log* = nullptr) const;
+	virtual std::ostringstream prints() const = 0;
 
- virtual ~Face();
- };
- class CardNumber: virtual public base::Log {
- unsigned number;
- public:
- base::Primitive<unsigned> is_number(const Log* = nullptr);
- virtual std::ostringstream prints() const = 0;
+	Colored(Color, const Log* = nullptr);
+	virtual ~Colored() = default;
+	Colored(const Colored&);
+	Colored& operator =(const Colored&);
+};
+template<typename First, typename Second> std::ostringstream unprint_std__map_std__type_info_second_(
+		const std::map<First, Second>& container) {
+	std::ostringstream result("{");
 
- CardNumber(base::Primitive<unsigned> number, const Log* = nullptr);
- ~CardNumber();
- CardNumber(const CardNumber&);
- CardNumber& operator =(const CardNumber&);
- CardNumber(CardNumber&&);
- CardNumber& operator =(CardNumber&&);
- };
- class Cover: public base::Ensemble, virtual public Colored {
- std::string label;
+	for (auto content : container)
+		result << "\n" << content.first.name() << ": " << content.second;
+	if (result.str() == "{")
+		result << " ";
+	else
+		result << "\n";
+	result << "}";
 
- Cover(base::Class<Color>, base::Class<std::string>, const Log* = nullptr,
- base::Fields = nullptr);
- public:
- base::Class<std::string> is_label(const Log* = nullptr) const;
- virtual std::ostringstream prints() const;
+	return result;
+}
+class Face: public base::Ensemble, public Colored {
+	base::Class<std::vector<Condition*>> prerequisite;
+	base::Class<std::string> name;
+	base::Class<std::map<std::type_index, int>> cost;
+	base::Primitive<char> deck;
+	base::Class<std::vector<Event*>> events;
+	base::Primitive<bool> bonus_points;
 
- ~Cover();
- };
- class Actions: public base::Ensemble, virtual public Colored {
+	Face(base::Class<std::vector<Condition*>>, base::Class<std::string>,
+			base::Class<std::map<std::type_index, int>>, base::Primitive<char>,
+			base::Class<std::vector<Event*>>, base::Primitive<bool>, Color,
+			std::string, const Log* = nullptr, base::Fields = nullptr);
+public:
+	base::Class<std::vector<Condition*>> has_prerequisites(
+			const Log* = nullptr) const;
+	base::Class<std::string> has_name(const Log* = nullptr) const;
+	base::Class<std::map<std::type_index, int>> has_cost(
+			const Log* = nullptr) const;
+	base::Primitive<char> belongs(const Log* = nullptr) const;
+	base::Class<std::vector<Event*>> has_events(const Log* = nullptr) const;
+	base::Primitive<bool> has_bonus_points(const Log* = nullptr) const;
+
+	virtual ~Face() = default;
+};
+class Numbered: virtual public base::Log {
+	base::Primitive<unsigned> number;
+public:
+	base::Primitive<unsigned> is_number(const Log* = nullptr);
+	virtual std::ostringstream prints() const = 0;
+
+	Numbered(base::Primitive<unsigned> number, const Log* = nullptr);
+	virtual ~Numbered() = default;
+	Numbered(const Numbered&);
+	Numbered& operator =(const Numbered&);
+};
+class Cover: public base::Ensemble, virtual public Colored {
+	base::Class<std::string> name;
+
+	Cover(base::Class<std::string>, Color, const Log* = nullptr, base::Fields =
+			nullptr);
+public:
+	base::Class<std::string> has_name(const Log* = nullptr) const;
+	virtual std::ostringstream prints() const;
+};
+/* class Actions: public base::Ensemble, virtual public Colored {
  std::vector<a::Action*> actions;
  static const a::Color color = a::Color::Green;
 

@@ -25,7 +25,6 @@ struct Color final: public base::Object {
 
 	Color(const base::Log*);
 	Color(Which, const base::Log* = nullptr);
-	~Color() = default;
 	Color(const Color&);
 	Color& operator =(const Color&);
 private:
@@ -54,8 +53,6 @@ public:
 	static void construct_all(
 			base::Class<std::vector<std::pair<std::string, Color>>>,
 			const Log* = nullptr);
-
-	~Player();
 };
 
 class Owned: virtual public base::Log {
