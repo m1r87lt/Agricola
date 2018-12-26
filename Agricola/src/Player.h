@@ -9,7 +9,8 @@
 #define PLAYER_H_
 
 #include <src/Element.h>
-#define COLOR(which) #which
+#define LOGGED_COLOR(which, caller) Color(which, #which, caller)
+#define COLOR(which) Color(which, #which)
 
 namespace agr {
 #define AGR "agr"
@@ -23,11 +24,12 @@ struct Color final: public base::Object {
 	base::Primitive<bool> operator !=(Color) const;
 	virtual std::ostringstream prints() const;
 
-	Color(const base::Log*);
-	Color(Which, const base::Log* = nullptr);
+	Color(Which, char*, const base::Log* = nullptr);
+	~Color();
 	Color(const Color&);
 	Color& operator =(const Color&);
 private:
+	char* name;
 	Which which;
 };
 

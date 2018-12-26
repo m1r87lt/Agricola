@@ -50,23 +50,25 @@ base::Primitive<bool> Color::operator !=(Color operand) const {
 			which != operand.which);
 }
 std::ostringstream Color::prints() const {
-	return std::ostringstream(COLOR(which));
+	return std::ostringstream(name);
 }
 
-Color::Color(const base::Log* caller) :
-		Object(caller, __func__) {
-	which = Which::No;
-}
-Color::Color(Which which, const base::Log* caller) :
+Color::Color(Which which, char* name, const base::Log* caller) :
 		Object(caller, __func__) {
 	this->which = which;
+	this->name = name;
+}
+Color::~Color() {
+	delete name;
 }
 Color::Color(const Color& copy) :
 		Object(nullptr, __func__) {
 	which = copy.which;
+	name = copy.name;
 }
 Color& Color::operator =(const Color& copy) {
 	which = copy.which;
+	name = copy.name;
 	Object::operator =(Color(copy));
 
 	return *this;
