@@ -113,39 +113,38 @@ base::Primitive<base::Element*> Farmyard::Space::operator ()(
 
 Farmyard::Space::Space(const Log* caller, base::Fields attributes) :
 		ENSEMBLE(false, base::make_scopes(AGR, TYPEID(Farmyard), __func__),
-				caller, attributes), fences(std::array<Fence*, 4>(), this) {
+				caller, attributes), fences( { nullptr, nullptr, nullptr,
+				nullptr }, this) {
 	as_constructor<false>(AGR, base::make_scopes(TYPEID(Farmyard), __func__),
 			caller);
 }
 
 //Farmyard::Space::Fence
-std::ostringstream Farmyard::Space::Fence::prints() const {
-	std::ostringstream result;
-
-	result << has_label() << "{"
-
-	return result;
-}
+Farmyard::Space::Fence::Fence(const Log* caller) :
+		NEW_LOG(caller, base::make_scopes(AGR, TYPEID(Space), __func__), false) {
+			as_constructor<false>(AGR, base::make_scopes(TYPEID(Space), __func__), caller);
+		}
 
 //Farmyard::Row
-Farmyard::Space& Farmyard::Row::operator [](
-		base::Primitive<short> column) const {
-	auto log = as_binary(__func__, column, typeid(Space&));
+		Farmyard::Space& Farmyard::Row::operator [](
+				base::Primitive<short> column) const {
+			auto log = as_binary(__func__, column, typeid(Space&));
 
-	if (column == 0 || column > 5)
-		throw base::throw_out_of_range_0(
-				base::Primitive<size_t>((short) column, &log),
-				base::Primitive<size_t>(5, &log), log);
+			if (column == 0 || column > 5)
+			throw base::throw_out_of_range_0(
+					base::Primitive<size_t>((short) column, &log),
+					base::Primitive<size_t>(5, &log), log);
 
-	return log.returns(
-			dynamic_cast<Space&>(((Farmyard*) owner)->Ensemble::operator [](
-					(row - 1) * 3 + column + 1)));
-}
+			return log.returns(
+					dynamic_cast<Space&>(((Farmyard*) owner)->Ensemble::operator [](
+									(row - 1) * 3 + column + 1)));
+		}
+
 Farmyard::Row::Row(base::Primitive<short> row, const Farmyard& owner,
-		const Log* caller) :
+				const Log* caller) :
 		NEW_LOG(caller, base::make_scopes(AGR, TYPEID(Farmyard), __func__), false),
-		row(row), owner(
-				base::Primitive<Farmyard*>(const_cast<Farmyard*>(&owner), this)) {
+row(row), owner(
+		base::Primitive<Farmyard*>(const_cast<Farmyard*>(&owner), this)) {
 	as_constructor<false>(AGR, base::make_scopes(TYPEID(Farmyard), __func__),
 			caller, row, dynamic_cast<const Object&>(owner));
 	this->row = row;
@@ -243,8 +242,6 @@ base::Class<std::string> Cover::has_name(const Log* caller) const {
 }
 std::ostringstream Cover::prints() const {
 	std::ostringstream result;
-
-
 
 	return result;
 }

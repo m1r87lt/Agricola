@@ -38,8 +38,6 @@ struct Farmyard final: private Board {
 			base::Primitive<bool> vertical;
 			base::Class<std::array<Space*, 2>> spaces;
 
-			virtual std::ostringstream prints() const;
-
 			Fence(const Log*);
 		};
 		enum Direction {
@@ -94,11 +92,7 @@ template<typename First, typename Second> std::ostringstream unprint_std__map_st
 
 	for (auto content : container)
 		result << "\n" << content.first.name() << ": " << content.second;
-	if (result.str() == "{")
-		result << " ";
-	else
-		result << "\n";
-	result << "}";
+	result << (result.str() == "{" ? " " : "\n") << "}";
 
 	return result;
 }
