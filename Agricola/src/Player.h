@@ -22,14 +22,15 @@ struct Color final: public base::Object {
 
 	base::Primitive<bool> operator ==(Color) const;
 	base::Primitive<bool> operator !=(Color) const;
+	Color& operator =(Which);
 	virtual std::ostringstream prints() const;
 
-	Color(Which, char*, const base::Log* = nullptr);
+	Color(Which, const char*, const base::Log* = nullptr);
 	~Color();
 	Color(const Color&);
 	Color& operator =(const Color&);
 private:
-	char* name;
+	const char* name;
 	Which which;
 };
 

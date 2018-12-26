@@ -10,6 +10,22 @@
 
 #include "Player.h"
 
+namespace base {
+
+using Quantity = Class<std::map<std::type_index, int>>;
+template<typename First, typename Second> std::ostringstream unprint_std__map_std__type_info_second_(
+		const std::map<First, Second>& container) {
+	std::ostringstream result("{");
+
+	for (auto content : container)
+		result << "\n" << content.first.name() << ": " << content.second;
+	result << (result.str() == "{" ? " " : "\n") << "}";
+
+	return result;
+}
+
+} /* namespace base */
+
 namespace agr {
 
 struct Condition: virtual public base::Log {
@@ -31,21 +47,20 @@ struct Event: virtual public base::Log {
 	Event(const Event&);
 	Event& operator =(const Event&);
 };
-/*
- class Action: public Event,
- public Condition,
- public base::Ensemble {
- virtual std::vector<Quantity*> does_collect(const Log* = nullptr) const;
- virtual std::ostringstream prints() const;
+class Action: public base::Ensemble, public Condition, public Event {
+	base::Primitive<Player*> performer;
+protected:
+	Action(std::string, const Log* = nullptr, base::Fields = nullptr);
+	Action(const Action&);
+	Action& operator =(const Action&);
+public:
+	base::Primitive<Player*> is_performed_by(const Log* = nullptr);
+	virtual std::ostringstream prints() const = 0;
+	virtual base::Quantity does_collect(const Log* = nullptr) = 0;
 
- Action(base::Class<std::string>, const Log* = nullptr);
- virtual ~Action();
- Action(const Action&);
- Action& operator =(const Action&);
- Action(Action&&);
- Action& operator =(Action&&);
- };
- */
+	virtual ~Action() = default;
+};
+
 } /* namespace agr */
 
 #endif /* LOGICS_H_ */

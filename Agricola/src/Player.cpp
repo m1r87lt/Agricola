@@ -53,7 +53,7 @@ std::ostringstream Color::prints() const {
 	return std::ostringstream(name);
 }
 
-Color::Color(Which which, char* name, const base::Log* caller) :
+Color::Color(Which which, const char* name, const base::Log* caller) :
 		Object(caller, __func__) {
 	this->which = which;
 	this->name = name;

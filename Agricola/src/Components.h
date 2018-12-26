@@ -11,7 +11,7 @@
 //#include <src/Gamecard.h>
 //#include <array>
 #include "Logics.h"
-#define NEW_BOARD(caller, label, open, attributes) Object(caller, label), Log(caller, label, open), Board(label, caller, attributes)
+#define BOARD(caller, label, open, attributes) Object(caller, label), Log(caller, label, open), Board(label, caller, attributes)
 #define SPACE_NAME "Space"
 #define PERSONAL_SUPPLY_NAME "Personal Supply"
 /*#define CARD_MAJOR_IMPROVEMENT "Major Improvement"
@@ -86,16 +86,6 @@ public:
 	Colored(const Colored&);
 	Colored& operator =(const Colored&);
 };
-template<typename First, typename Second> std::ostringstream unprint_std__map_std__type_info_second_(
-		const std::map<First, Second>& container) {
-	std::ostringstream result("{");
-
-	for (auto content : container)
-		result << "\n" << content.first.name() << ": " << content.second;
-	result << (result.str() == "{" ? " " : "\n") << "}";
-
-	return result;
-}
 class Face: public base::Ensemble, public Colored {
 	base::Class<std::vector<Condition*>> prerequisite;
 	base::Class<std::string> name;
@@ -103,22 +93,70 @@ class Face: public base::Ensemble, public Colored {
 	base::Primitive<char> deck;
 	base::Class<std::vector<Event*>> events;
 	base::Primitive<bool> bonus_points;
-
+protected:
 	Face(base::Class<std::vector<Condition*>>, base::Class<std::string>,
-			base::Class<std::map<std::type_index, int>>, base::Primitive<char>,
+			base::Quantity, base::Primitive<char>,
 			base::Class<std::vector<Event*>>, base::Primitive<bool>, Color,
 			std::string, const Log* = nullptr, base::Fields = nullptr);
 public:
 	base::Class<std::vector<Condition*>> has_prerequisites(
 			const Log* = nullptr) const;
 	base::Class<std::string> has_name(const Log* = nullptr) const;
-	base::Class<std::map<std::type_index, int>> has_cost(
-			const Log* = nullptr) const;
+	base::Quantity has_cost(const Log* = nullptr) const;
 	base::Primitive<char> belongs(const Log* = nullptr) const;
 	base::Class<std::vector<Event*>> has_events(const Log* = nullptr) const;
 	base::Primitive<bool> has_bonus_points(const Log* = nullptr) const;
 
 	virtual ~Face() = default;
+};
+class Cover final: public base::Ensemble, public Colored {
+	base::Class<std::string> name;
+	friend base::Unique_ptr;
+	Cover(base::Class<std::string>, Color, const Log* = nullptr, base::Fields =
+			nullptr);
+public:
+	base::Class<std::string> has_name(const Log* = nullptr) const;
+	virtual std::ostringstream prints() const;
+	static base::Unique_ptr construct(base::Class<std::string>, Color,
+			const Log* = nullptr, base::Fields = nullptr);
+};
+class Actions final: public Colored, private base::Ensemble {
+	static const agr::Color color;
+	static const std::string action;
+
+	template<typename ... Unique_pointers> void adds(const Log* caller,
+			base::Unique_ptr&& action, Unique_pointers&& ... actions) {
+		auto log = as_method(__func__, caller, typeid(void), action,
+				actions ...);
+
+		this->gets(action, std::move(action), base::Primitive<size_t>(1, &log),
+				&log);
+		adds(&log, actions ...);
+	}
+	void adds(const Log* caller);
+	friend base::Unique_ptr;
+	template<typename ... Unique_pointers> Actions(const Log* caller,
+			base::Fields attributes = nullptr, Unique_pointers&& ... actions) :
+			ENSEMBLE(true, base::make_scopes(AGR, __func__), caller, attributes), Colored(
+					LOGGED_COLOR(color, caller), caller) {
+		auto log = as_constructor(AGR, __func__, caller, actions ...);
+
+		adds(&log, actions ...);
+	}
+public:
+	base::Class<std::vector<agr::Action*>> includes(const Log* = nullptr);
+	template<typename ... Unique_pointers> static base::Unique_ptr construct(
+			const Log* caller, base::Fields attributes = nullptr,
+			Unique_pointers&& ... actions) {
+		auto log = as_method(base::make_scopes(AGR, TYPEID(Action), __func__),
+				true, caller, typeid(base::Unique_ptr), attributes,
+				actions ...);
+
+		return log.returns(
+				base::Unique_ptr::construct<Actions>(&log,
+						base::Primitive<const Log*>(&log, &log), attributes,
+						actions ...));
+	}
 };
 class Numbered: virtual public base::Log {
 	base::Primitive<unsigned> number;
@@ -131,29 +169,8 @@ public:
 	Numbered(const Numbered&);
 	Numbered& operator =(const Numbered&);
 };
-class Cover: public base::Ensemble, virtual public Colored {
-	base::Class<std::string> name;
 
-	Cover(base::Class<std::string>, Color, const Log* = nullptr, base::Fields =
-			nullptr);
-public:
-	base::Class<std::string> has_name(const Log* = nullptr) const;
-	virtual std::ostringstream prints() const;
-};
-/* class Actions: public base::Ensemble, virtual public Colored {
- std::vector<a::Action*> actions;
- static const a::Color color = a::Color::Green;
-
- Actions(base::Class<std::vector<a::Action*>>, const Log* = nullptr,
- base::Fields = nullptr);
- public:
- base::Class<std::vector<a::Action*>> has_actions(const Log* = nullptr);
- virtual std::ostringstream prints() const;
-
- virtual ~Actions();
- };
-
- /*struct WoodenPiece: public base::Element, virtual public Colored {
+/*struct WoodenPiece: public base::Element, virtual public Colored {
  enum class Shape {
  disc, house, bar, cube
  };

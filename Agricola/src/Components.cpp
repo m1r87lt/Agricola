@@ -29,12 +29,10 @@ template<> std::function<
 template<> std::function<std::ostringstream(const std::vector<agr::Condition*>&)> Class<
 		std::vector<agr::Condition*>>::printer = print_std__vector<
 		agr::Condition*>;
-template<> std::function<
-		std::ostringstream(const std::map<std::type_index, int>&)> Class<
-		std::map<std::type_index, int>>::printer =
-		agr::unprint_std__map_std__type_info_second_<std::type_index, int>;
 template<> std::function<std::ostringstream(const std::vector<agr::Event*>&)> Class<
 		std::vector<agr::Event*>>::printer = print_std__vector<agr::Event*>;
+template<> std::function<std::ostringstream(const std::vector<agr::Action*>&)> Class<
+		std::vector<agr::Action*>>::printer = print_std__vector<agr::Action*>;
 
 } /* namespace base */
 
@@ -71,7 +69,7 @@ Board::Board(std::string label, const Log* caller = nullptr,
 		}
 
 		Farmyard::Farmyard(const Log* caller, base::Fields attributes) :
-		NEW_BOARD(caller, base::make_scopes(AGR, __func__), true, attributes) {
+		BOARD(caller, base::make_scopes(AGR, __func__), true, attributes) {
 			auto log = as_constructor(AGR, __func__, caller);
 			base::Primitive<const Log*> it(&log, &log);
 
@@ -81,12 +79,14 @@ Board::Board(std::string label, const Log* caller = nullptr,
 							SPACE_NAME + std::to_string(row) + std::to_string(column), &log),
 					base::Primitive<size_t>(1, &log), &log, it);
 			generates<Ensemble>(base::Class<std::string>(PERSONAL_SUPPLY_NAME, &log),
-					base::Primitive<size_t>(1, &log), &log);
+					base::Primitive<size_t>(1, &log), &log,
+					base::Primitive<std::string>(PERSONAL_SUPPLY_NAME, &log), it);
 		}
 
 //Farmyard::Space
 		base::Class<std::tuple<Farmyard*,
-short, short>> Farmyard::Space::is_located(const Log* caller) const {
+short, short>> Farmyard::Space::is_located(
+		const Log* caller) const {
 	using Result = base::Class<std::tuple<Farmyard*, short, short>>;
 	auto log = as_method(__func__, caller, typeid(Result));
 	auto position = Ensemble::localize(*this, &log).is();
@@ -121,30 +121,33 @@ Farmyard::Space::Space(const Log* caller, base::Fields attributes) :
 
 //Farmyard::Space::Fence
 Farmyard::Space::Fence::Fence(const Log* caller) :
-		NEW_LOG(caller, base::make_scopes(AGR, TYPEID(Space), __func__), false) {
-			as_constructor<false>(AGR, base::make_scopes(TYPEID(Space), __func__), caller);
-		}
+		NEW_LOG(caller, base::make_scopes(AGR, TYPEID(Space), __func__), false), which(
+				nullptr, caller), vertical(false, caller), spaces( { nullptr,
+				nullptr }, caller) {
+	as_constructor<false>(AGR, base::make_scopes(TYPEID(Space), __func__),
+			caller);
+}
 
 //Farmyard::Row
-		Farmyard::Space& Farmyard::Row::operator [](
-				base::Primitive<short> column) const {
-			auto log = as_binary(__func__, column, typeid(Space&));
+Farmyard::Space& Farmyard::Row::operator [](
+		base::Primitive<short> column) const {
+	auto log = as_binary(__func__, column, typeid(Space&));
 
-			if (column == 0 || column > 5)
-			throw base::throw_out_of_range_0(
-					base::Primitive<size_t>((short) column, &log),
-					base::Primitive<size_t>(5, &log), log);
+	if (column == 0 || column > 5)
+		throw base::throw_out_of_range_0(
+				base::Primitive<size_t>((short) column, &log),
+				base::Primitive<size_t>(5, &log), log);
 
-			return log.returns(
-					dynamic_cast<Space&>(((Farmyard*) owner)->Ensemble::operator [](
-									(row - 1) * 3 + column + 1)));
-		}
+	return log.returns(
+			dynamic_cast<Space&>(((Farmyard*) owner)->Ensemble::operator [](
+					(row - 1) * 3 + column + 1)));
+}
 
 Farmyard::Row::Row(base::Primitive<short> row, const Farmyard& owner,
-				const Log* caller) :
+		const Log* caller) :
 		NEW_LOG(caller, base::make_scopes(AGR, TYPEID(Farmyard), __func__), false),
-row(row), owner(
-		base::Primitive<Farmyard*>(const_cast<Farmyard*>(&owner), this)) {
+		row(row), owner(
+				base::Primitive<Farmyard*>(const_cast<Farmyard*>(&owner), this)) {
 	as_constructor<false>(AGR, base::make_scopes(TYPEID(Farmyard), __func__),
 			caller, row, dynamic_cast<const Object&>(owner));
 	this->row = row;
@@ -198,10 +201,9 @@ base::Class<std::string> Face::has_name(const Log* caller) const {
 	return as_method<false>(__func__, caller, typeid(base::Class<std::string>)).returns(
 			name);
 }
-base::Class<std::map<std::type_index, int>> Face::has_cost(
-		const Log* caller) const {
-	return as_method<false>(__func__, caller,
-			typeid(base::Class<std::map<std::type_index, int>>)).returns(cost);
+base::Quantity Face::has_cost(const Log* caller) const {
+	return as_method<false>(__func__, caller, typeid(base::Quantity)).returns(
+			cost);
 }
 base::Primitive<char> Face::belongs(const Log* caller) const {
 	return as_method<false>(__func__, caller, typeid(base::Primitive<char>)).returns(
@@ -217,8 +219,7 @@ base::Primitive<bool> Face::has_bonus_points(const Log* caller) const {
 }
 
 Face::Face(base::Class<std::vector<Condition*>> prerequisite,
-		base::Class<std::string> name,
-		base::Class<std::map<std::type_index, int>> cost,
+		base::Class<std::string> name, base::Quantity cost,
 		base::Primitive<char> deck, base::Class<std::vector<Event*>> events,
 		base::Primitive<bool> bonus_points, Color color, std::string label,
 		const Log* caller, base::Fields attributes) :
@@ -230,20 +231,44 @@ Face::Face(base::Class<std::vector<Condition*>> prerequisite,
 }
 
 //Cover
+base::Class<std::string> Cover::has_name(const Log* caller) const {
+	return as_method(__func__, caller, typeid(base::Class<std::string>)).returns(
+			name);
+}
+std::ostringstream Cover::prints() const {
+	return Ensemble::prints();
+}
+base::Unique_ptr Cover::construct(base::Class<std::string> name, Color color,
+		const Log* caller, base::Fields attributes) {
+	return std::move(
+			base::Unique_ptr::construct<Cover>(caller, name, color, caller,
+					attributes));
+}
+
 Cover::Cover(base::Class<std::string> name, Color color, const Log* caller,
 		base::Fields attributes) :
 		ENSEMBLE(false, __func__, caller, attributes), Colored(color, caller), name(
 				name) {
 	as_constructor<false>(AGR, __func__, caller, name, color);
 }
-base::Class<std::string> Cover::has_name(const Log* caller) const {
-	return as_method(__func__, caller, typeid(base::Class<std::string>)).returns(
-			name);
-}
-std::ostringstream Cover::prints() const {
-	std::ostringstream result;
 
-	return ;
+//Actions
+const agr::Color Actions::color = COLOR(agr::Color::Which::Green);
+const std::string Actions::action = "action";
+
+void Actions::adds(const Log* caller) {
+	as_method<false>(__func__, caller, typeid(void));
+}
+base::Class<std::vector<Action*>> Actions::includes(const Log* caller) {
+	auto log = as_method(__func__, caller,
+			typeid(base::Class<std::vector<Action*>>));
+	base::Class<std::vector<Action*>> result(std::vector<Action*>(), &log);
+	auto index = has_size(&log);
+
+	while ((size_t) index)
+		result.is().push_back(dynamic_cast<Action*>(&operator [](index--)));
+
+	return log.returns(result);
 }
 
 //Numbered
