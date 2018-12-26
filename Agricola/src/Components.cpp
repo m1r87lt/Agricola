@@ -243,7 +243,7 @@ base::Class<std::string> Cover::has_name(const Log* caller) const {
 std::ostringstream Cover::prints() const {
 	std::ostringstream result;
 
-	return result;
+	return ;
 }
 
 //Numbered
