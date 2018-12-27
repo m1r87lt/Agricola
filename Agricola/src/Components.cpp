@@ -11,8 +11,9 @@ namespace base {
 
 std::ostringstream print_std__tuple_Farmyard__short_short__(
 		const std::tuple<agr::Farmyard*, short, short>& position) {
-	return Container_Printer(std::string(), position, "{ ", ": ", ", \"",
-			"\" }")(false);
+	return std::ostringstream(
+			Container_Printer(std::string(), position, "{ ", ": ", ", \"",
+					"\" }")(false).str().substr(1));
 }
 template<> std::function<
 		std::ostringstream(const std::tuple<agr::Farmyard*, short, short>&)> Class<
@@ -33,7 +34,8 @@ template<> std::function<std::ostringstream(const std::vector<agr::Event*>&)> Cl
 		std::vector<agr::Event*>>::printer = print_std__vector<agr::Event*>;
 template<> std::function<std::ostringstream(const std::vector<agr::Action*>&)> Class<
 		std::vector<agr::Action*>>::printer = print_std__vector<agr::Action*>;
-
+template<> std::function<std::ostringstream(const std::pair<short, bool>&)> Class<
+		std::pair<short, bool>>::printer = agr::print_std__pair<short, bool>;
 } /* namespace base */
 
 namespace agr {
@@ -107,7 +109,7 @@ short, short>> Farmyard::Space::is_located(
 }
 base::Primitive<base::Element*> Farmyard::Space::operator ()(
 		base::Primitive<Direction> direction, const Log* caller) {
-	return as_method("", caller, typeid(base::Primitive<base::Element*>),
+	return as_method<false>("", caller, typeid(base::Primitive<base::Element*>),
 			direction).returns(fences.is()[direction]->which);
 }
 
@@ -171,7 +173,7 @@ Farmyard::Row& Farmyard::Row::operator =(const Row& copy) {
 
 //Colored
 Color Colored::has_color(const Log* caller) const {
-	return as_method(__func__, caller, typeid(Color)).returns(color);
+	return as_method<false>(__func__, caller, typeid(Color)).returns(color);
 }
 
 Colored::Colored(Color color, const Log* caller) :
@@ -232,7 +234,7 @@ Face::Face(base::Class<std::vector<Condition*>> prerequisite,
 
 //Cover
 base::Class<std::string> Cover::has_name(const Log* caller) const {
-	return as_method(__func__, caller, typeid(base::Class<std::string>)).returns(
+	return as_method<false>(__func__, caller, typeid(base::Class<std::string>)).returns(
 			name);
 }
 std::ostringstream Cover::prints() const {
@@ -272,8 +274,8 @@ base::Class<std::vector<Action*>> Actions::includes(const Log* caller) {
 }
 
 //Numbered
-base::Primitive<unsigned> Numbered::is_number(const Log* caller) {
-	return as_method(__func__, caller, typeid(base::Primitive<unsigned>)).returns(
+base::Primitive<unsigned> Numbered::is_number(const Log* caller) const {
+	return as_method<false>(__func__, caller, typeid(base::Primitive<unsigned>)).returns(
 			number);
 }
 
@@ -295,12 +297,64 @@ Numbered& Numbered::operator =(const Numbered& copy) {
 }
 
 } /* namespace agr */
-/*
- namespace card {
 
- const std::string Occupation::type = CARD_OCCUPATION;
- const std::string MinorImprovement::type = CARD_MINOR_IMPROVEMENT;
+namespace card {
+#define CARD "card"
+
+const agr::Color Occupation::color = COLOR(agr::Color::Which::Yellow);
+
+base::Class<std::pair<short, bool>> Occupation::has_player_number(
+		const Log* caller) const {
+	return as_method<false>(__func__, caller,
+			typeid(base::Class<std::pair<short, bool>>)).returns(player_number);
+}
+std::ostringstream Occupation::prints() const {
+	std::ostringstream result;
+
+	result << has_label() << "{" << is_number() << "}";
+
+	return result;
+}
+game::Deck::Unique_ptr Occupation::construct(base::Primitive<unsigned> number,
+		const Log* caller, base::Fields attributes) {
+	auto log = as_method(base::make_scopes(CARD, TYPEID(Occupation), __func__),
+			true, caller, typeid(game::Deck::Unique_ptr), number, attributes);
+	base::Primitive<const Log*> it(&log, &log);
+
+	return game::Deck::Unique_ptr::dynamicCast(
+			base::Unique_ptr::construct<game::Card>(&log,
+					agr::Cover::construct(
+							base::Class<std::string>(CARD_OCCUPATION, &log),
+							color, &log),
+					base::Unique_ptr::construct<Occupation>(&log,
+							base::Class<std::vector<agr::Condition*>>( { }),
+							base::Class<std::string>(""),
+							base::Quantity(
+									{ std::make_pair(
+											std::type_index(typeid(void)), 0) }),
+							base::Primitive<char>('\0'),
+							base::Class<std::vector<agr::Event*>>( { }),
+							base::Primitive<bool>(false), number,
+							base::Class<std::pair<short, bool>>(
+									std::make_pair((short) 0, false)), it),
+					base::Primitive<bool>(false, &log), it, attributes));
+}
+
+Occupation::Occupation(base::Class<std::vector<agr::Condition*>> prerequisite,
+		base::Class<std::string> name, base::Quantity cost,
+		base::Primitive<char> deck,
+		base::Class<std::vector<agr::Event*>> events,
+		base::Primitive<bool> bonus_points, base::Primitive<unsigned> number,
+		base::Class<std::pair<short, bool>> player_number, const Log* caller,
+		base::Fields attributes) :
+		NUMBERED(caller, base::make_scopes(CARD, __func__), false, number), Face(
+				prerequisite, name, cost, deck, events, bonus_points, color,
+				base::make_scopes(CARD, __func__), caller, attributes), player_number(
+				player_number) {
+}
+
+/* const std::string MinorImprovement::type = CARD_MINOR_IMPROVEMENT;
  const std::string MajorImprovement::type = CARD_MAJOR_IMPROVEMENT;
  const std::string Round::type = CARD_ROUND;
-
- } /*namespace card */
+ */
+} /*namespace card */

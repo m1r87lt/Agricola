@@ -10,7 +10,7 @@
 
 #include <src/Element.h>
 #define LOGGED_COLOR(which, caller) Color(which, #which, caller)
-#define COLOR(which) Color(which, #which)
+#define COLOR(which) agr::Color(which, #which)
 
 namespace agr {
 #define AGR "agr"

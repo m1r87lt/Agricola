@@ -8,16 +8,17 @@
 #ifndef COMPONENTS_H_
 #define COMPONENTS_H_
 
-//#include <src/Gamecard.h>
 //#include <array>
 #include "Logics.h"
+#include <src/Gamecard.h>
 #define BOARD(caller, label, open, attributes) Object(caller, label), Log(caller, label, open), Board(label, caller, attributes)
+#define NUMBERED(caller, label, open, number) Object(caller, label), Log(caller, label, open), Numbered(number, caller)
 #define SPACE_NAME "Space"
 #define PERSONAL_SUPPLY_NAME "Personal Supply"
-/*#define CARD_MAJOR_IMPROVEMENT "Major Improvement"
- #define CARD_MINOR_IMPROVEMENT "Minor Improvement"
- #define CARD_OCCUPATION "Occupation"
- #define CARD_ROUND "Round"*/
+#define CARD_MAJOR_IMPROVEMENT "Major Improvement"
+#define CARD_MINOR_IMPROVEMENT "Minor Improvement"
+#define CARD_OCCUPATION "Occupation"
+#define CARD_ROUND "Round"
 
 namespace agr {
 
@@ -30,6 +31,12 @@ protected:
 template<typename Type, size_t N> std::ostringstream print_std__array(
 		const std::array<Type, N>& container) {
 	return base::Container_Printer(container, "\t", "")();
+}
+template<typename First, typename Second> std::ostringstream print_std__pair(
+		const std::pair<First, Second>& pair) {
+	return std::ostringstream(
+			base::Container_Printer(std::string(), pair, "{ ", "; ", " }")(
+					false).str().substr(1));
 }
 struct Farmyard final: private Board {
 	struct Space final: public Ensemble {
@@ -65,8 +72,6 @@ struct Farmyard final: private Board {
 	public:
 		Space& operator [](base::Primitive<short>) const;
 	};
-//	friend Space;
-//	friend Row;
 	Ensemble& personal_supply(const Log* = nullptr) const;
 	Row operator [](base::Primitive<short>) const;
 	static base::Unique_ptr construct(const Log* = nullptr);
@@ -161,7 +166,7 @@ public:
 class Numbered: virtual public base::Log {
 	base::Primitive<unsigned> number;
 public:
-	base::Primitive<unsigned> is_number(const Log* = nullptr);
+	base::Primitive<unsigned> is_number(const Log* = nullptr) const;
 	virtual std::ostringstream prints() const = 0;
 
 	Numbered(base::Primitive<unsigned> number, const Log* = nullptr);
@@ -179,28 +184,28 @@ public:
  };
 
  };
+ */
+} /* namespace agr */
 
- } /* namespace agr */
+namespace card {
+
+class Occupation final: public agr::Face, public virtual agr::Numbered {
+	base::Class<std::pair<short, bool>> player_number;
+	static const agr::Color color;
+	friend base::Unique_ptr;
+	Occupation(base::Class<std::vector<agr::Condition*>>,
+			base::Class<std::string>, base::Quantity, base::Primitive<char>,
+			base::Class<std::vector<agr::Event*>>, base::Primitive<bool>,
+			base::Primitive<unsigned>, base::Class<std::pair<short, bool>>,
+			const Log* = nullptr, base::Fields = nullptr);
+public:
+	base::Class<std::pair<short, bool>> has_player_number(
+			const Log* = nullptr) const;
+	virtual std::ostringstream prints() const;
+	static game::Deck::Unique_ptr construct(base::Primitive<unsigned>,
+			const Log* = nullptr, base::Fields = nullptr);
+};
 /*
- namespace card {
-
- class Occupation final: public a::Face, public virtual a::CardNumber {
- short player_number;
- bool plus;
- static const std::string type;
- static const a::Color color = a::Color::Yellow;
-
- Occupation(base::Primitive<unsigned>, const Log* = nullptr, base::Fields =
- nullptr);
- public:
- base::Class<std::pair<short, bool>> has_player_number(
- const Log* = nullptr) const;
- virtual std::ostringstream prints() const;
- static game::Deck::Unique_ptr construct(base::Primitive<unsigned>,
- const Log* = nullptr, base::Fields = nullptr);
-
- ~Occupation();
- };
  class Improvement: public a::Face, public virtual a::CardNumber {
  short victory_points;
  bool oven;
