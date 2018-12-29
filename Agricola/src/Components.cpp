@@ -353,8 +353,44 @@ Occupation::Occupation(base::Class<std::vector<agr::Condition*>> prerequisite,
 				player_number) {
 }
 
+base::Primitive<short> Improvement::has_victory_points(
+		const Log* caller) const {
+	return as_method<false>(__func__, caller, typeid(base::Primitive<short>)).returns(
+			victory_points);
+}
+base::Primitive<bool> Improvement::is_oven(const Log* caller) const {
+	return as_method<false>(__func__, caller, typeid(base::Primitive<bool>)).returns(
+			oven);
+}
+base::Primitive<bool> Improvement::is_kitchen(const Log* caller) const {
+	return as_method<false>(__func__, caller, typeid(base::Primitive<bool>)).returns(
+			kitchen);
+}
+std::ostringstream Improvement::prints() const {
+	std::ostringstream result;
+
+	result << has_label() << "{" << is_number() << "}";
+
+	return result;
+}
+
+Improvement::Improvement(base::Class<std::vector<agr::Condition*>> prerequisite,
+		base::Class<std::string> name, base::Quantity cost,
+		base::Primitive<char> deck,
+		base::Class<std::vector<agr::Event*>> events,
+		base::Primitive<bool> bonus_points, Color color,
+		base::Primitive<unsigned> number, base::Primitive<short> victory_points,
+		base::Primitive<bool> oven, base::Primitive<bool> kitchen,
+		const Log* caller, base::Fields attributes) :
+		NUMBERED(caller, base::make_scopes(CARD, __func__), false, number), Face(
+				prerequisite, name, cost, deck, events, bonus_points, color,
+				base::make_scopes(CARD, __func__), caller, attributes), victory_points(
+				victory_points), oven(oven), kitchen(kitchen) {
+}
+
 /* const std::string MinorImprovement::type = CARD_MINOR_IMPROVEMENT;
  const std::string MajorImprovement::type = CARD_MAJOR_IMPROVEMENT;
  const std::string Round::type = CARD_ROUND;
  */
-} /*namespace card */
+}
+/*namespace card */

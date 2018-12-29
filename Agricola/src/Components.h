@@ -205,22 +205,29 @@ public:
 	static game::Deck::Unique_ptr construct(base::Primitive<unsigned>,
 			const Log* = nullptr, base::Fields = nullptr);
 };
+
+class Improvement: public agr::Face, public virtual agr::Numbered {
+	base::Primitive<short> victory_points;
+	base::Primitive<bool> oven;
+	base::Primitive<bool> kitchen;
+
+	Improvement(base::Class<std::vector<agr::Condition*>>,
+			base::Class<std::string>, base::Quantity, base::Primitive<char>,
+			base::Class<std::vector<agr::Event*>>, base::Primitive<bool>,
+			agr::Color, base::Primitive<unsigned>, base::Primitive<short>,
+			base::Primitive<bool>, base::Primitive<bool>, const Log* = nullptr,
+			base::Fields = nullptr);
+public:
+	base::Primitive<short> has_victory_points(const Log* = nullptr) const;
+	base::Primitive<bool> is_oven(const Log* = nullptr) const;
+	base::Primitive<bool> is_kitchen(const Log* = nullptr) const;
+	virtual std::ostringstream prints() const;
+	static game::Deck::Unique_ptr construct(base::Primitive<unsigned>,
+			const Log* = nullptr, base::Fields = nullptr);
+
+	virtual ~Improvement() = default;
+};
 /*
- class Improvement: public a::Face, public virtual a::CardNumber {
- short victory_points;
- bool oven;
- bool kitchen;
-
- Improvement(base::Primitive<unsigned>, base::Class<a::Color>, const Log* =
- nullptr, base::Fields = nullptr);
- public:
- base::Primitive<short> has_victory_points(const Log* = nullptr) const;
- base::Primitive<bool> is_oven(const Log* = nullptr) const;
- base::Primitive<bool> is_kitchen(const Log* = nullptr) const;
- virtual std::ostringstream prints() const;
-
- virtual ~Improvement();
- };
  class MinorImprovement final: public Improvement {
  static const std::string type;
  static const a::Color color = a::Color::Orange;
