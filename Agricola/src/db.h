@@ -8,7 +8,7 @@
 #ifndef DB_H_
 #define DB_H_
 
-namespace agr {
+namespace card {
 
 class Card1 {
 public:
@@ -16,6 +16,6 @@ public:
 	virtual ~Card1();
 };
 
-} /* namespace agr */
+} /* namespace card */
 #endif /* DB_H_ */
 

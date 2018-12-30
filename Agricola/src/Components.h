@@ -189,10 +189,10 @@ public:
 
 namespace card {
 
-class Occupation final: public agr::Face, public virtual agr::Numbered {
+class Occupation: public agr::Face, public virtual agr::Numbered {
 	base::Class<std::pair<short, bool>> player_number;
 	static const agr::Color color;
-	friend base::Unique_ptr;
+protected:
 	Occupation(base::Class<std::vector<agr::Condition*>>,
 			base::Class<std::string>, base::Quantity, base::Primitive<char>,
 			base::Class<std::vector<agr::Event*>>, base::Primitive<bool>,
@@ -210,7 +210,7 @@ class Improvement: public agr::Face, public virtual agr::Numbered {
 	base::Primitive<short> victory_points;
 	base::Primitive<bool> oven;
 	base::Primitive<bool> kitchen;
-
+protected:
 	Improvement(base::Class<std::vector<agr::Condition*>>,
 			base::Class<std::string>, base::Quantity, base::Primitive<char>,
 			base::Class<std::vector<agr::Event*>>, base::Primitive<bool>,
@@ -222,77 +222,68 @@ public:
 	base::Primitive<bool> is_oven(const Log* = nullptr) const;
 	base::Primitive<bool> is_kitchen(const Log* = nullptr) const;
 	virtual std::ostringstream prints() const;
-	static game::Deck::Unique_ptr construct(base::Primitive<unsigned>,
-			const Log* = nullptr, base::Fields = nullptr);
 
 	virtual ~Improvement() = default;
 };
-/*
- class MinorImprovement final: public Improvement {
- static const std::string type;
- static const a::Color color = a::Color::Orange;
 
- MinorImprovement(base::Primitive<unsigned>, const Log* = nullptr,
- base::Fields = nullptr);
- public:
- virtual std::ostringstream prints() const;
- static game::Deck::Unique_ptr construct(base::Primitive<unsigned>,
- const Log* = nullptr, base::Fields = nullptr);
+class MinorImprovement: public Improvement {
+	static const agr::Color color;
+protected:
+	MinorImprovement(base::Class<std::vector<agr::Condition*>>,
+			base::Class<std::string>, base::Quantity, base::Primitive<char>,
+			base::Class<std::vector<agr::Event*>>, base::Primitive<bool>,
+			agr::Color, base::Primitive<unsigned>, base::Primitive<short>,
+			base::Primitive<bool>, base::Primitive<bool>, const Log* = nullptr,
+			base::Fields = nullptr);
+public:
+	virtual std::ostringstream prints() const;
+	static game::Deck::Unique_ptr construct(base::Primitive<unsigned>,
+			const Log* = nullptr, base::Fields = nullptr);
+};
+class MajorImprovement: public Improvement {
+	static const agr::Color color;
+protected:
+	MajorImprovement(base::Primitive<unsigned>, const Log* = nullptr,
+			base::Fields = nullptr);
+public:
+	virtual std::ostringstream prints() const;
+	static game::Deck::Unique_ptr construct(base::Primitive<unsigned>,
+			const Log* = nullptr, base::Fields = nullptr);
+};
+class Round final: public agr::Actions {
+	static const agr::Color color;
 
- ~MinorImprovement();
- };
- class MajorImprovement final: public Improvement {
- static const std::string type;
- static const a::Color color = a::Color::Red;
+	Round(base::Class<std::vector<agr::Action*>>, const Log* = nullptr,
+			base::Fields = nullptr);
+public:
+	virtual std::ostringstream prints() const;
+	static game::Deck::Unique_ptr construct(
+			base::Class<std::vector<agr::Action*>>, const Log* = nullptr,
+			base::Fields = nullptr);
+};
+class Action final: public agr::Actions {
+	static const agr::Color color;
 
- MajorImprovement(base::Primitive<unsigned>, const Log* = nullptr,
- base::Fields = nullptr);
- public:
- virtual std::ostringstream prints() const;
- static game::Deck::Unique_ptr construct(base::Primitive<unsigned>,
- const Log* = nullptr, base::Fields = nullptr);
+	Action(base::Class<std::vector<agr::Action*>>,
+			base::Class<std::vector<agr::Action*>>, const Log* = nullptr,
+			base::Fields = nullptr);
+public:
+	virtual std::ostringstream prints() const;
+	static game::Deck::Unique_ptr construct(
+			base::Class<std::vector<agr::Action*>>,
+			base::Class<std::vector<agr::Action*>>, const Log* = nullptr,
+			base::Fields = nullptr);
+};
+class Begging final: public agr::Face {
+	static const agr::Color color;
 
- ~MajorImprovement();
- };
- class Round final: public a::Actions {
- static const std::string type;
- static const a::Color color = a::Color::Blue;
+	Begging(const Log*, base::Fields = nullptr);
+public:
+	virtual std::ostringstream prints() const;
+	static game::Deck::Unique_ptr construct(const Log* = nullptr, base::Fields =
+			nullptr);
+};
 
- Round(base::Class<std::vector<a::Action*>>, base::Class<a::Color>,
- const Log* = nullptr, base::Fields = nullptr);
- public:
- virtual std::ostringstream prints() const;
- static game::Deck::Unique_ptr construct(
- base::Class<std::vector<a::Action*>>, base::Class<a::Color>,
- const Log* = nullptr, base::Fields = nullptr);
-
- ~Round();
- };
- class Action final: public a::Actions {
- Action(base::Class<std::vector<a::Action*>>,
- base::Class<std::vector<a::Action*>>, const Log* = nullptr,
- base::Fields = nullptr);
- public:
- virtual std::ostringstream prints() const;
- static game::Deck::Unique_ptr construct(
- base::Class<std::vector<a::Action*>>,
- base::Class<std::vector<a::Action*>>, const Log* = nullptr,
- base::Fields = nullptr);
-
- ~Action();
- };
- class Begging final: public a::Face {
- static const a::Color color = a::Color::Grey;
-
- Begging(const Log*, base::Fields = nullptr);
- public:
- virtual std::ostringstream prints() const;
- static game::Deck::Unique_ptr construct(const Log* = nullptr, base::Fields =
- nullptr);
-
- ~Begging();
- };
- /***/
 } /* namespace card */
 
 #endif /* COMPONENTS_H_ */

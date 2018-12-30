@@ -7,7 +7,7 @@
 
 #include "db.h"
 
-namespace agr {
+namespace card {
 
 Card1::Card1() {
 	// TODO Auto-generated constructor stub
@@ -18,4 +18,4 @@ Card1::~Card1() {
 	// TODO Auto-generated destructor stub
 }
 
-} /* namespace agr */
+} /* namespace card */

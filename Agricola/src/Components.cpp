@@ -6,6 +6,8 @@
  */
 
 #include "Components.h"
+#include "db.h"
+#define OCCUPATION_NUMBER(number, caller, attributes) occupation##number(caller, attributes)
 
 namespace base {
 
@@ -36,6 +38,20 @@ template<> std::function<std::ostringstream(const std::vector<agr::Action*>&)> C
 		std::vector<agr::Action*>>::printer = print_std__vector<agr::Action*>;
 template<> std::function<std::ostringstream(const std::pair<short, bool>&)> Class<
 		std::pair<short, bool>>::printer = agr::print_std__pair<short, bool>;
+std::ostringstream print_std__map_std__type_index_int_(
+		const std::map<std::type_index, int>& container) {
+	std::ostringstream result("{");
+
+	for (auto content : container)
+		result << "\n" << content.first.name() << ": " << content.second;
+	result << (result.str() == "{" ? " " : "\n") << "}";
+
+	return result;
+}
+template<> std::function<
+		std::ostringstream(const std::map<std::type_index, int>&)> Class<
+		std::map<std::type_index, int>>::printer =
+		print_std__map_std__type_index_int_;
 } /* namespace base */
 
 namespace agr {
@@ -321,23 +337,7 @@ game::Deck::Unique_ptr Occupation::construct(base::Primitive<unsigned> number,
 			true, caller, typeid(game::Deck::Unique_ptr), number, attributes);
 	base::Primitive<const Log*> it(&log, &log);
 
-	return game::Deck::Unique_ptr::dynamicCast(
-			base::Unique_ptr::construct<game::Card>(&log,
-					agr::Cover::construct(
-							base::Class<std::string>(CARD_OCCUPATION, &log),
-							color, &log),
-					base::Unique_ptr::construct<Occupation>(&log,
-							base::Class<std::vector<agr::Condition*>>( { }),
-							base::Class<std::string>(""),
-							base::Quantity(
-									{ std::make_pair(
-											std::type_index(typeid(void)), 0) }),
-							base::Primitive<char>('\0'),
-							base::Class<std::vector<agr::Event*>>( { }),
-							base::Primitive<bool>(false), number,
-							base::Class<std::pair<short, bool>>(
-									std::make_pair((short) 0, false)), it),
-					base::Primitive<bool>(false, &log), it, attributes));
+	return game::Deck::Unique_ptr::dynamicCast(OCCUPATION_NUMBER);
 }
 
 Occupation::Occupation(base::Class<std::vector<agr::Condition*>> prerequisite,
@@ -378,7 +378,7 @@ Improvement::Improvement(base::Class<std::vector<agr::Condition*>> prerequisite,
 		base::Class<std::string> name, base::Quantity cost,
 		base::Primitive<char> deck,
 		base::Class<std::vector<agr::Event*>> events,
-		base::Primitive<bool> bonus_points, Color color,
+		base::Primitive<bool> bonus_points, agr::Color color,
 		base::Primitive<unsigned> number, base::Primitive<short> victory_points,
 		base::Primitive<bool> oven, base::Primitive<bool> kitchen,
 		const Log* caller, base::Fields attributes) :
