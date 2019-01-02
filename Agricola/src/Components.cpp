@@ -2,11 +2,12 @@
  * Components.cpp
  *
  *  Created on: 13 nov 2018
- *      Author: m1rma
+ *      Author: m1r
  */
 
 #include "Components.h"
-#include "db.h"
+
+#include "Cards.h"
 #define OCCUPATION_NUMBER(number, caller, attributes) occupation##number(caller, attributes)
 
 namespace base {
@@ -38,27 +39,12 @@ template<> std::function<std::ostringstream(const std::vector<agr::Action*>&)> C
 		std::vector<agr::Action*>>::printer = print_std__vector<agr::Action*>;
 template<> std::function<std::ostringstream(const std::pair<short, bool>&)> Class<
 		std::pair<short, bool>>::printer = agr::print_std__pair<short, bool>;
-std::ostringstream print_std__map_std__type_index_int_(
-		const std::map<std::type_index, int>& container) {
-	std::ostringstream result("{");
-
-	for (auto content : container)
-		result << "\n" << content.first.name() << ": " << content.second;
-	result << (result.str() == "{" ? " " : "\n") << "}";
-
-	return result;
-}
-template<> std::function<
-		std::ostringstream(const std::map<std::type_index, int>&)> Class<
-		std::map<std::type_index, int>>::printer =
-		print_std__map_std__type_index_int_;
 } /* namespace base */
 
 namespace agr {
 
 //Board
-Board::Board(std::string label, const Log* caller = nullptr,
-		base::Fields attributes) :
+Board::Board(std::string label, const Log* caller, base::Fields attributes) :
 		ENSEMBLE(
 				false, label, caller, attributes) {
 			as_constructor(AGR, __func__, caller);
@@ -270,25 +256,6 @@ Cover::Cover(base::Class<std::string> name, Color color, const Log* caller,
 	as_constructor<false>(AGR, __func__, caller, name, color);
 }
 
-//Actions
-const agr::Color Actions::color = COLOR(agr::Color::Which::Green);
-const std::string Actions::action = "action";
-
-void Actions::adds(const Log* caller) {
-	as_method<false>(__func__, caller, typeid(void));
-}
-base::Class<std::vector<Action*>> Actions::includes(const Log* caller) {
-	auto log = as_method(__func__, caller,
-			typeid(base::Class<std::vector<Action*>>));
-	base::Class<std::vector<Action*>> result(std::vector<Action*>(), &log);
-	auto index = has_size(&log);
-
-	while ((size_t) index)
-		result.is().push_back(dynamic_cast<Action*>(&operator [](index--)));
-
-	return log.returns(result);
-}
-
 //Numbered
 base::Primitive<unsigned> Numbered::is_number(const Log* caller) const {
 	return as_method<false>(__func__, caller, typeid(base::Primitive<unsigned>)).returns(
@@ -312,13 +279,344 @@ Numbered& Numbered::operator =(const Numbered& copy) {
 	return log.returns(*this);
 }
 
+//WoodenPiece
+base::Primitive<bool> WoodenPiece::has_same_shape_of(
+		const WoodenPiece& righthand) const {
+	auto log = as_binary(__func__, righthand, typeid(base::Primitive<bool>));
+
+	return log.returns(base::Primitive<bool>(righthand.shape == shape, &log));
+}
+std::ostringstream WoodenPiece::prints() const {
+	std::ostringstream result(has_label());
+
+	result << "[" << label << "]{" << this << "}";
+
+	return result;
+}
+
+WoodenPiece::WoodenPiece(Color color, Shape shape,
+		base::Primitive<const char*> shape_label, std::string label,
+		const Log* caller, base::Fields attributes) :
+		ELEMENT(false, label, caller, attributes), Colored(color, caller), label(
+				shape_label) {
+	as_constructor<false>(AGR, __func__, caller, color, shape_label,
+			attributes);
+	this->shape = shape;
+}
+
+//FamilyMember
+std::ostringstream FamilyMember::prints() const {
+	return WoodenPiece::prints();
+}
+base::Unique_ptr FamilyMember::construct(Player& player, const Log* caller,
+		base::Fields attributes) {
+	auto log = Log::as_method(
+			base::make_scopes(AGR, TYPEID(FamilyMember), __func__), true,
+			caller, typeid(base::Unique_ptr), player, attributes);
+
+	return log.returns(
+			base::Unique_ptr::construct<FamilyMember>(&log, player,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+FamilyMember::FamilyMember(Player& player, const Log* caller,
+		base::Fields attributes) :
+		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
+				player.how_is(caller), Shape::disc, attributes), Owned(player,
+				caller) {
+	as_constructor<false>(AGR, __func__, caller, player, attributes);
+}
+
+//Stable
+std::ostringstream Stable::prints() const {
+	return WoodenPiece::prints();
+}
+base::Unique_ptr Stable::construct(Player& player, const Log* caller,
+		base::Fields attributes) {
+	auto log = Log::as_method(base::make_scopes(AGR, TYPEID(Stable), __func__),
+			true, caller, typeid(base::Unique_ptr), player, attributes);
+
+	return log.returns(
+			base::Unique_ptr::construct<Stable>(&log, player,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+Stable::Stable(Player& player, const Log* caller, base::Fields attributes) :
+		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
+				player.how_is(caller), Shape::house, attributes), Owned(player,
+				caller) {
+	as_constructor<false>(AGR, __func__, caller, player, attributes);
+}
+
+//Fence
+std::ostringstream Fence::prints() const {
+	return WoodenPiece::prints();
+}
+base::Unique_ptr Fence::construct(Player& player, const Log* caller,
+		base::Fields attributes) {
+	auto log = Log::as_method(base::make_scopes(AGR, TYPEID(Fence), __func__),
+			true, caller, typeid(base::Unique_ptr), player, attributes);
+
+	return log.returns(
+			base::Unique_ptr::construct<Fence>(&log, player,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+Fence::Fence(Player& player, const Log* caller, base::Fields attributes) :
+		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
+				player.how_is(caller), Shape::bar, attributes), Owned(player,
+				caller) {
+	as_constructor<false>(AGR, __func__, caller, player, attributes);
+}
+
+//Wood
+base::Unique_ptr Wood::construct(const Log* caller, base::Fields attributes) {
+	auto log = Log::as_method(base::make_scopes(AGR, TYPEID(Wood), __func__),
+			true, caller, typeid(base::Unique_ptr), attributes);
+
+	return log.returns(
+			base::Unique_ptr::construct<Wood>(&log,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+Wood::Wood(const Log* caller, base::Fields attributes) :
+		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
+				LOGGED_COLOR(agr::Color::Which::Brown, caller), Shape::disc, attributes) {
+	as_constructor<false>(AGR, __func__, caller, attributes);
+}
+
+//Clay
+base::Unique_ptr Clay::construct(const Log* caller, base::Fields attributes) {
+	auto log = Log::as_method(base::make_scopes(AGR, TYPEID(Clay), __func__),
+			true, caller, typeid(base::Unique_ptr), attributes);
+
+	return log.returns(
+			base::Unique_ptr::construct<Clay>(&log,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+Clay::Clay(const Log* caller, base::Fields attributes) :
+		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
+				LOGGED_COLOR(agr::Color::Which::Red, caller), Shape::disc, attributes) {
+	as_constructor<false>(AGR, __func__, caller, attributes);
+}
+
+//Reed
+base::Unique_ptr Reed::construct(const Log* caller, base::Fields attributes) {
+	auto log = Log::as_method(base::make_scopes(AGR, TYPEID(Reed), __func__),
+			true, caller, typeid(base::Unique_ptr), attributes);
+
+	return log.returns(
+			base::Unique_ptr::construct<Reed>(&log,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+Reed::Reed(const Log* caller, base::Fields attributes) :
+		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
+				LOGGED_COLOR(agr::Color::Which::White, caller), Shape::disc, attributes) {
+	as_constructor<false>(AGR, __func__, caller, attributes);
+}
+
+//Stone
+base::Unique_ptr Stone::construct(const Log* caller, base::Fields attributes) {
+	auto log = Log::as_method(base::make_scopes(AGR, TYPEID(Stone), __func__),
+			true, caller, typeid(base::Unique_ptr), attributes);
+
+	return log.returns(
+			base::Unique_ptr::construct<Stone>(&log,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+Stone::Stone(const Log* caller, base::Fields attributes) :
+		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
+				LOGGED_COLOR(agr::Color::Which::Black, caller), Shape::disc, attributes) {
+	as_constructor<false>(AGR, __func__, caller, attributes);
+}
+
+//Grain
+base::Unique_ptr Grain::construct(const Log* caller, base::Fields attributes) {
+	auto log = Log::as_method(base::make_scopes(AGR, TYPEID(Grain), __func__),
+			true, caller, typeid(base::Unique_ptr), attributes);
+
+	return log.returns(
+			base::Unique_ptr::construct<Grain>(&log,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+Grain::Grain(const Log* caller, base::Fields attributes) :
+		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
+				LOGGED_COLOR(agr::Color::Which::Yellow, caller), Shape::disc, attributes) {
+	as_constructor<false>(AGR, __func__, caller, attributes);
+}
+
+//Vegetable
+base::Unique_ptr Vegetable::construct(const Log* caller,
+		base::Fields attributes) {
+	auto log = Log::as_method(
+			base::make_scopes(AGR, TYPEID(Vegetable), __func__), true, caller,
+			typeid(base::Unique_ptr), attributes);
+
+	return log.returns(
+			base::Unique_ptr::construct<Vegetable>(&log,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+Vegetable::Vegetable(const Log* caller, base::Fields attributes) :
+		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
+				LOGGED_COLOR(agr::Color::Which::Orange, caller), Shape::disc, attributes) {
+	as_constructor<false>(AGR, __func__, caller, attributes);
+}
+
+//Sheep
+base::Unique_ptr Sheep::construct(const Log* caller, base::Fields attributes) {
+	auto log = Log::as_method(base::make_scopes(AGR, TYPEID(Sheep), __func__),
+			true, caller, typeid(base::Unique_ptr), attributes);
+
+	return log.returns(
+			base::Unique_ptr::construct<Sheep>(&log,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+Sheep::Sheep(const Log* caller, base::Fields attributes) :
+		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
+				LOGGED_COLOR(agr::Color::Which::White, caller), Shape::cube, attributes) {
+	as_constructor<false>(AGR, __func__, caller, attributes);
+}
+
+//WildBoar
+base::Unique_ptr WildBoar::construct(const Log* caller,
+		base::Fields attributes) {
+	auto log = Log::as_method(
+			base::make_scopes(AGR, TYPEID(WildBoar), __func__), true, caller,
+			typeid(base::Unique_ptr), attributes);
+
+	return log.returns(
+			base::Unique_ptr::construct<WildBoar>(&log,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+WildBoar::WildBoar(const Log* caller, base::Fields attributes) :
+		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
+				LOGGED_COLOR(agr::Color::Which::Black, caller), Shape::cube, attributes) {
+	as_constructor<false>(AGR, __func__, caller, attributes);
+}
+
+//Cattle
+base::Unique_ptr Cattle::construct(const Log* caller, base::Fields attributes) {
+	auto log = Log::as_method(base::make_scopes(AGR, TYPEID(Cattle), __func__),
+			true, caller, typeid(base::Unique_ptr), attributes);
+
+	return log.returns(
+			base::Unique_ptr::construct<Cattle>(&log,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+Cattle::Cattle(const Log* caller, base::Fields attributes) :
+		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
+				LOGGED_COLOR(agr::Color::Which::Brown, caller), Shape::cube, attributes) {
+	as_constructor<false>(AGR, __func__, caller, attributes);
+}
+
+//StartingPlayer
+base::Unique_ptr StartingPlayer::construct(const Log* caller) {
+	auto log = Log::as_method(
+			base::make_scopes(AGR, TYPEID(StartingPlayer), __func__), true,
+			caller, typeid(base::Unique_ptr));
+
+	return log.returns(
+			base::Unique_ptr::construct<StartingPlayer>(&log,
+					base::Primitive<const Log*>(&log, &log)));
+}
+
+StartingPlayer::StartingPlayer(const Log* caller) :
+		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
+				LOGGED_COLOR(agr::Color::Which::Yellow, caller), Shape::cylinder, nullptr) {
+	as_constructor<false>(AGR, __func__, caller);
+}
+
+//Tile
+std::ostringstream Tile::prints() const {
+	std::ostringstream result(has_label());
+
+	result << "{" << this << "}";
+
+	return result;
+}
+
+Tile::Tile(std::string label, const Log* caller, base::Fields attributes) :
+		ELEMENT(false, label, caller, attributes) {
+	as_constructor<false>(AGR, __func__, caller, attributes);
+}
+
+//WoodHut
+base::Unique_ptr WoodHut::construct(const Log* caller,
+		base::Fields attributes) {
+	auto log = as_method(base::make_scopes(AGR, TYPEID(WoodHut), __func__),
+			true, caller, typeid(base::Unique_ptr));
+
+	return log.returns(
+			base::Unique_ptr::construct<WoodHut>(&log,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+WoodHut::WoodHut(const Log* caller, base::Fields attributes) :
+		TILE(caller, base::make_scopes(AGR, __func__), false, attributes) {
+	as_constructor<false>(AGR, __func__, caller, attributes);
+}
+
+//ClayHut
+base::Unique_ptr ClayHut::construct(const Log* caller,
+		base::Fields attributes) {
+	auto log = as_method(base::make_scopes(AGR, TYPEID(ClayHut), __func__),
+			true, caller, typeid(base::Unique_ptr));
+
+	return log.returns(
+			base::Unique_ptr::construct<ClayHut>(&log,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+ClayHut::ClayHut(const Log* caller, base::Fields attributes) :
+		TILE(caller, base::make_scopes(AGR, __func__), false, attributes) {
+	as_constructor<false>(AGR, __func__, caller, attributes);
+}
+
+//StoneHouse
+base::Unique_ptr StoneHouse::construct(const Log* caller,
+		base::Fields attributes) {
+	auto log = as_method(base::make_scopes(AGR, TYPEID(StoneHouse), __func__),
+			true, caller, typeid(base::Unique_ptr));
+
+	return log.returns(
+			base::Unique_ptr::construct<StoneHouse>(&log,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+StoneHouse::StoneHouse(const Log* caller, base::Fields attributes) :
+		TILE(caller, base::make_scopes(AGR, __func__), false, attributes) {
+	as_constructor<false>(AGR, __func__, caller, attributes);
+}
+
+//Food
+base::Unique_ptr Food::construct(const Log* caller, base::Fields attributes) {
+	auto log = as_method(base::make_scopes(AGR, TYPEID(Food), __func__), true,
+			caller, typeid(base::Unique_ptr));
+
+	return log.returns(
+			base::Unique_ptr::construct<Food>(&log,
+					base::Primitive<const Log*>(&log, &log), attributes));
+}
+
+Food::Food(const Log* caller, base::Fields attributes) :
+		ELEMENT(false, base::make_scopes(AGR, __func__), caller, attributes) {
+	as_constructor<false>(AGR, __func__, caller, attributes);
+}
+
 } /* namespace agr */
 
 namespace card {
 #define CARD "card"
 
-const agr::Color Occupation::color = COLOR(agr::Color::Which::Yellow);
-
+//Occupation
 base::Class<std::pair<short, bool>> Occupation::has_player_number(
 		const Log* caller) const {
 	return as_method<false>(__func__, caller,
@@ -331,14 +629,6 @@ std::ostringstream Occupation::prints() const {
 
 	return result;
 }
-game::Deck::Unique_ptr Occupation::construct(base::Primitive<unsigned> number,
-		const Log* caller, base::Fields attributes) {
-	auto log = as_method(base::make_scopes(CARD, TYPEID(Occupation), __func__),
-			true, caller, typeid(game::Deck::Unique_ptr), number, attributes);
-	base::Primitive<const Log*> it(&log, &log);
-
-	return game::Deck::Unique_ptr::dynamicCast(OCCUPATION_NUMBER);
-}
 
 Occupation::Occupation(base::Class<std::vector<agr::Condition*>> prerequisite,
 		base::Class<std::string> name, base::Quantity cost,
@@ -348,11 +638,15 @@ Occupation::Occupation(base::Class<std::vector<agr::Condition*>> prerequisite,
 		base::Class<std::pair<short, bool>> player_number, const Log* caller,
 		base::Fields attributes) :
 		NUMBERED(caller, base::make_scopes(CARD, __func__), false, number), Face(
-				prerequisite, name, cost, deck, events, bonus_points, color,
+				prerequisite, name, cost, deck, events, bonus_points,
+				LOGGED_COLOR(agr::Color::Which::Yellow, caller),
 				base::make_scopes(CARD, __func__), caller, attributes), player_number(
 				player_number) {
+	as_constructor<false>(AGR, __func__, caller, prerequisite, name, cost, deck,
+			events, bonus_points, number, player_number, attributes);
 }
 
+//Improvement
 base::Primitive<short> Improvement::has_victory_points(
 		const Log* caller) const {
 	return as_method<false>(__func__, caller, typeid(base::Primitive<short>)).returns(
@@ -386,11 +680,98 @@ Improvement::Improvement(base::Class<std::vector<agr::Condition*>> prerequisite,
 				prerequisite, name, cost, deck, events, bonus_points, color,
 				base::make_scopes(CARD, __func__), caller, attributes), victory_points(
 				victory_points), oven(oven), kitchen(kitchen) {
+	as_constructor<false>(AGR, __func__, caller, prerequisite, name, cost, deck,
+			events, bonus_points, color, number, victory_points, oven, kitchen,
+			attributes);
 }
 
-/* const std::string MinorImprovement::type = CARD_MINOR_IMPROVEMENT;
- const std::string MajorImprovement::type = CARD_MAJOR_IMPROVEMENT;
- const std::string Round::type = CARD_ROUND;
- */
+//Minor Improvement
+MinorImprovement::MinorImprovement(
+		base::Class<std::vector<agr::Condition*>> prerequisite,
+		base::Class<std::string> name, base::Quantity cost,
+		base::Primitive<char> deck,
+		base::Class<std::vector<agr::Event*>> events,
+		base::Primitive<bool> bonus_points, base::Primitive<unsigned> number,
+		base::Primitive<short> victory_points, base::Primitive<bool> oven,
+		base::Primitive<bool> kitchen, const Log* caller,
+		base::Fields attributes) :
+		NEW_LOG(caller, base::make_scopes(AGR, __func__), false), Improvement(
+				prerequisite, name, cost, deck, events, bonus_points,
+				LOGGED_COLOR(agr::Color::Which::Blue, caller), number,
+				victory_points, oven, kitchen, caller, attributes) {
+	as_constructor<false>(AGR, __func__, caller, prerequisite, name, cost, deck,
+			events, bonus_points, number, victory_points, oven, kitchen,
+			attributes);
 }
-/*namespace card */
+
+//Major Improvement
+MajorImprovement::MajorImprovement(
+		base::Class<std::vector<agr::Condition*>> prerequisite,
+		base::Class<std::string> name, base::Quantity cost,
+		base::Primitive<char> deck,
+		base::Class<std::vector<agr::Event*>> events,
+		base::Primitive<bool> bonus_points, base::Primitive<unsigned> number,
+		base::Primitive<short> victory_points, base::Primitive<bool> oven,
+		base::Primitive<bool> kitchen, const Log* caller,
+		base::Fields attributes) :
+		NEW_LOG(caller, base::make_scopes(AGR, __func__), false), Improvement(
+				prerequisite, name, cost, deck, events, bonus_points,
+				LOGGED_COLOR(agr::Color::Which::Blue, caller), number,
+				victory_points, oven, kitchen, caller, attributes) {
+	as_constructor<false>(AGR, __func__, caller, prerequisite, name, cost, deck,
+			events, bonus_points, number, victory_points, oven, kitchen,
+			attributes);
+}
+
+//Action
+const std::string Action::type = "action";
+
+void Action::adds(const Log* caller) {
+	as_method<false>(__func__, caller, typeid(void));
+}
+base::Class<std::vector<agr::Action*>> Action::includes(const Log* caller) {
+	auto log = as_method(__func__, caller,
+			typeid(base::Class<std::vector<agr::Action*>>));
+	base::Class<std::vector<agr::Action*>> result(std::vector<agr::Action*>(),
+			&log);
+	auto index = has_size(&log);
+
+	while ((size_t) index)
+		result.is().push_back(
+				dynamic_cast<agr::Action*>(&operator [](index--)));
+
+	return log.returns(result);
+}
+
+//Begging
+std::ostringstream Begging::prints() const {
+	return Ensemble::prints();
+}
+game::Deck::Unique_ptr Begging::construct(const Log* caller,
+		base::Fields attributes) {
+	auto log = as_method(base::make_scopes(AGR, __func__), true, caller,
+			typeid(game::Deck::Unique_ptr), attributes);
+
+	return log.returns(
+			game::Deck::Unique_ptr::dynamicCast(
+					base::Unique_ptr::construct<Begging>(&log,
+							base::Primitive<const Log*>(&log, &log),
+							attributes)));
+}
+
+Begging::Begging(const Log* caller, base::Fields attributes) :
+		NEW_LOG(caller, base::make_scopes(AGR, __func__), false), Face(
+				base::Class<std::vector<agr::Condition*>>(
+						std::vector<agr::Condition*>(), caller),
+				base::Class<std::string>(__func__, caller),
+				base::Quantity(std::map<std::type_index, int>(), caller),
+				base::Primitive<char>('\0', caller),
+				base::Class<std::vector<agr::Event*>>(
+						std::vector<agr::Event*>(), caller),
+				base::Primitive<bool>(false, caller),
+				LOGGED_COLOR(agr::Color::Which::Grey, caller),
+				base::make_scopes(AGR, __func__), caller, attributes) {
+	as_constructor(AGR, __func__, caller, attributes);
+}
+
+} /*namespace card */

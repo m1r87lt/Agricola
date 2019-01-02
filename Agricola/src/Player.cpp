@@ -2,7 +2,7 @@
  * Player.cpp
  *
  *  Created on: 25 nov 2018
- *      Author: m1rma
+ *      Author: m1r
  */
 
 #include "Player.h"

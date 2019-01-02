@@ -5,8 +5,8 @@
  *      Author: m1r
  */
 
-#ifndef DB_H_
-#define DB_H_
+#ifndef CARDS_H_
+#define CARDS_H_
 
 namespace card {
 
@@ -17,5 +17,5 @@ public:
 };
 
 } /* namespace card */
-#endif /* DB_H_ */
+#endif /* CARDS_H_ */
 

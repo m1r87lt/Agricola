@@ -2,7 +2,7 @@
  * Components.h
  *
  *  Created on: 13 nov 2018
- *      Author: m1rma
+ *      Author: m1r
  */
 
 #ifndef COMPONENTS_H_
@@ -13,19 +13,19 @@
 #include <src/Gamecard.h>
 #define BOARD(caller, label, open, attributes) Object(caller, label), Log(caller, label, open), Board(label, caller, attributes)
 #define NUMBERED(caller, label, open, number) Object(caller, label), Log(caller, label, open), Numbered(number, caller)
+#define WOODEN_SHAPE(caller, label, open, color, shape, attributes) Object(caller, label), Log(caller, label, open), WoodenPiece(color, shape, #shape, label, caller, attributes)
+#define TILE(caller, label, open, attributes) Object(caller, label), Log(caller, label, open), Tile(label, caller, attributes)
 #define SPACE_NAME "Space"
 #define PERSONAL_SUPPLY_NAME "Personal Supply"
 #define CARD_MAJOR_IMPROVEMENT "Major Improvement"
 #define CARD_MINOR_IMPROVEMENT "Minor Improvement"
 #define CARD_OCCUPATION "Occupation"
-#define CARD_ROUND "Round"
 
 namespace agr {
 
 struct Board: public base::Ensemble {
 	virtual ~Board() = default;
-protected:
-	Board(std::string, const Log*, base::Fields = nullptr);
+	Board(std::string, const Log* = nullptr, base::Fields = nullptr);
 };
 
 template<typename Type, size_t N> std::ostringstream print_std__array(
@@ -125,44 +125,6 @@ public:
 	static base::Unique_ptr construct(base::Class<std::string>, Color,
 			const Log* = nullptr, base::Fields = nullptr);
 };
-class Actions final: public Colored, private base::Ensemble {
-	static const agr::Color color;
-	static const std::string action;
-
-	template<typename ... Unique_pointers> void adds(const Log* caller,
-			base::Unique_ptr&& action, Unique_pointers&& ... actions) {
-		auto log = as_method(__func__, caller, typeid(void), action,
-				actions ...);
-
-		this->gets(action, std::move(action), base::Primitive<size_t>(1, &log),
-				&log);
-		adds(&log, actions ...);
-	}
-	void adds(const Log* caller);
-	friend base::Unique_ptr;
-	template<typename ... Unique_pointers> Actions(const Log* caller,
-			base::Fields attributes = nullptr, Unique_pointers&& ... actions) :
-			ENSEMBLE(true, base::make_scopes(AGR, __func__), caller, attributes), Colored(
-					LOGGED_COLOR(color, caller), caller) {
-		auto log = as_constructor(AGR, __func__, caller, actions ...);
-
-		adds(&log, actions ...);
-	}
-public:
-	base::Class<std::vector<agr::Action*>> includes(const Log* = nullptr);
-	template<typename ... Unique_pointers> static base::Unique_ptr construct(
-			const Log* caller, base::Fields attributes = nullptr,
-			Unique_pointers&& ... actions) {
-		auto log = as_method(base::make_scopes(AGR, TYPEID(Action), __func__),
-				true, caller, typeid(base::Unique_ptr), attributes,
-				actions ...);
-
-		return log.returns(
-				base::Unique_ptr::construct<Actions>(&log,
-						base::Primitive<const Log*>(&log, &log), attributes,
-						actions ...));
-	}
-};
 class Numbered: virtual public base::Log {
 	base::Primitive<unsigned> number;
 public:
@@ -175,23 +137,160 @@ public:
 	Numbered& operator =(const Numbered&);
 };
 
-/*struct WoodenPiece: public base::Element, virtual public Colored {
- enum class Shape {
- disc, house, bar, cube
- };
- enum class Type {
- Family_member, Stable, Fence, token, counter
- };
+struct WoodenPiece: public base::Element, public Colored {
+	enum class Shape {
+		disc, house, bar, cube, cylinder
+	};
 
- };
- */
+	base::Primitive<bool> has_same_shape_of(const WoodenPiece&) const;
+	virtual std::ostringstream prints() const;
+
+	virtual ~WoodenPiece() = default;
+protected:
+	WoodenPiece(Color, Shape, base::Primitive<const char*>, std::string,
+			const Log* = nullptr, base::Fields = nullptr);
+private:
+	Shape shape;
+	const char* label;
+};
+class FamilyMember: public WoodenPiece, public Owned {
+	FamilyMember(Player&, const Log* = nullptr, base::Fields = nullptr);
+public:
+	virtual std::ostringstream prints() const;
+	friend base::Unique_ptr;
+	static base::Unique_ptr construct(Player&, const Log* = nullptr,
+			base::Fields = nullptr);
+};
+class Stable: public WoodenPiece, public Owned {
+	Stable(Player&, const Log* = nullptr, base::Fields = nullptr);
+public:
+	virtual std::ostringstream prints() const;
+	friend base::Unique_ptr;
+	static base::Unique_ptr construct(Player&, const Log* = nullptr,
+			base::Fields = nullptr);
+};
+class Fence: public WoodenPiece, public Owned {
+	Fence(Player&, const Log* = nullptr, base::Fields = nullptr);
+public:
+	virtual std::ostringstream prints() const;
+	friend base::Unique_ptr;
+	static base::Unique_ptr construct(Player&, const Log* = nullptr,
+			base::Fields = nullptr);
+};
+class Wood: public WoodenPiece {
+	Wood(const Log*, base::Fields = nullptr);
+public:
+	friend base::Unique_ptr;
+	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
+			nullptr);
+};
+class Clay: public WoodenPiece {
+	Clay(const Log*, base::Fields = nullptr);
+public:
+	friend base::Unique_ptr;
+	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
+			nullptr);
+};
+class Reed: public WoodenPiece {
+	Reed(const Log*, base::Fields = nullptr);
+public:
+	friend base::Unique_ptr;
+	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
+			nullptr);
+};
+class Stone: public WoodenPiece {
+	Stone(const Log*, base::Fields = nullptr);
+public:
+	friend base::Unique_ptr;
+	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
+			nullptr);
+};
+class Grain: public WoodenPiece {
+	Grain(const Log*, base::Fields = nullptr);
+public:
+	friend base::Unique_ptr;
+	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
+			nullptr);
+};
+class Vegetable: public WoodenPiece {
+	Vegetable(const Log*, base::Fields = nullptr);
+public:
+	friend base::Unique_ptr;
+	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
+			nullptr);
+};
+class Sheep: public WoodenPiece {
+	Sheep(const Log*, base::Fields = nullptr);
+public:
+	friend base::Unique_ptr;
+	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
+			nullptr);
+};
+class WildBoar: public WoodenPiece {
+	WildBoar(const Log*, base::Fields = nullptr);
+public:
+	friend base::Unique_ptr;
+	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
+			nullptr);
+};
+class Cattle: public WoodenPiece {
+	Cattle(const Log*, base::Fields = nullptr);
+public:
+	friend base::Unique_ptr;
+	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
+			nullptr);
+};
+class StartingPlayer: public WoodenPiece {
+	StartingPlayer(const Log*);
+public:
+	friend base::Unique_ptr;
+	static base::Unique_ptr construct(const Log* = nullptr);
+};
+struct Tile: public base::Element {
+	virtual std::ostringstream prints() const;
+
+	virtual ~Tile() = default;
+protected:
+	Tile(std::string, const Log*, base::Fields = nullptr);
+};
+class WoodHut: public Tile {
+	WoodHut(const Log*, base::Fields = nullptr);
+public:
+	friend base::Unique_ptr;
+	base::Unique_ptr construct(const Log* = nullptr, base::Fields = nullptr);
+};
+class ClayHut: public Tile {
+	ClayHut(const Log*, base::Fields = nullptr);
+public:
+	friend base::Unique_ptr;
+	base::Unique_ptr construct(const Log* = nullptr, base::Fields = nullptr);
+};
+class StoneHouse: public Tile {
+	StoneHouse(const Log*, base::Fields = nullptr);
+public:
+	friend base::Unique_ptr;
+	base::Unique_ptr construct(const Log* = nullptr, base::Fields = nullptr);
+};
+class Field: public Tile {
+	Field(const Log*, base::Fields = nullptr);
+public:
+	friend base::Unique_ptr;
+	base::Unique_ptr construct(const Log* = nullptr, base::Fields = nullptr);
+};
+class Food: public base::Element {
+	Food(const Log*, base::Fields = nullptr);
+public:
+	friend base::Unique_ptr;
+	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
+			nullptr);
+};
+
 } /* namespace agr */
 
 namespace card {
 
-class Occupation: public agr::Face, public virtual agr::Numbered {
+class Occupation: public agr::Numbered, public agr::Face {
 	base::Class<std::pair<short, bool>> player_number;
-	static const agr::Color color;
 protected:
 	Occupation(base::Class<std::vector<agr::Condition*>>,
 			base::Class<std::string>, base::Quantity, base::Primitive<char>,
@@ -202,11 +301,9 @@ public:
 	base::Class<std::pair<short, bool>> has_player_number(
 			const Log* = nullptr) const;
 	virtual std::ostringstream prints() const;
-	static game::Deck::Unique_ptr construct(base::Primitive<unsigned>,
-			const Log* = nullptr, base::Fields = nullptr);
 };
 
-class Improvement: public agr::Face, public virtual agr::Numbered {
+class Improvement: public agr::Numbered, public agr::Face {
 	base::Primitive<short> victory_points;
 	base::Primitive<bool> oven;
 	base::Primitive<bool> kitchen;
@@ -225,59 +322,55 @@ public:
 
 	virtual ~Improvement() = default;
 };
-
 class MinorImprovement: public Improvement {
-	static const agr::Color color;
 protected:
 	MinorImprovement(base::Class<std::vector<agr::Condition*>>,
 			base::Class<std::string>, base::Quantity, base::Primitive<char>,
 			base::Class<std::vector<agr::Event*>>, base::Primitive<bool>,
-			agr::Color, base::Primitive<unsigned>, base::Primitive<short>,
+			base::Primitive<unsigned>, base::Primitive<short>,
 			base::Primitive<bool>, base::Primitive<bool>, const Log* = nullptr,
 			base::Fields = nullptr);
-public:
-	virtual std::ostringstream prints() const;
-	static game::Deck::Unique_ptr construct(base::Primitive<unsigned>,
-			const Log* = nullptr, base::Fields = nullptr);
 };
 class MajorImprovement: public Improvement {
-	static const agr::Color color;
 protected:
-	MajorImprovement(base::Primitive<unsigned>, const Log* = nullptr,
+	MajorImprovement(base::Class<std::vector<agr::Condition*>>,
+			base::Class<std::string>, base::Quantity, base::Primitive<char>,
+			base::Class<std::vector<agr::Event*>>, base::Primitive<bool>,
+			base::Primitive<unsigned>, base::Primitive<short>,
+			base::Primitive<bool>, base::Primitive<bool>, const Log* = nullptr,
 			base::Fields = nullptr);
-public:
-	virtual std::ostringstream prints() const;
-	static game::Deck::Unique_ptr construct(base::Primitive<unsigned>,
-			const Log* = nullptr, base::Fields = nullptr);
 };
-class Round final: public agr::Actions {
-	static const agr::Color color;
 
-	Round(base::Class<std::vector<agr::Action*>>, const Log* = nullptr,
-			base::Fields = nullptr);
-public:
-	virtual std::ostringstream prints() const;
-	static game::Deck::Unique_ptr construct(
-			base::Class<std::vector<agr::Action*>>, const Log* = nullptr,
-			base::Fields = nullptr);
-};
-class Action final: public agr::Actions {
-	static const agr::Color color;
+class Action: public agr::Colored, private base::Ensemble {
+	static const std::string type;
 
-	Action(base::Class<std::vector<agr::Action*>>,
-			base::Class<std::vector<agr::Action*>>, const Log* = nullptr,
-			base::Fields = nullptr);
+	template<typename ... Unique_pointers> void adds(const Log* caller,
+			base::Unique_ptr&& action, Unique_pointers&& ... actions) {
+		auto log = as_method(__func__, caller, typeid(void), action,
+				actions ...);
+
+		this->gets(action, std::move(action), base::Primitive<size_t>(1, &log),
+				&log);
+		adds(&log, std::move(actions ...));
+	}
+	void adds(const Log* caller);
+protected:
+	template<typename ... Unique_pointers> Action(const Log* caller,
+			base::Fields attributes, base::Unique_ptr&& action,
+			Unique_pointers&& ... actions) :
+			ENSEMBLE(true, base::make_scopes(AGR, __func__), caller, attributes), Colored(
+					LOGGED_COLOR(agr::Color::Which::Green, caller), caller) {
+		auto log = as_constructor(AGR, __func__, caller, action, actions ...);
+
+		adds(&log, std::move(action), std::move(actions) ...);
+	}
 public:
-	virtual std::ostringstream prints() const;
-	static game::Deck::Unique_ptr construct(
-			base::Class<std::vector<agr::Action*>>,
-			base::Class<std::vector<agr::Action*>>, const Log* = nullptr,
-			base::Fields = nullptr);
+	base::Class<std::vector<agr::Action*>> includes(const Log* = nullptr);
 };
+
 class Begging final: public agr::Face {
-	static const agr::Color color;
-
 	Begging(const Log*, base::Fields = nullptr);
+	friend base::Unique_ptr;
 public:
 	virtual std::ostringstream prints() const;
 	static game::Deck::Unique_ptr construct(const Log* = nullptr, base::Fields =

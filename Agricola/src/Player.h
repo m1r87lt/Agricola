@@ -2,15 +2,14 @@
  * Player.h
  *
  *  Created on: 25 nov 2018
- *      Author: m1rma
+ *      Author: m1r
  */
 
 #ifndef PLAYER_H_
 #define PLAYER_H_
 
 #include <src/Element.h>
-#define LOGGED_COLOR(which, caller) Color(which, #which, caller)
-#define COLOR(which) agr::Color(which, #which)
+#define LOGGED_COLOR(which, caller) agr::Color(which, #which, caller)
 
 namespace agr {
 #define AGR "agr"
