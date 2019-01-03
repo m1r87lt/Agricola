@@ -41,6 +41,7 @@ class Condition: virtual public base::Log {
 public:
 	base::Primitive<bool> operator ()(const Log* = nullptr) const;
 	virtual std::ostringstream prints() const = 0;
+	static base::Primitive<bool> no(const Log* = nullptr);
 
 	Condition(base::Class<std::function<base::Primitive<bool>(const Log*)>>,
 			const Log* = nullptr);
@@ -49,27 +50,35 @@ public:
 	Condition& operator =(const Condition&);
 };
 class Event: virtual public base::Log {
-	base::Class<std::function<base::Primitive<bool>(Player&, const Log*)>> event;
+	base::Class<
+			std::function<
+					base::Primitive<bool>(base::Primitive<bool>, Player&,
+							const Log*)>> event;
 public:
-	base::Primitive<bool> operator ()(agr::Player&, const Log* = nullptr);
+	base::Primitive<bool> operator ()(base::Primitive<bool>, agr::Player&,
+			const Log* = nullptr);
 	virtual std::ostringstream prints() const = 0;
 
 	Event(
 			base::Class<
-					std::function<base::Primitive<bool>(Player&, const Log*)>>,
+					std::function<
+							base::Primitive<bool>(base::Primitive<bool>,
+									Player&, const Log*)>>,
 			const Log* = nullptr);
 	virtual ~Event();
 	Event(const Event&);
 	Event& operator =(const Event&);
 };
-class Action: public base::Ensemble, public Condition, public Event {
+class Action final: public base::Ensemble, public Condition, public Event {
 	base::Primitive<Player*> performer;
 	base::Quantity collection;
 protected:
 	Action(base::Class<std::function<base::Primitive<bool>(const Log*)>>,
 			base::Class<
-					std::function<base::Primitive<bool>(Player&, const Log*)>>,
-			base::Quantity, const Log* = nullptr, base::Fields = nullptr);
+					std::function<
+							base::Primitive<bool>(base::Primitive<bool>,
+									Player&, const Log*)>>, base::Quantity,
+			const Log* = nullptr, base::Fields = nullptr);
 	friend base::Unique_ptr;
 public:
 	base::Primitive<Player*> is_performed_by(const Log* = nullptr);
@@ -78,12 +87,10 @@ public:
 	static base::Unique_ptr construct(
 			base::Class<std::function<base::Primitive<bool>(const Log*)>>,
 			base::Class<
-					std::function<base::Primitive<bool>(Player&, const Log*)>>,
-			base::Quantity, const Log* = nullptr, base::Fields = nullptr);
-
-	virtual ~Action() = default;
-	Action(const Action&);
-	Action& operator =(const Action&);
+					std::function<
+							base::Primitive<bool>(base::Primitive<bool>,
+									Player&, const Log*)>>, base::Quantity,
+			const Log* = nullptr, base::Fields = nullptr);
 };
 
 } /* namespace agr */

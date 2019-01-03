@@ -7,17 +7,17 @@
 //============================================================================
 
 #include <iostream>
-using namespace std;
-#include "components.h"
+#include "Board.h"
+using namespace agr;
 
 void preparing_to_play() {
 	auto log = base::Log::as_function(__func__, true, nullptr, typeid(void));
 
-
+	construct_board(&log);
 }
 
 int main() {
-	cout << "Agricola" << endl; // prints Agricola
+	std::cout << "Agricola" << std::endl; // prints Agricola
 
 	preparing_to_play();
 
