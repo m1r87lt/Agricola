@@ -49,6 +49,7 @@ base::Primitive<bool> Color::operator !=(Color operand) const {
 	return base::binary_primitive(*this, __func__, operand,
 			which != operand.which);
 }
+
 std::ostringstream Color::prints() const {
 	return std::ostringstream(name);
 }
@@ -97,6 +98,7 @@ base::Class<std::set<Owned*>> Player::owns(const Log* caller) {
 	return as_method(__func__, caller, typeid(base::Class<std::set<Owned*>>)).returns(
 			base::Class<std::set<Owned*>>(pieces));
 }
+
 std::ostringstream Player::prints() const {
 	std::ostringstream result(Ensemble::prints());
 	std::string print = result.str();
@@ -108,6 +110,7 @@ std::ostringstream Player::prints() const {
 
 	return result;
 }
+
 base::Primitive<short> Player::give_number(const Log* caller) {
 	return base::Method::return_primitive((short) players.is().size(),
 			base::make_scopes(AGR, TYPEID(Player), __func__), caller);
