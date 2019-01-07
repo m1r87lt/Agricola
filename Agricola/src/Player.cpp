@@ -189,7 +189,7 @@ Owned::~Owned() {
 	((Player*) owner)->pieces.is().erase(this);
 }
 Owned::Owned(const Owned& copy) :
-		Object(copy), Log(&copy, __func__, false), owner(copy.owner) {
+		Object(copy), Log(&copy, copy.has_label(), false), owner(copy.owner) {
 	((Player*) owner)->pieces.is().emplace(this);
 }
 Owned& Owned::operator =(const Owned& copy) {
