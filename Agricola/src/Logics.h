@@ -74,21 +74,23 @@ public:
 
 namespace agr {
 
-class Condition: virtual public base::Log {
-	base::Class<std::function<base::Primitive<bool>(const Log*)>> condition;
-public:
+using Simulator = base::Class<std::function<base::Primitive<bool>(Player&, const base::Log*)>>;
+struct Condition: virtual public base::Log {
+	using Function = base::Class<std::function<base::Primitive<bool>(const Log*)>>;
+
 	base::Primitive<bool> operator ()(const Log* = nullptr) const;
 	virtual std::ostringstream prints() const = 0;
 	static base::Primitive<bool> no(const Log* = nullptr);
 
-	Condition(base::Class<std::function<base::Primitive<bool>(const Log*)>>,
-			std::string, const Log* = nullptr);
+	Condition(Function, std::string, const Log* = nullptr);
 	virtual ~Condition() = default;
 	Condition(const Condition&);
 	Condition& operator =(const Condition&);
+private:
+	Function condition;
 };
 template<typename Function> class Event: virtual public base::Log {
-	base::Class<std::function<base::Primitive<bool>(Player&, const Log*)>> simulation;
+	Simulator simulation;
 public:
 	base::Primitive<bool> simulates(const Player& player, const Log* caller =
 			nullptr) const {
@@ -107,10 +109,7 @@ public:
 	}
 	virtual std::ostringstream prints() const = 0;
 
-	Event(
-			base::Class<
-					std::function<base::Primitive<bool>(Player&, const Log*)>> event,
-			std::string label, const Log* caller = nullptr) :
+	Event(Simulator simulation, std::string label, const Log* caller = nullptr) :
 			NEW_LOG(caller, label, false), simulation(simulation) {
 		as_constructor(AGR, __func__, this);
 	}
@@ -131,16 +130,14 @@ template<typename Function> struct Action final: public base::Ensemble,
 	base::Primitive<Player*> performer;
 	base::Quantity collection;
 	friend Ensemble::Unique_ptr;
-	Action(
-			base::Class<std::function<base::Primitive<bool>(const Log*)>> condition,
-			base::Class<
-					std::function<base::Primitive<bool>(Player&, const Log*)>> event,
+	Action(Condition::Function condition, Simulator simulation,
 			base::Quantity collection, const Log* caller = nullptr,
 			base::Fields attributes = nullptr) :
 			ENSEMBLE(false, base::make_scopes(AGR, __func__), caller, attributes), Condition(
-					condition, caller), Event<Function>(event, caller), performer(
-					nullptr, caller), collection(collection) {
-		as_constructor(AGR, __func__, caller, condition, event, collection,
+					condition, base::make_scopes(AGR, __func__), caller), Event<
+					Function>(simulation, base::make_scopes(AGR, __func__),
+					caller), performer(nullptr, caller), collection(collection) {
+		as_constructor(AGR, __func__, caller, condition, simulation, collection,
 				attributes);
 	}
 public:
@@ -159,20 +156,17 @@ public:
 		return as_method<false>(__func__, caller, typeid(base::Quantity)).returns(
 				collection);
 	}
-	Ensemble::Unique_ptr construct(
-			base::Class<std::function<base::Primitive<bool>(const Log*)>> condition,
-			base::Class<
-					std::function<base::Primitive<bool>(Player&, const Log*)>> event,
-			base::Quantity collection, const Log* caller = nullptr,
-			base::Fields attributes = nullptr) {
+	Ensemble::Unique_ptr construct(Condition::Function condition,
+			Simulator simulation, base::Quantity collection, const Log* caller =
+					nullptr, base::Fields attributes = nullptr) {
 		auto log = as_method(base::make_scopes(AGR, TYPEID(Action), __func__),
-				true, caller, typeid(base::Quantity), condition, event,
+				true, caller, typeid(base::Quantity), condition, simulation,
 				collection, attributes);
 
 		return log.returns(
-				Ensemble::Unique_ptr::construct<Action>(&log, condition, event,
-						collection, base::Primitive<const Log*>(&log, &log),
-						attributes));
+				Ensemble::Unique_ptr::construct<Action>(&log, condition,
+						simulation, collection,
+						base::Primitive<const Log*>(&log, &log), attributes));
 	}
 };
 
