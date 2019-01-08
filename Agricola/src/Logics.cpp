@@ -19,16 +19,46 @@ template<> std::function<
 		print_std__function<Primitive<bool>(const Log*)>;
 template<> std::function<
 		std::ostringstream(
-				const std::function<
-						Primitive<bool>(Primitive<bool>, agr::Player&,
-								const Log*)>&)> Class<
-		std::function<Primitive<bool>(Primitive<bool>, agr::Player&, const Log*)>>::printer =
-		print_std__function<
-				Primitive<bool>(Primitive<bool>, agr::Player&, const Log*)>;
+				const std::function<Primitive<bool>(agr::Player&, const Log*)>&)> Class<
+		std::function<Primitive<bool>(agr::Player&, const Log*)>>::printer =
+		print_std__function<Primitive<bool>(agr::Player&, const Log*)>;
+
+//Class<std::unique_ptr<agr::Operation>>
+const agr::Operation& Class<std::unique_ptr<agr::Operation>>::operator *() const {
+	return dynamic_cast<const agr::Operation&>(Unique_ptr::operator *());
+}
+agr::Operation& Class<std::unique_ptr<agr::Operation>>::operator *() {
+	return dynamic_cast<agr::Operation&>(Unique_ptr::operator *());
+}
+
+Class<std::unique_ptr<agr::Operation>> Class<std::unique_ptr<agr::Operation>>::dynamicCast(
+		Unique_ptr&& log) {
+	return Class<std::unique_ptr<agr::Operation>>(std::move(log));
+}
+
+Class<std::unique_ptr<agr::Operation>>::Class(Unique_ptr && moving) :
+		Unique_ptr(std::move(moving)) {
+}
+Class<std::unique_ptr<agr::Operation>>::Class(
+		Class<std::unique_ptr<agr::Operation>> && moving) :
+		Unique_ptr(std::move(moving)) {
+}
 
 } /* namespace base */
 
 namespace agr {
+
+//Operation
+Operation::Operation(std::string label, const Log* caller) :
+		NEW_LOG(caller, label, false), state(1, caller) {
+	as_constructor(AGR, __func__, caller);
+}
+Operation::Operation(const Operation& copy) :
+		Object(copy), Log(&copy, copy.has_label(), false), state(1, &copy) {
+}
+Operation& Operation::operator =(const Operation& copy) {
+	return *this;
+}
 
 //Condition
 base::Primitive<bool> Condition::operator ()(const Log* caller) const {
@@ -43,99 +73,18 @@ base::Primitive<bool> Condition::no(const Log* caller) {
 
 Condition::Condition(
 		base::Class<std::function<base::Primitive<bool>(const Log*)>> condition,
-		const Log* caller) :
-		NEW_LOG(caller, base::make_scopes(AGR, __func__), false), condition(
-				condition) {
+		std::string label, const Log* caller) :
+		NEW_LOG(caller, label, false), condition(condition) {
 	as_constructor(AGR, __func__, this);
 }
-Condition::~Condition() {
-	as_destructor(AGR, __func__);
-}
 Condition::Condition(const Condition& copy) :
-		Object(copy), Log(&copy, base::make_scopes(AGR, __func__), false), condition(
+		Object(copy), Log(&copy, copy.has_label(), false), condition(
 				copy.condition) {
 }
 Condition& Condition::operator =(const Condition& copy) {
 	condition = copy.condition;
 
 	return as_binary<false>(__func__, copy, typeid(Condition&)).returns(*this);
-}
-
-//Event
-base::Primitive<bool> Event::operator ()(base::Primitive<bool> simulation,
-		Player& performer, const Log* caller) {
-	auto log = as_method("", caller, typeid(base::Primitive<bool>), simulation,
-			performer);
-
-	return log.returns(event.is()(simulation, performer, &log));
-}
-
-Event::Event(
-		base::Class<
-				std::function<
-						base::Primitive<bool>(base::Primitive<bool>, Player&,
-								const Log*)>> event, const Log* caller) :
-		NEW_LOG(caller, base::make_scopes(AGR, __func__), false), event(event) {
-	as_constructor(AGR, __func__, this);
-}
-Event::~Event() {
-	as_destructor(AGR, __func__);
-}
-Event::Event(const Event& copy) :
-		Object(copy), Log(&copy, base::make_scopes(AGR, __func__), false), event(
-				copy.event) {
-}
-Event& Event::operator =(const Event& copy) {
-	event = copy.event;
-
-	return as_binary<false>(__func__, copy, typeid(Event&)).returns(*this);
-}
-
-//Action
-base::Primitive<Player*> Action::is_performed_by(const Log* caller) {
-	return as_method(__func__, caller, typeid(base::Primitive<Player*>)).returns(
-			performer);
-}
-std::ostringstream Action::prints() const {
-	std::ostringstream result;
-
-	result << has_label() << "{" << this << "}";
-
-	return result;
-}
-base::Quantity Action::does_collect(const Log* caller) {
-	return as_method<false>(__func__, caller, typeid(base::Quantity)).returns(
-			collection);
-}
-base::Unique_ptr Action::construct(
-		base::Class<std::function<base::Primitive<bool>(const Log*)>> condition,
-		base::Class<
-				std::function<
-						base::Primitive<bool>(base::Primitive<bool>, Player&,
-								const Log*)>> event, base::Quantity collection,
-		const Log* caller, base::Fields attributes) {
-	auto log = as_method(base::make_scopes(AGR, TYPEID(Action), __func__), true,
-			caller, typeid(base::Quantity), condition, event, collection,
-			attributes);
-
-	return log.returns(
-			base::Unique_ptr::construct<Action>(&log, condition, event,
-					collection, base::Primitive<const Log*>(&log, &log),
-					attributes));
-}
-
-Action::Action(
-		base::Class<std::function<base::Primitive<bool>(const Log*)>> condition,
-		base::Class<
-				std::function<
-						base::Primitive<bool>(base::Primitive<bool>, Player&,
-								const Log*)>> event, base::Quantity collection,
-		const Log* caller, base::Fields attributes) :
-		ENSEMBLE(false, base::make_scopes(AGR, __func__), caller, attributes), Condition(
-				condition, caller), Event(event, caller), performer(nullptr,
-				caller), collection(collection) {
-	as_constructor(AGR, __func__, caller, condition, event, collection,
-			attributes);
 }
 
 } /* namespace agr */
