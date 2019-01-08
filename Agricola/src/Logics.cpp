@@ -60,15 +60,26 @@ Operation& Operation::operator =(const Operation& copy) {
 	return *this;
 }
 
+Simulator get_simulator(
+		std::function<base::Primitive<bool>(Player&, const base::Log*)> function,
+		const base::Log* caller) {
+	return Simulator(function, caller);
+}
+
 //Condition
 base::Primitive<bool> Condition::operator ()(const Log* caller) const {
 	auto log = as_method("", caller, typeid(base::Primitive<bool>));
 
 	return log.returns(condition.is()(&log));
 }
+
 base::Primitive<bool> Condition::no(const Log* caller) {
 	return base::function_primitive(true,
 			base::make_scopes(AGR, TYPEID(Condition), __func__), caller);
+}
+Condition::Function Condition::get_condition(
+		std::function<base::Primitive<bool>(const Log*)> function, const Log* caller) {
+	return Condition::Function(function, caller);
 }
 
 Condition::Condition(

@@ -49,6 +49,7 @@ template<typename Function> std::ostringstream print_std__function(
 
 	return result;
 }
+
 template<> class Class<std::unique_ptr<agr::Operation>> : public Unique_ptr {
 	Class(Unique_ptr&&);
 public:
@@ -75,12 +76,18 @@ public:
 namespace agr {
 
 using Simulator = base::Class<std::function<base::Primitive<bool>(Player&, const base::Log*)>>;
+Simulator get_simulator(
+		std::function<base::Primitive<bool>(Player&, const base::Log*)>,
+		const base::Log* = nullptr);
 struct Condition: virtual public base::Log {
 	using Function = base::Class<std::function<base::Primitive<bool>(const Log*)>>;
 
 	base::Primitive<bool> operator ()(const Log* = nullptr) const;
 	virtual std::ostringstream prints() const = 0;
 	static base::Primitive<bool> no(const Log* = nullptr);
+	static Function get_condition(
+			std::function<base::Primitive<bool>(const Log*)>, const Log* =
+					nullptr);
 
 	Condition(Function, std::string, const Log* = nullptr);
 	virtual ~Condition() = default;
