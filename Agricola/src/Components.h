@@ -25,7 +25,10 @@ namespace agr {
 
 struct Board: public base::Ensemble {
 	virtual ~Board() = default;
+	Board(Board&&);
+protected:
 	Board(std::string, const Log* = nullptr, base::Fields = nullptr);
+	friend Board construct_gameboard(const Log*);
 };
 
 template<typename Type, size_t N> std::ostringstream print_std__array(
@@ -59,7 +62,7 @@ struct Farmyard final: private Board {
 		base::Class<std::array<Fence*, 4>> fences;
 		friend class Row;
 		friend Farmyard;
-		friend base::Unique_ptr;
+		friend Ensemble::Unique_ptr;
 		Space(const Log*, base::Fields = nullptr);
 	};
 	class Row final: public Log {
@@ -74,10 +77,11 @@ struct Farmyard final: private Board {
 	};
 	Ensemble& personal_supply(const Log* = nullptr) const;
 	Row operator [](base::Primitive<short>) const;
-	static base::Unique_ptr construct(const Log* = nullptr);
+	static Ensemble::Unique_ptr construct(const Log* = nullptr);
 private:
 	Farmyard(const Log*, base::Fields = nullptr);
-	friend base::Unique_ptr;
+	Farmyard(Farmyard&&) = delete;
+	friend Ensemble::Unique_ptr;
 };
 
 class Colored: virtual public base::Log {
@@ -94,14 +98,14 @@ public:
 class Face: public base::Ensemble, public Colored {
 	base::Class<std::vector<Condition*>> prerequisite;
 	base::Class<std::string> name;
-	base::Class<std::map<std::type_index, int>> cost;
+	base::Quantity cost;
 	base::Primitive<char> deck;
-	base::Class<std::vector<Event*>> events;
+	base::Class<std::vector<Ensemble*>> events;
 	base::Primitive<bool> bonus_points;
 protected:
 	Face(base::Class<std::vector<Condition*>>, base::Class<std::string>,
 			base::Quantity, base::Primitive<char>,
-			base::Class<std::vector<Event*>>, base::Primitive<bool>, Color,
+			base::Class<std::vector<Ensemble*>>, base::Primitive<bool>, Color,
 			std::string, const Log* = nullptr, base::Fields = nullptr);
 public:
 	base::Class<std::vector<Condition*>> has_prerequisites(
@@ -109,20 +113,20 @@ public:
 	base::Class<std::string> has_name(const Log* = nullptr) const;
 	base::Quantity has_cost(const Log* = nullptr) const;
 	base::Primitive<char> belongs(const Log* = nullptr) const;
-	base::Class<std::vector<Event*>> has_events(const Log* = nullptr) const;
+	base::Class<std::vector<Ensemble*>> has_events(const Log* = nullptr) const;
 	base::Primitive<bool> has_bonus_points(const Log* = nullptr) const;
 
 	virtual ~Face() = default;
 };
 class Cover final: public base::Ensemble, public Colored {
 	base::Class<std::string> name;
-	friend base::Unique_ptr;
+	friend Ensemble::Unique_ptr;
 	Cover(base::Class<std::string>, Color, const Log* = nullptr, base::Fields =
 			nullptr);
 public:
 	base::Class<std::string> has_name(const Log* = nullptr) const;
 	virtual std::ostringstream prints() const;
-	static base::Unique_ptr construct(base::Class<std::string>, Color,
+	static Ensemble::Unique_ptr construct(base::Class<std::string>, Color,
 			const Log* = nullptr, base::Fields = nullptr);
 };
 class Numbered: virtual public base::Log {
@@ -288,13 +292,15 @@ public:
 } /* namespace agr */
 
 namespace card {
+#define CARD "card"
 
-class Occupation: public agr::Numbered, public agr::Face {
+class Occupation final: public agr::Numbered, public agr::Face {
 	base::Class<std::pair<short, bool>> player_number;
-protected:
+	friend base::Ensemble::Unique_ptr construct_occupation(
+			base::Primitive<unsigned>);
 	Occupation(base::Class<std::vector<agr::Condition*>>,
 			base::Class<std::string>, base::Quantity, base::Primitive<char>,
-			base::Class<std::vector<agr::Event*>>, base::Primitive<bool>,
+			base::Class<std::vector<Ensemble*>>, base::Primitive<bool>,
 			base::Primitive<unsigned>, base::Class<std::pair<short, bool>>,
 			const Log* = nullptr, base::Fields = nullptr);
 public:
@@ -310,7 +316,7 @@ class Improvement: public agr::Numbered, public agr::Face {
 protected:
 	Improvement(base::Class<std::vector<agr::Condition*>>,
 			base::Class<std::string>, base::Quantity, base::Primitive<char>,
-			base::Class<std::vector<agr::Event*>>, base::Primitive<bool>,
+			base::Class<std::vector<Ensemble*>>, base::Primitive<bool>,
 			agr::Color, base::Primitive<unsigned>, base::Primitive<short>,
 			base::Primitive<bool>, base::Primitive<bool>, const Log* = nullptr,
 			base::Fields = nullptr);
@@ -323,29 +329,31 @@ public:
 	virtual ~Improvement() = default;
 };
 class MinorImprovement: public Improvement {
-protected:
+	friend base::Ensemble::Unique_ptr construct_minor_improvement(
+			base::Primitive<unsigned>);
 	MinorImprovement(base::Class<std::vector<agr::Condition*>>,
 			base::Class<std::string>, base::Quantity, base::Primitive<char>,
-			base::Class<std::vector<agr::Event*>>, base::Primitive<bool>,
+			base::Class<std::vector<Ensemble*>>, base::Primitive<bool>,
 			base::Primitive<unsigned>, base::Primitive<short>,
 			base::Primitive<bool>, base::Primitive<bool>, const Log* = nullptr,
 			base::Fields = nullptr);
 };
 class MajorImprovement: public Improvement {
-protected:
+	friend base::Ensemble::Unique_ptr construct_major_improvement(
+			base::Primitive<unsigned>);
 	MajorImprovement(base::Class<std::vector<agr::Condition*>>,
 			base::Class<std::string>, base::Quantity, base::Primitive<char>,
-			base::Class<std::vector<agr::Event*>>, base::Primitive<bool>,
+			base::Class<std::vector<Ensemble*>>, base::Primitive<bool>,
 			base::Primitive<unsigned>, base::Primitive<short>,
 			base::Primitive<bool>, base::Primitive<bool>, const Log* = nullptr,
 			base::Fields = nullptr);
 };
 
-class Action: public agr::Colored, private base::Ensemble {
+class Action final: public agr::Colored, private base::Ensemble {
 	static const std::string type;
-
+friend Unique_ptr;
 	template<typename ... Unique_pointers> void adds(const Log* caller,
-			base::Unique_ptr&& action, Unique_pointers&& ... actions) {
+			Ensemble::Unique_ptr&& action, Unique_pointers&& ... actions) {
 		auto log = as_method(__func__, caller, typeid(void), action,
 				actions ...);
 
@@ -354,27 +362,38 @@ class Action: public agr::Colored, private base::Ensemble {
 		adds(&log, std::move(actions ...));
 	}
 	void adds(const Log* caller);
-protected:
+
 	template<typename ... Unique_pointers> Action(const Log* caller,
-			base::Fields attributes, base::Unique_ptr&& action,
+			base::Fields attributes, Ensemble::Unique_ptr&& action,
 			Unique_pointers&& ... actions) :
-			ENSEMBLE(true, base::make_scopes(AGR, __func__), caller, attributes), Colored(
+			ENSEMBLE(true, base::make_scopes(CARD, __func__), caller, attributes), Colored(
 					LOGGED_COLOR(agr::Color::Which::Green, caller), caller) {
-		auto log = as_constructor(AGR, __func__, caller, action, actions ...);
+		auto log = as_constructor(CARD, __func__, caller, action, actions ...);
 
 		adds(&log, std::move(action), std::move(actions) ...);
 	}
 public:
-	base::Class<std::vector<agr::Action*>> includes(const Log* = nullptr);
+	base::Class<std::vector<Ensemble*>> includes(const Log* = nullptr);
+	virtual std::ostringstream prints() const;
+	template<typename ... Unique_pointers> static Unique_ptr construct(
+			const Log* caller, base::Fields attributes,
+			Ensemble::Unique_ptr&& action, Unique_pointers&& ... actions) {
+		auto log = as_method(base::make_scopes(CARD, TYPEID(Action), __func__),
+				true, caller, typeid(Unique_ptr), attributes, action,
+				actions ...);
+
+		return Unique_ptr::construct<Action>(&log,
+				base::Primitive<const Log*>(&log, &log), attributes,
+				std::move(action), std::move(actions) ...);
+	}
 };
 
 class Begging final: public agr::Face {
 	Begging(const Log*, base::Fields = nullptr);
-	friend base::Unique_ptr;
+	friend Unique_ptr;
 public:
 	virtual std::ostringstream prints() const;
-	static game::Deck::Unique_ptr construct(const Log* = nullptr, base::Fields =
-			nullptr);
+	static Unique_ptr construct(const Log* = nullptr, base::Fields = nullptr);
 };
 
 } /* namespace card */

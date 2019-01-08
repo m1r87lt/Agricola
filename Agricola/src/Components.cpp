@@ -33,10 +33,8 @@ template<> std::function<
 template<> std::function<std::ostringstream(const std::vector<agr::Condition*>&)> Class<
 		std::vector<agr::Condition*>>::printer = print_std__vector<
 		agr::Condition*>;
-template<> std::function<std::ostringstream(const std::vector<agr::Event*>&)> Class<
-		std::vector<agr::Event*>>::printer = print_std__vector<agr::Event*>;
-template<> std::function<std::ostringstream(const std::vector<agr::Action*>&)> Class<
-		std::vector<agr::Action*>>::printer = print_std__vector<agr::Action*>;
+template<> std::function<std::ostringstream(const std::vector<Log*>&)> Class<
+		std::vector<Log*>>::printer = print_std__vector<Log*>;
 template<> std::function<std::ostringstream(const std::pair<short, bool>&)> Class<
 		std::pair<short, bool>>::printer = agr::print_std__pair<short, bool>;
 } /* namespace base */
@@ -48,6 +46,11 @@ Board::Board(std::string label, const Log* caller, base::Fields attributes) :
 		ENSEMBLE(
 				false, label, caller, attributes) {
 			as_constructor(AGR, __func__, caller);
+		}
+		Board::Board(Board&& moving) :
+		ENSEMBLE(
+				false, moving.has_label(), &moving, moving.gives_attributes(&moving)) {
+			as_constructor(AGR, __func__, &moving);
 		}
 
 //Farmyard
@@ -65,11 +68,11 @@ Board::Board(std::string label, const Log* caller, base::Fields attributes) :
 
 			return log.returns(Row(row, *this, &log));
 		}
-		base::Unique_ptr Farmyard::construct(const Log* caller) {
+		base::Ensemble::Unique_ptr Farmyard::construct(const Log* caller) {
 			auto log = as_method(base::make_scopes(AGR, __func__, TYPEID(Farmyard)),
 					false, caller, typeid(base::Unique_ptr));
 
-			return log.returns(base::Unique_ptr::construct<Farmyard>(&log, &log));
+			return log.returns(Ensemble::Unique_ptr::construct<Farmyard>(&log, &log));
 		}
 
 		Farmyard::Farmyard(const Log* caller, base::Fields attributes) :
@@ -213,9 +216,10 @@ base::Primitive<char> Face::belongs(const Log* caller) const {
 	return as_method<false>(__func__, caller, typeid(base::Primitive<char>)).returns(
 			deck);
 }
-base::Class<std::vector<Event*>> Face::has_events(const Log* caller) const {
+base::Class<std::vector<base::Ensemble*>> Face::has_events(
+		const Log* caller) const {
 	return as_method<false>(__func__, caller,
-			typeid(base::Class<std::vector<Event*>>)).returns(events);
+			typeid(base::Class<std::vector<base::Ensemble*>>)).returns(events);
 }
 base::Primitive<bool> Face::has_bonus_points(const Log* caller) const {
 	return as_method<false>(__func__, caller, typeid(base::Primitive<bool>)).returns(
@@ -224,7 +228,7 @@ base::Primitive<bool> Face::has_bonus_points(const Log* caller) const {
 
 Face::Face(base::Class<std::vector<Condition*>> prerequisite,
 		base::Class<std::string> name, base::Quantity cost,
-		base::Primitive<char> deck, base::Class<std::vector<Event*>> events,
+		base::Primitive<char> deck, base::Class<std::vector<Ensemble*>> events,
 		base::Primitive<bool> bonus_points, Color color, std::string label,
 		const Log* caller, base::Fields attributes) :
 		ENSEMBLE(false, label, caller, attributes), Colored(color, caller), prerequisite(
@@ -242,10 +246,10 @@ base::Class<std::string> Cover::has_name(const Log* caller) const {
 std::ostringstream Cover::prints() const {
 	return Ensemble::prints();
 }
-base::Unique_ptr Cover::construct(base::Class<std::string> name, Color color,
-		const Log* caller, base::Fields attributes) {
+base::Ensemble::Unique_ptr Cover::construct(base::Class<std::string> name,
+		Color color, const Log* caller, base::Fields attributes) {
 	return std::move(
-			base::Unique_ptr::construct<Cover>(caller, name, color, caller,
+			Unique_ptr::construct<Cover>(caller, name, color, caller,
 					attributes));
 }
 
@@ -633,7 +637,7 @@ std::ostringstream Occupation::prints() const {
 Occupation::Occupation(base::Class<std::vector<agr::Condition*>> prerequisite,
 		base::Class<std::string> name, base::Quantity cost,
 		base::Primitive<char> deck,
-		base::Class<std::vector<agr::Event*>> events,
+		base::Class<std::vector<base::Ensemble*>> events,
 		base::Primitive<bool> bonus_points, base::Primitive<unsigned> number,
 		base::Class<std::pair<short, bool>> player_number, const Log* caller,
 		base::Fields attributes) :
@@ -671,7 +675,7 @@ std::ostringstream Improvement::prints() const {
 Improvement::Improvement(base::Class<std::vector<agr::Condition*>> prerequisite,
 		base::Class<std::string> name, base::Quantity cost,
 		base::Primitive<char> deck,
-		base::Class<std::vector<agr::Event*>> events,
+		base::Class<std::vector<base::Ensemble*>> events,
 		base::Primitive<bool> bonus_points, agr::Color color,
 		base::Primitive<unsigned> number, base::Primitive<short> victory_points,
 		base::Primitive<bool> oven, base::Primitive<bool> kitchen,
@@ -689,8 +693,7 @@ Improvement::Improvement(base::Class<std::vector<agr::Condition*>> prerequisite,
 MinorImprovement::MinorImprovement(
 		base::Class<std::vector<agr::Condition*>> prerequisite,
 		base::Class<std::string> name, base::Quantity cost,
-		base::Primitive<char> deck,
-		base::Class<std::vector<agr::Event*>> events,
+		base::Primitive<char> deck, base::Class<std::vector<Ensemble*>> events,
 		base::Primitive<bool> bonus_points, base::Primitive<unsigned> number,
 		base::Primitive<short> victory_points, base::Primitive<bool> oven,
 		base::Primitive<bool> kitchen, const Log* caller,
@@ -709,7 +712,7 @@ MajorImprovement::MajorImprovement(
 		base::Class<std::vector<agr::Condition*>> prerequisite,
 		base::Class<std::string> name, base::Quantity cost,
 		base::Primitive<char> deck,
-		base::Class<std::vector<agr::Event*>> events,
+		base::Class<std::vector<base::Ensemble*>> events,
 		base::Primitive<bool> bonus_points, base::Primitive<unsigned> number,
 		base::Primitive<short> victory_points, base::Primitive<bool> oven,
 		base::Primitive<bool> kitchen, const Log* caller,
@@ -729,34 +732,33 @@ const std::string Action::type = "action";
 void Action::adds(const Log* caller) {
 	as_method<false>(__func__, caller, typeid(void));
 }
-base::Class<std::vector<agr::Action*>> Action::includes(const Log* caller) {
+base::Class<std::vector<base::Ensemble*>> Action::includes(const Log* caller) {
 	auto log = as_method(__func__, caller,
-			typeid(base::Class<std::vector<agr::Action*>>));
-	base::Class<std::vector<agr::Action*>> result(std::vector<agr::Action*>(),
-			&log);
+			typeid(base::Class<std::vector<Ensemble*>>));
+	base::Class<std::vector<Ensemble*>> result(std::vector<Ensemble*>(), &log);
 	auto index = has_size(&log);
 
 	while ((size_t) index)
-		result.is().push_back(
-				dynamic_cast<agr::Action*>(&operator [](index--)));
+		result.is().push_back(dynamic_cast<Ensemble*>(&operator [](index--)));
 
 	return log.returns(result);
 }
 
+std::ostringstream Action::prints() const {
+	return Ensemble::prints();
+}
 //Begging
 std::ostringstream Begging::prints() const {
 	return Ensemble::prints();
 }
-game::Deck::Unique_ptr Begging::construct(const Log* caller,
+base::Ensemble::Unique_ptr Begging::construct(const Log* caller,
 		base::Fields attributes) {
 	auto log = as_method(base::make_scopes(AGR, __func__), true, caller,
-			typeid(game::Deck::Unique_ptr), attributes);
+			typeid(Ensemble::Unique_ptr), attributes);
 
 	return log.returns(
-			game::Deck::Unique_ptr::dynamicCast(
-					base::Unique_ptr::construct<Begging>(&log,
-							base::Primitive<const Log*>(&log, &log),
-							attributes)));
+			Ensemble::Unique_ptr::construct<Begging>(&log,
+					base::Primitive<const Log*>(&log, &log), attributes));
 }
 
 Begging::Begging(const Log* caller, base::Fields attributes) :
@@ -766,9 +768,8 @@ Begging::Begging(const Log* caller, base::Fields attributes) :
 				base::Class<std::string>(__func__, caller),
 				base::Quantity(std::map<std::type_index, int>(), caller),
 				base::Primitive<char>('\0', caller),
-				base::Class<std::vector<agr::Event*>>(
-						std::vector<agr::Event*>(), caller),
-				base::Primitive<bool>(false, caller),
+				base::Class<std::vector<Ensemble*>>(std::vector<Ensemble*>(),
+						caller), base::Primitive<bool>(false, caller),
 				LOGGED_COLOR(agr::Color::Which::Grey, caller),
 				base::make_scopes(AGR, __func__), caller, attributes) {
 	as_constructor(AGR, __func__, caller, attributes);
