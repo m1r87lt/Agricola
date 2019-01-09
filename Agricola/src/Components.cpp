@@ -33,8 +33,8 @@ template<> std::function<
 template<> std::function<std::ostringstream(const std::vector<agr::Condition*>&)> Class<
 		std::vector<agr::Condition*>>::printer = print_std__vector<
 		agr::Condition*>;
-template<> std::function<std::ostringstream(const std::vector<Log*>&)> Class<
-		std::vector<Log*>>::printer = print_std__vector<Log*>;
+template<> std::function<std::ostringstream(const std::vector<Ensemble*>&)> Class<
+		std::vector<Ensemble*>>::printer = print_std__vector<Ensemble*>;
 template<> std::function<std::ostringstream(const std::pair<short, bool>&)> Class<
 		std::pair<short, bool>>::printer = agr::print_std__pair<short, bool>;
 } /* namespace base */
@@ -373,6 +373,21 @@ Fence::Fence(Player& player, const Log* caller, base::Fields attributes) :
 	as_constructor<false>(AGR, __func__, caller, player, attributes);
 }
 
+//Resource
+Resource::Resource(Color color, std::string label, const Log* caller,
+		base::Fields attributes) :
+		WOODEN_SHAPE(caller, label, false,
+				color, Shape::disc, attributes) {
+	as_constructor<false>(AGR, __func__, caller, color, attributes);
+}
+
+//BuildResource
+BuildResource::BuildResource(Color color, std::string label, const Log* caller,
+		base::Fields attributes) :
+		RESOURCE(color, label, false, caller, attributes) {
+	as_constructor<false>(AGR, __func__, caller, color, attributes);
+}
+
 //Wood
 base::Unique_ptr Wood::construct(const Log* caller, base::Fields attributes) {
 	auto log = Log::as_method(base::make_scopes(AGR, TYPEID(Wood), __func__),
@@ -384,8 +399,8 @@ base::Unique_ptr Wood::construct(const Log* caller, base::Fields attributes) {
 }
 
 Wood::Wood(const Log* caller, base::Fields attributes) :
-		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
-				LOGGED_COLOR(agr::Color::Which::Brown, caller), Shape::disc, attributes) {
+		BUILDRESOURCE(LOGGED_COLOR(agr::Color::Which::Brown, caller),
+				base::make_scopes(AGR, __func__), false, caller, attributes) {
 	as_constructor<false>(AGR, __func__, caller, attributes);
 }
 
@@ -400,8 +415,8 @@ base::Unique_ptr Clay::construct(const Log* caller, base::Fields attributes) {
 }
 
 Clay::Clay(const Log* caller, base::Fields attributes) :
-		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
-				LOGGED_COLOR(agr::Color::Which::Red, caller), Shape::disc, attributes) {
+		BUILDRESOURCE(LOGGED_COLOR(agr::Color::Which::Red, caller),
+		base::make_scopes(AGR, __func__), false, caller, attributes) {
 	as_constructor<false>(AGR, __func__, caller, attributes);
 }
 
@@ -416,8 +431,8 @@ base::Unique_ptr Reed::construct(const Log* caller, base::Fields attributes) {
 }
 
 Reed::Reed(const Log* caller, base::Fields attributes) :
-		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
-				LOGGED_COLOR(agr::Color::Which::White, caller), Shape::disc, attributes) {
+		BUILDRESOURCE(LOGGED_COLOR(agr::Color::Which::White, caller),
+		base::make_scopes(AGR, __func__), false, caller, attributes) {
 	as_constructor<false>(AGR, __func__, caller, attributes);
 }
 
@@ -432,8 +447,8 @@ base::Unique_ptr Stone::construct(const Log* caller, base::Fields attributes) {
 }
 
 Stone::Stone(const Log* caller, base::Fields attributes) :
-		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
-				LOGGED_COLOR(agr::Color::Which::Black, caller), Shape::disc, attributes) {
+		BUILDRESOURCE(LOGGED_COLOR(agr::Color::Which::Black, caller),
+		base::make_scopes(AGR, __func__), false, caller, attributes) {
 	as_constructor<false>(AGR, __func__, caller, attributes);
 }
 
@@ -448,8 +463,8 @@ base::Unique_ptr Grain::construct(const Log* caller, base::Fields attributes) {
 }
 
 Grain::Grain(const Log* caller, base::Fields attributes) :
-		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
-				LOGGED_COLOR(agr::Color::Which::Yellow, caller), Shape::disc, attributes) {
+		RESOURCE(LOGGED_COLOR(agr::Color::Which::Yellow, caller),
+		base::make_scopes(AGR, __func__), false, caller, attributes) {
 	as_constructor<false>(AGR, __func__, caller, attributes);
 }
 
@@ -466,9 +481,17 @@ base::Unique_ptr Vegetable::construct(const Log* caller,
 }
 
 Vegetable::Vegetable(const Log* caller, base::Fields attributes) :
-		WOODEN_SHAPE(caller, base::make_scopes(AGR, __func__), false,
-				LOGGED_COLOR(agr::Color::Which::Orange, caller), Shape::disc, attributes) {
+		RESOURCE(LOGGED_COLOR(agr::Color::Which::Orange, caller),
+		base::make_scopes(AGR, __func__), false, caller, attributes) {
 	as_constructor<false>(AGR, __func__, caller, attributes);
+}
+
+//Resource
+Animal::Animal(Color color, std::string label, const Log* caller,
+		base::Fields attributes) :
+		WOODEN_SHAPE(caller, label, false,
+				color, Shape::cube, attributes) {
+	as_constructor<false>(AGR, __func__, caller, color, attributes);
 }
 
 //Sheep

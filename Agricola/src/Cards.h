@@ -10,12 +10,8 @@
 
 namespace card {
 
-class Card1 {
-public:
-	Card1();
-	virtual ~Card1();
-};
 
 } /* namespace card */
+
 #endif /* CARDS_H_ */
 

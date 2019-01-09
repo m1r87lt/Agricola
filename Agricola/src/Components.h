@@ -14,6 +14,9 @@
 #define BOARD(caller, label, open, attributes) Object(caller, label), Log(caller, label, open), Board(label, caller, attributes)
 #define NUMBERED(caller, label, open, number) Object(caller, label), Log(caller, label, open), Numbered(number, caller)
 #define WOODEN_SHAPE(caller, label, open, color, shape, attributes) Object(caller, label), Log(caller, label, open), WoodenPiece(color, shape, #shape, label, caller, attributes)
+#define RESOURCE(color, label, open, caller, attributes) Object(caller, label), Log(caller, label, open), Resource(color, label, caller, attributes)
+#define BUILDRESOURCE(color, label, open, caller, attributes) Object(caller, label), Log(caller, label, open), BuildResource(color, label, caller, attributes)
+#define ANIMAL(caller, label, open, color, shape, attributes) Object(caller, label), Log(caller, label, open), WoodenPiece(color, shape, #shape, label, caller, attributes)
 #define TILE(caller, label, open, attributes) Object(caller, label), Log(caller, label, open), Tile(label, caller, attributes)
 #define SPACE_NAME "Space"
 #define PERSONAL_SUPPLY_NAME "Personal Supply"
@@ -82,6 +85,7 @@ private:
 	Farmyard(const Log*, base::Fields = nullptr);
 	Farmyard(Farmyard&&) = delete;
 	friend Ensemble::Unique_ptr;
+	friend Farmyard& give_farmyard(Player&, const Log*);
 };
 
 class Colored: virtual public base::Log {
@@ -181,63 +185,81 @@ public:
 	static base::Unique_ptr construct(Player&, const Log* = nullptr,
 			base::Fields = nullptr);
 };
-class Wood: public WoodenPiece {
+
+struct Resource: public WoodenPiece {
+	virtual ~Resource() = default;
+protected:
+	Resource(Color, std::string, const Log* = nullptr, base::Fields = nullptr);
+};
+struct BuildResource: public Resource {
+	virtual ~BuildResource() = default;
+protected:
+	BuildResource(Color, std::string, const Log* = nullptr, base::Fields =
+			nullptr);
+};
+class Wood: public BuildResource {
 	Wood(const Log*, base::Fields = nullptr);
 public:
 	friend base::Unique_ptr;
 	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
 			nullptr);
 };
-class Clay: public WoodenPiece {
+class Clay: public BuildResource {
 	Clay(const Log*, base::Fields = nullptr);
 public:
 	friend base::Unique_ptr;
 	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
 			nullptr);
 };
-class Reed: public WoodenPiece {
+class Reed: public BuildResource {
 	Reed(const Log*, base::Fields = nullptr);
 public:
 	friend base::Unique_ptr;
 	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
 			nullptr);
 };
-class Stone: public WoodenPiece {
+class Stone: public BuildResource {
 	Stone(const Log*, base::Fields = nullptr);
 public:
 	friend base::Unique_ptr;
 	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
 			nullptr);
 };
-class Grain: public WoodenPiece {
+class Grain: public Resource {
 	Grain(const Log*, base::Fields = nullptr);
 public:
 	friend base::Unique_ptr;
 	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
 			nullptr);
 };
-class Vegetable: public WoodenPiece {
+class Vegetable: public Resource {
 	Vegetable(const Log*, base::Fields = nullptr);
 public:
 	friend base::Unique_ptr;
 	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
 			nullptr);
 };
-class Sheep: public WoodenPiece {
+
+class Animal: public WoodenPiece {
+	virtual ~Animal() = default;
+protected:
+	Animal(Color, std::string, const Log* = nullptr, base::Fields = nullptr);
+};
+class Sheep: public Animal {
 	Sheep(const Log*, base::Fields = nullptr);
 public:
 	friend base::Unique_ptr;
 	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
 			nullptr);
 };
-class WildBoar: public WoodenPiece {
+class WildBoar: public Animal {
 	WildBoar(const Log*, base::Fields = nullptr);
 public:
 	friend base::Unique_ptr;
 	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
 			nullptr);
 };
-class Cattle: public WoodenPiece {
+class Cattle: public Animal {
 	Cattle(const Log*, base::Fields = nullptr);
 public:
 	friend base::Unique_ptr;
@@ -288,6 +310,25 @@ public:
 	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
 			nullptr);
 };
+
+template<typename Base, typename Derived> std::string log_wrong_deriving(
+		base::Log& logger) {
+	std::ostringstream result("ERROR '");
+
+	result << typeid(Derived).name() << "' is not derived from '"
+			<< typeid(Base).name() << "'.";
+	logger.logs_error(result);
+
+	return result.str();
+}
+template<typename Base, typename Derived> std::domain_error throw_wrong_deriving(
+		base::Log& logger) {
+	return std::domain_error(log_wrong_deriving<Base, Derived>(logger));
+}
+template<typename Base, typename Derived> void derive(base::Log& caller) {
+	if (!std::is_base_of<Base, Derived>::value)
+		throw_wrong_deriving<Base, Derived>(caller);
+}
 
 } /* namespace agr */
 
@@ -351,7 +392,7 @@ class MajorImprovement: public Improvement {
 
 class Action final: public agr::Colored, private base::Ensemble {
 	static const std::string type;
-friend Unique_ptr;
+	friend Unique_ptr;
 	template<typename ... Unique_pointers> void adds(const Log* caller,
 			Ensemble::Unique_ptr&& action, Unique_pointers&& ... actions) {
 		auto log = as_method(__func__, caller, typeid(void), action,

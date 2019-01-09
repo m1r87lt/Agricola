@@ -6,9 +6,18 @@
  */
 
 #include "Board.h"
+#include "Simulations.h"
+#include "Events.h"
 
 namespace agr {
-Board gameBoard(TYPEID(Board));
+Board construct_gameboard(const base::Log* caller = nullptr) {
+	auto log = base::Log::as_function(base::make_scopes(AGR, __func__), true,
+			caller, typeid(Board));
+
+	return Board(base::make_scopes(AGR, TYPEID(Board)), &log, nullptr);
+}
+
+Board gameBoard(construct_gameboard());
 
 void construct_board(const base::Log* caller) {
 	auto log = base::Log::as_function(base::make_scopes(AGR, __func__), true,
@@ -20,7 +29,13 @@ void construct_board(const base::Log* caller) {
 
 	for (base::Primitive<size_t> i(1, &log); i <= I; ++i)
 		gameBoard.generates<base::Ensemble>(cardSpace, i, &log, ensemble, it);
-	//gameBoard.generates<base::Ensemble>();
+	gameBoard.generates<Action<BuildRooms_andOr_BuildStables>>(
+			base::Class<std::string>(TYPEID(BuildRooms_andOr_BuildStables),
+					&log), base::Primitive<size_t>(1, &log), &log,
+			Condition::Function(Condition::no, &log),
+			Simulator(build_rooms_and_or_build_stables, &log),
+			base::Quantity(std::map<std::type_index, int>(), &log),
+			base::Primitive<const base::Log*>(&log, &log));
 }
 
 } /* namespace agr */

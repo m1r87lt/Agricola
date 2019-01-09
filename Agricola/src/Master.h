@@ -2,19 +2,16 @@
  * Master.h
  *
  *  Created on: 3 gen 2019
- *      Author: m1rma
+ *      Author: m1r
  */
 
 #ifndef MASTER_H_
 #define MASTER_H_
 
+#include "Components.h"
+
 namespace agr {
 
-class Master {
-public:
-	Master();
-	~Master();
-};
 
 } /* namespace agr */
 

@@ -31,12 +31,21 @@ protected:
 namespace base {
 
 using Quantity = Class<std::map<std::type_index, int>>;
+template<typename First, typename Second> std::ostringstream unprint_std__pair_std__type_info_second_(
+		const std::pair<First, Second>& pair) {
+	std::ostringstream result;
+
+	result << pair.first.name() << ": " << pair.second;
+
+	return result;
+}
 template<typename First, typename Second> std::ostringstream unprint_std__map_std__type_info_second_(
 		const std::map<First, Second>& container) {
 	std::ostringstream result("{");
 
 	for (auto content : container)
-		result << "\n" << content.first.name() << ": " << content.second;
+		result << "\n"
+				<< unprint_std__pair_std__type_info_second_(content).str();
 	result << (result.str() == "{" ? " " : "\n") << "}";
 
 	return result;
@@ -76,18 +85,12 @@ public:
 namespace agr {
 
 using Simulator = base::Class<std::function<base::Primitive<bool>(Player&, const base::Log*)>>;
-Simulator get_simulator(
-		std::function<base::Primitive<bool>(Player&, const base::Log*)>,
-		const base::Log* = nullptr);
 struct Condition: virtual public base::Log {
 	using Function = base::Class<std::function<base::Primitive<bool>(const Log*)>>;
 
 	base::Primitive<bool> operator ()(const Log* = nullptr) const;
 	virtual std::ostringstream prints() const = 0;
 	static base::Primitive<bool> no(const Log* = nullptr);
-	static Function get_condition(
-			std::function<base::Primitive<bool>(const Log*)>, const Log* =
-					nullptr);
 
 	Condition(Function, std::string, const Log* = nullptr);
 	virtual ~Condition() = default;
@@ -131,18 +134,19 @@ public:
 		return as_binary<false>(__func__, copy, typeid(Event&)).returns(*this);
 	}
 };
-template<typename Function> struct Action final: public base::Ensemble,
+template<typename Struct> struct Action final: public base::Ensemble,
 		public Condition,
-		public Event<Function> {
+		public Event<Struct> {
 	base::Primitive<Player*> performer;
 	base::Quantity collection;
 	friend Ensemble::Unique_ptr;
+	friend Ensemble;
 	Action(Condition::Function condition, Simulator simulation,
 			base::Quantity collection, const Log* caller = nullptr,
 			base::Fields attributes = nullptr) :
 			ENSEMBLE(false, base::make_scopes(AGR, __func__), caller, attributes), Condition(
 					condition, base::make_scopes(AGR, __func__), caller), Event<
-					Function>(simulation, base::make_scopes(AGR, __func__),
+					Struct>(simulation, base::make_scopes(AGR, __func__),
 					caller), performer(nullptr, caller), collection(collection) {
 		as_constructor(AGR, __func__, caller, condition, simulation, collection,
 				attributes);
