@@ -7,184 +7,134 @@
 
 #include "Player.h"
 
-namespace base {
-
-template<> std::function<std::ostringstream(const std::vector<agr::Player*>&)> Class<
-		std::vector<agr::Player*>>::printer = print_std__vector<agr::Player*>;
-
-template<> std::function<std::ostringstream(const std::set<agr::Owned*>&)> Class<
-		std::set<agr::Owned*>>::printer = print_std__set<agr::Owned*>;
-
-std::ostringstream print_std__vector_std__pair_std__string_agr__color__(
-		const std::vector<std::pair<std::string, agr::Color>>& array) {
-	std::ostringstream result("{");
-
-	for (auto pair : array)
-		result << "\n\t{\"" << pair.first << "\", "
-				<< pair.second.prints().str() << "}";
-	if (result.str() == "{")
-		result << " ";
-	else
-		result << "\n";
-	result << "}";
-
-	return result;
-}
-template<> std::function<
-		std::ostringstream(
-				const std::vector<std::pair<std::string, agr::Color>>&)> Class<
-		std::vector<std::pair<std::string, agr::Color>>>::printer =
-		print_std__vector_std__pair_std__string_agr__color__;
-
-} /* namespace base */
-
 namespace agr {
 
 //Color
-base::Primitive<bool> Color::operator ==(Color operand) const {
-	return base::binary_primitive(*this, __func__, operand,
-			which == operand.which);
+bool Color::operator ==(Color& righthand) const {
+	return which == righthand.which;
 }
-base::Primitive<bool> Color::operator !=(Color operand) const {
-	return base::binary_primitive(*this, __func__, operand,
-			which != operand.which);
+bool Color::operator !=(Color& righthand) const {
+	return which != righthand.which;
 }
 
-std::ostringstream Color::prints() const {
-	return std::ostringstream(name);
+Color::Fields Color::shows() const {
+	auto result = Object::shows();
+
+	result.emplace(NAME(which), label);
+
+	return result;
+}
+std::string Color::prints() const {
+	return NAME(agr::Color)+ "{ " + label + " }";
 }
 
-Color::Color(Which which, const char* name, const base::Log* caller) :
-		Object(caller, __func__) {
+Color::Color() {
+	which = Which::No;
+	label = NAME(agr::Color::Which::No);
+}
+Color::Color(Which which, const char* label) {
 	this->which = which;
-	this->name = name;
-}
-Color::~Color() {
-	delete name;
-}
-Color::Color(const Color& copy) :
-		Object(nullptr, __func__) {
-	which = copy.which;
-	name = copy.name;
-}
-Color& Color::operator =(const Color& copy) {
-	which = copy.which;
-	name = copy.name;
-	Object::operator =(Color(copy));
-
-	return *this;
+	this->label = label;
 }
 
 //Player
-base::Class<std::vector<Player*>> Player::players = nullptr;
+std::vector<Player*> Player::players;
 
-base::Primitive<short> Player::which_is(const Log* caller) const {
-	auto log = as_method(__func__, caller, typeid(base::Primitive<short>));
-	base::Primitive<short> result(0, &log);
+short unsigned Player::which_is() const {
+	short unsigned result = 0;
 
-	while (players.is()[result] != this)
+	while (players[result] != this)
 		++result;
 
-	return result;
+	return ++result;
 }
-base::Class<std::string> Player::who_is(const Log* caller) const {
-	return as_method(__func__, caller, typeid(base::Class<std::string>)).returns(
-			base::Class<std::string>(name));
+std::string Player::who_is() const {
+	return name;
 }
-Color Player::how_is(const Log* caller) const {
-	return as_method(__func__, caller, typeid(Color)).returns(Color(color));
+Color Player::how_is() const {
+	return color;
 }
-base::Class<std::set<Owned*>> Player::owns(const Log* caller) {
-	return as_method(__func__, caller, typeid(base::Class<std::set<Owned*>>)).returns(
-			base::Class<std::set<Owned*>>(pieces));
+std::set<Owned*> Player::owns() {
+	return pieces;
 }
 
-std::ostringstream Player::prints() const {
-	std::ostringstream result(Ensemble::prints());
-	std::string print = result.str();
+Player::Fields Player::shows() const {
+	auto result = Ensemble::shows();
 
-	if (print.back() == '}')
-		result.str(print.substr(0, print.length() - 1));
-	result << " - Player#" << which_is(this) << " \"" << who_is(this).becomes()
-			<< "\"";
+	result.insert(VARIABLE(name));
+	result.insert(VARIABLE(color));
+	result.insert(VARIABLE(pieces));
 
 	return result;
 }
+std::string Player::prints() const {
+	std::string result = NAME(agr::Player)+ "#" + std::to_string(which_is()) + ": \"" + who_is()
+	+ "\" " + color.prints();
 
-base::Primitive<short> Player::give_number(const Log* caller) {
-	return base::Method::return_primitive((short) players.is().size(),
-			base::make_scopes(AGR, TYPEID(Player), __func__), caller);
+	return result;
 }
-Player& Player::give(base::Primitive<short> number, const Log* caller) {
-	return as_method(base::make_scopes(AGR, TYPEID(Player), __func__), false,
-			caller, typeid(Player&)).returns(*players.is()[--number]);
-}
-Player& Player::give(base::Class<std::string> name, const Log* caller) {
-	auto log = as_method(base::make_scopes(AGR, TYPEID(Player), __func__), true,
-			caller, typeid(Player&));
-	auto player = players.is().begin();
-	auto end = players.is().end();
 
-	while ((*player)->name != name && player != end)
+short unsigned Player::give_number() {
+	return players.size();
+}
+Player& Player::give(short unsigned number) {
+	if (number && number <= players.size())
+		return *players[--number];
+	else
+		throw throw_out_of_range_0(number, players.size());
+}
+Player* Player::give(std::string name) {
+	auto player = players.begin();
+	auto end = players.end();
+
+	while (player != end && (*player)->name != name)
 		++player;
 	if (player == end) {
-		std::string message = "ERROR: no player exists with name \"" + name.is()
-				+ "\".";
+		std::string message = "No player exists with name \"" + name + "\".";
 
-		log.logs_error(std::ostringstream(message));
+		std::cerr << message << std::endl;
 
 		throw std::domain_error(message);
 	}
 
-	return log.returns(**player);
+	return **player;
 }
-Player& Player::give(Color color, const Log* caller) {
-	auto log = as_method(base::make_scopes(AGR, TYPEID(Player), __func__), true,
-			caller, typeid(Player&));
-	auto player = players.is().begin();
-	auto end = players.is().end();
+Player* Player::give(Color color) {
+	auto player = players.begin();
+	auto end = players.end();
 
-	while ((*player)->color != color && player != end)
+	while (player != end && (*player)->color != color)
 		++player;
 	if (player == end) {
-		std::string message = "ERROR: no player exists with "
-				+ color.prints().str() + ".";
+		std::string message = "No player exists with " + color.prints() + ".";
 
-		log.logs_error(std::ostringstream(message));
+		std::cerr << message << std::endl;
 
 		throw std::domain_error(message);
 	}
 
-	return log.returns(**player);
+	return **player;
 }
-void Player::construct_all(
-		base::Class<std::vector<std::pair<std::string, Color>>> players,
-		const Log* caller) {
-	auto log = as_method(base::make_scopes(AGR, TYPEID(Player), __func__), true,
-			caller, typeid(void), players);
-
-	for (auto player : players.is())
-		Player::players.is().emplace_back(
-				new Player(base::Class<std::string>(player.first, &log),
-						player.second, &log));
+void Player::construct_all(std::vector<std::pair<std::string, Color>> players) {
+	for (auto player : players)
+		Player::players.emplace_back(new Player(player.first, player.second));
 }
 
-Player::Player(base::Class<std::string> name, Color color, const Log* caller,
-		base::Fields attributes) :
-		ENSEMBLE(true, base::make_scopes(AGR, __func__), caller, attributes), name(
-				name), color(color), pieces( { }) {
-	as_constructor<false>(AGR, __func__, caller, name, color, attributes);
+Player::Player(std::string name, Color color, Fields attributes) :
+		Ensemble(attributes) {
+	this->name = name;
+	this->color = color;
 }
 
 //Owned
 Player& Owned::gives_owner(const Log* caller) {
-	return as_method<false>(__func__, caller, typeid(Player&)).returns(
-			*(Player*) owner);
+	return as_method < false
+			> (__func__, caller, typeid(Player&)).returns(*(Player*) owner);
 }
 
 Owned::Owned(Player& owner, const Log* caller) :
 		NEW_LOG(caller, __func__, false), owner(&owner, caller) {
-	as_constructor<false>(AGR, __func__, caller, owner);
+	as_constructor < false > (AGR, __func__, caller, owner);
 	owner.pieces.is().emplace(this);
 }
 Owned::~Owned() {

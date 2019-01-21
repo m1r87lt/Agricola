@@ -24,25 +24,30 @@ Farmyard& give_farmyard(const Player& player,
 			caller, typeid(Farmyard&), player).returns(
 			*dynamic_cast<Farmyard*>(player[TYPEID(Farmyard)].becomes().front().second));
 }
-base::Class<std::type_index> give_room_type(const Player& player,
+base::Class<std::type_index> give_room_type(const Farmyard& farmyard,
 		const base::Log* caller = nullptr) {
 	auto log = base::Log::as_function(base::make_scopes(AGR, __func__), true,
-			caller, typeid(base::Class<std::type_index>), player);
+			caller, typeid(base::Class<std::type_index>), farmyard);
+	using RoomType = std::decay<decltype(farmyard[1][1][1])>::type;
+	base::Class<std::type_index> result(typeid(void), &log);
 
-	return log.returns(
-			base::Class<std::type_index>(
-					typeid(give_farmyard(player, &log)[1][1][1]), &log));
+	if (std::is_same<RoomType, WoodHut>::value)
+		result = typeid(Wood);
+	else if (std::is_same<RoomType, ClayHut>::value)
+		result = typeid(Clay);
+	if (std::is_same<RoomType, StoneHouse>::value)
+		result = typeid(Stone);
+
+	return log.returns(result);
 }
 template<typename Searched> base::Primitive<short unsigned> have_resources(
-		const Player& player, const base::Log* caller = nullptr) {
+		const Farmyard& farmyard, const base::Log* caller = nullptr) {
 	auto log = base::Log::as_function(base::make_scopes(AGR, __func__), true,
-			caller, typeid(base::Primitive<short unsigned>));
+			caller, typeid(base::Primitive<short unsigned>), farmyard);
 
 	derive<Resource, Searched>(log);
 
-	return log.returns(
-			give_farmyard(player, &log).personal_supply(&log).count<Resource>(
-					&log));
+	return log.returns(farmyard.personal_supply(&log).count<Resource>(&log));
 }
 
 base::Class<std::pair<std::type_index, short unsigned>> how_many_rooms_may_it_build(
@@ -50,10 +55,15 @@ base::Class<std::pair<std::type_index, short unsigned>> how_many_rooms_may_it_bu
 	using Result = base::Class<std::pair<std::type_index, short unsigned>>;
 	auto log = base::Log::as_function(base::make_scopes(AGR, __func__), true,
 			caller, typeid(Result), player);
-	Result({give_room_type(player, &log).becomes(), have_resources<Wood>(player, &log)}, &log);
+	auto farmyard = give_farmyard(player, &log);
+	auto roomResource = give_room_type(farmyard, &log).becomes();
+	Result result( { roomResource, 0 }, &log);
+	auto attributes = farmyard.gives_attributes(&log).becomes();
+	base::Class<std::pair<short unsigned, short unsigned>> roomResourceQuantity(
+			{ 5, 2 }, &log);
 
-	if (roomType == typeid(WoodHut))
-		have_resources<Wood>(player, &log);
+	if (roomResource == typeid(Wood))
+		result.is().second = ha;
 
 	return log.returns(
 			base::Class<std::pair<std::type_index, short unsigned>>());

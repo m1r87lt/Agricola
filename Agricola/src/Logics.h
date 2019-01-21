@@ -15,7 +15,7 @@ namespace agr {
 struct Operation: public base::Log {
 	using Unique_ptr = base::Class<std::unique_ptr<Operation>>;
 
-	virtual base::Primitive<bool> operator ()() const = 0;
+	virtual base::Primitive<bool> operator ()(const Log*) const = 0;
 
 	virtual ~Operation() = default;
 protected:
@@ -24,6 +24,17 @@ protected:
 	Operation(std::string, const Log* = nullptr);
 	Operation(const Operation&);
 	Operation& operator =(const Operation&);
+};
+struct Trigger: public base::Log {
+	using Unique_ptr = base::Class<std::unique_ptr<Trigger>>;
+
+	virtual base::Primitive<bool> operator ()(const Log*) const = 0;
+
+	virtual ~Trigger() = default;
+protected:
+	Trigger(std::string, const Log* = nullptr);
+	Trigger(const Trigger&);
+	Trigger& operator =(const Trigger&);
 };
 
 } /* namespace agr */
@@ -79,15 +90,32 @@ public:
 	Class<std::unique_ptr<agr::Operation>>& operator =(
 			const Class<std::unique_ptr<agr::Operation>>&) = delete;
 };
+template<> class Class<std::unique_ptr<agr::Trigger>> : public Unique_ptr {
+	Class(Unique_ptr&&);
+public:
+	virtual const agr::Trigger& operator *() const;
+	virtual agr::Trigger& operator *();
+	static Class<std::unique_ptr<agr::Trigger>> dynamicCast(Unique_ptr &&);
+	template<typename Type, typename ... Arguments> static Class<
+			std::unique_ptr<agr::Trigger>> construct(const Log* caller =
+			nullptr, Arguments&& ... arguments) {
+		return dynamicCast(
+				Unique_ptr::construct<Type>(caller,
+						std::forward<Arguments&&>(arguments) ...));
+	}
+
+	virtual ~Class() = default;
+	Class(const Class<std::unique_ptr<agr::Trigger>>&) = delete;
+	Class(Class<std::unique_ptr<agr::Trigger>> &&);
+	Class<std::unique_ptr<agr::Trigger>>& operator =(
+			const Class<std::unique_ptr<agr::Trigger>>&) = delete;
+};
 
 } /* namespace base */
 
 namespace agr {
 
-using Simulator = base::Class<std::function<base::Primitive<bool>(Player&, const base::Log*)>>;
-struct Condition: virtual public base::Log {
-	using Function = base::Class<std::function<base::Primitive<bool>(const Log*)>>;
-
+template<typename Function> class Condition: virtual public base::Log {
 	base::Primitive<bool> operator ()(const Log* = nullptr) const;
 	virtual std::ostringstream prints() const = 0;
 	static base::Primitive<bool> no(const Log* = nullptr);

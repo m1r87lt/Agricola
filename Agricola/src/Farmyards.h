@@ -9,6 +9,7 @@
 #define FARMYARDS_H_
 
 #include "Components.h"
+#define BUILD_ROOM_TYPE_RESOURCE
 
 namespace agr {
 
