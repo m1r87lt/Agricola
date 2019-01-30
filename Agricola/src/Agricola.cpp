@@ -6,14 +6,12 @@
 // Description : Hello World in C++, Ansi-style
 //============================================================================
 
-#include <iostream>
 #include "Board.h"
+#include <iostream>
 using namespace agr;
 
 void preparing_to_play() {
-	auto log = base::Log::as_function(__func__, true, nullptr, typeid(void));
-
-	construct_board(&log);
+	construct_board();
 }
 
 int main() {

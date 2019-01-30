@@ -54,7 +54,7 @@ std::string Player::who_is() const {
 Color Player::how_is() const {
 	return color;
 }
-std::set<Owned*> Player::owns() {
+std::set<base::Object*> Player::owns() {
 	return pieces;
 }
 
@@ -97,7 +97,7 @@ Player* Player::give(std::string name) {
 		throw std::domain_error(message);
 	}
 
-	return **player;
+	return *player;
 }
 Player* Player::give(Color color) {
 	auto player = players.begin();
@@ -113,7 +113,7 @@ Player* Player::give(Color color) {
 		throw std::domain_error(message);
 	}
 
-	return **player;
+	return *player;
 }
 void Player::construct_all(std::vector<std::pair<std::string, Color>> players) {
 	for (auto player : players)
@@ -127,42 +127,12 @@ Player::Player(std::string name, Color color, Fields attributes) :
 }
 
 //Owned
-Player& Owned::gives_owner(const Log* caller) {
-	return as_method < false
-			> (__func__, caller, typeid(Player&)).returns(*(Player*) owner);
+Player& Owned::gives_owner() {
+	return *owner;
 }
 
-Owned::Owned(Player& owner, const Log* caller) :
-		NEW_LOG(caller, __func__, false), owner(&owner, caller) {
-	as_constructor < false > (AGR, __func__, caller, owner);
-	owner.pieces.is().emplace(this);
-}
-Owned::~Owned() {
-	as_destructor(AGR, __func__);
-	((Player*) owner)->pieces.is().erase(this);
-}
-Owned::Owned(const Owned& copy) :
-		Object(copy), Log(&copy, copy.has_label(), false), owner(copy.owner) {
-	((Player*) owner)->pieces.is().emplace(this);
-}
-Owned& Owned::operator =(const Owned& copy) {
-	auto log = as_binary(__func__, copy, typeid(Owned&));
-
-	((Player*) (owner = copy.owner))->pieces.is().emplace(this);
-
-	return log.returns(*this);
-}
-Owned::Owned(Owned&& moving) :
-		ASSIGN_LOG(std::move(moving)), owner(moving.owner) {
-	((Player*) owner)->pieces.is().emplace(this);
-}
-Owned& Owned::operator =(Owned&& moving) {
-	auto log = as_binary(__func__, moving, typeid(Owned&));
-
-	Log::operator =(std::move(moving));
-	((Player*) (owner = moving.owner))->pieces.is().emplace(this);
-
-	return log.returns(*this);
+Owned::Owned(Player& owner) {
+	(this->owner = &owner)->pieces.emplace(this);
 }
 
 } /* namespace agr */

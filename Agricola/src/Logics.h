@@ -12,200 +12,91 @@
 
 namespace agr {
 
-struct Operation: public base::Log {
-	using Unique_ptr = base::Class<std::unique_ptr<Operation>>;
+using Quantity = std::map<std::type_index, unsigned>;
+struct Trigger: public base::Object {
+	using Unique_ptr = std::unique_ptr<Trigger>;
 
-	virtual base::Primitive<bool> operator ()(const Log*) const = 0;
-
-	virtual ~Operation() = default;
-protected:
-	base::Primitive<short unsigned> state;
-
-	Operation(std::string, const Log* = nullptr);
-	Operation(const Operation&);
-	Operation& operator =(const Operation&);
-};
-struct Trigger: public base::Log {
-	using Unique_ptr = base::Class<std::unique_ptr<Trigger>>;
-
-	virtual base::Primitive<bool> operator ()(const Log*) const = 0;
-
+	virtual bool operator ()() = 0;
+	virtual Fields shows() const;
 	virtual ~Trigger() = default;
 protected:
-	Trigger(std::string, const Log* = nullptr);
-	Trigger(const Trigger&);
-	Trigger& operator =(const Trigger&);
+	Trigger() = default;
 };
-
-} /* namespace agr */
-
-namespace base {
-
-using Quantity = Class<std::map<std::type_index, int>>;
-template<typename First, typename Second> std::ostringstream unprint_std__pair_std__type_info_second_(
-		const std::pair<First, Second>& pair) {
-	std::ostringstream result;
-
-	result << pair.first.name() << ": " << pair.second;
-
-	return result;
-}
-template<typename First, typename Second> std::ostringstream unprint_std__map_std__type_info_second_(
-		const std::map<First, Second>& container) {
-	std::ostringstream result("{");
-
-	for (auto content : container)
-		result << "\n"
-				<< unprint_std__pair_std__type_info_second_(content).str();
-	result << (result.str() == "{" ? " " : "\n") << "}";
-
-	return result;
-}
-template<typename Function> std::ostringstream print_std__function(
-		const std::function<Function>& function) {
-	std::ostringstream result;
-
-	result << "std::function<" << typeid(Function).name() << ">";
-
-	return result;
-}
-
-template<> class Class<std::unique_ptr<agr::Operation>> : public Unique_ptr {
-	Class(Unique_ptr&&);
-public:
-	virtual const agr::Operation& operator *() const;
-	virtual agr::Operation& operator *();
-	static Class<std::unique_ptr<agr::Operation>> dynamicCast(Unique_ptr &&);
-	template<typename Type, typename ... Arguments> static Class<
-			std::unique_ptr<agr::Operation>> construct(const Log* caller =
-			nullptr, Arguments&& ... arguments) {
-		return dynamicCast(
-				Unique_ptr::construct<Type>(caller,
-						std::forward<Arguments&&>(arguments) ...));
+template<typename Function> struct Condition: virtual public base::Object {
+	Trigger::Unique_ptr operator ()(const Player& player) {
+		return Trigger::Unique_ptr(new Function(player));
 	}
-
-	virtual ~Class() = default;
-	Class(const Class<std::unique_ptr<agr::Operation>>&) = delete;
-	Class(Class<std::unique_ptr<agr::Operation>> &&);
-	Class<std::unique_ptr<agr::Operation>>& operator =(
-			const Class<std::unique_ptr<agr::Operation>>&) = delete;
-};
-template<> class Class<std::unique_ptr<agr::Trigger>> : public Unique_ptr {
-	Class(Unique_ptr&&);
-public:
-	virtual const agr::Trigger& operator *() const;
-	virtual agr::Trigger& operator *();
-	static Class<std::unique_ptr<agr::Trigger>> dynamicCast(Unique_ptr &&);
-	template<typename Type, typename ... Arguments> static Class<
-			std::unique_ptr<agr::Trigger>> construct(const Log* caller =
-			nullptr, Arguments&& ... arguments) {
-		return dynamicCast(
-				Unique_ptr::construct<Type>(caller,
-						std::forward<Arguments&&>(arguments) ...));
-	}
-
-	virtual ~Class() = default;
-	Class(const Class<std::unique_ptr<agr::Trigger>>&) = delete;
-	Class(Class<std::unique_ptr<agr::Trigger>> &&);
-	Class<std::unique_ptr<agr::Trigger>>& operator =(
-			const Class<std::unique_ptr<agr::Trigger>>&) = delete;
-};
-
-} /* namespace base */
-
-namespace agr {
-
-template<typename Function> class Condition: virtual public base::Log {
-	base::Primitive<bool> operator ()(const Log* = nullptr) const;
-	virtual std::ostringstream prints() const = 0;
-	static base::Primitive<bool> no(const Log* = nullptr);
-
-	Condition(Function, std::string, const Log* = nullptr);
 	virtual ~Condition() = default;
-	Condition(const Condition&);
-	Condition& operator =(const Condition&);
-private:
-	Function condition;
-};
-template<typename Function> class Event: virtual public base::Log {
-	Simulator simulation;
-public:
-	base::Primitive<bool> simulates(const Player& player, const Log* caller =
-			nullptr) const {
-		auto log = as_method(__func__, caller, typeid(base::Primitive<bool>),
-				player);
-
-		return log.returns(simulation.is()(player, &log));
-	}
-	Operation::Unique_ptr operator ()(Player& player, const Log* caller =
-			nullptr) {
-		auto log = as_method("", caller, typeid(Operation::Unique_ptr), player);
-
-		return log.returns(
-				Operation::Unique_ptr::construct<Function>(&log, player,
-						base::Primitive<const Log*>(&log, &log)));
-	}
-	virtual std::ostringstream prints() const = 0;
-
-	Event(Simulator simulation, std::string label, const Log* caller = nullptr) :
-			NEW_LOG(caller, label, false), simulation(simulation) {
-		as_constructor(AGR, __func__, this);
-	}
-	virtual ~Event() = default;
-	Event(const Event& copy) :
-			Object(copy), Log(&copy, copy.has_label(), false), simulation(
-					copy.simulation) {
-	}
-	Event& operator =(const Event& copy) {
-		simulation = copy.simulation;
-
-		return as_binary<false>(__func__, copy, typeid(Event&)).returns(*this);
+protected:
+	struct No final: public Trigger {
+		virtual bool operator ()() {
+			return true;
+		}
+		virtual Fields shows() const {
+			return Trigger::shows();
+		}
+		virtual std::string prints() const {
+			return NAME(agr::Trigger) + "::" + NAME(No);
+		}
+	};
+	virtual Fields shows() const {
+		return Object::shows();
 	}
 };
-template<typename Struct> struct Action final: public base::Ensemble,
-		public Condition,
-		public Event<Struct> {
-	base::Primitive<Player*> performer;
-	base::Quantity collection;
-	friend Ensemble::Unique_ptr;
-	friend Ensemble;
-	Action(Condition::Function condition, Simulator simulation,
-			base::Quantity collection, const Log* caller = nullptr,
-			base::Fields attributes = nullptr) :
-			ENSEMBLE(false, base::make_scopes(AGR, __func__), caller, attributes), Condition(
-					condition, base::make_scopes(AGR, __func__), caller), Event<
-					Struct>(simulation, base::make_scopes(AGR, __func__),
-					caller), performer(nullptr, caller), collection(collection) {
-		as_constructor(AGR, __func__, caller, condition, simulation, collection,
-				attributes);
-	}
-public:
-	base::Primitive<Player*> is_performed_by(const Log* caller = nullptr) {
-		return as_method(__func__, caller, typeid(base::Primitive<Player*>)).returns(
-				performer);
-	}
-	virtual std::ostringstream prints() const {
-		std::ostringstream result;
 
-		result << has_label() << "{" << this << "}";
+struct Simulator: public base::Object {
+	using Unique_ptr = std::unique_ptr<Simulator>;
+
+	virtual bool operator ()() = 0;
+	virtual Fields shows() const;
+	virtual ~Simulator() = default;
+protected:
+	unsigned state;
+
+	Simulator();
+};
+template<typename Function> struct Operator: virtual public base::Object {
+	Simulator::Unique_ptr operator ()(Player& player) {
+		return Simulator::Unique_ptr(new Function(player));
+	}
+	virtual Fields shows() const {
+		return Object::shows();
+	}
+	virtual ~Operator() = default;
+};
+template<typename Trig, typename Operate> class Action final: public base::Ensemble,
+		public Condition<Trig>,
+		public Operator<Operate> {
+	Player* performer;
+	Quantity collection;
+public:
+	Player* is_performed_by() {
+		return performer;
+	}
+	Quantity does_collect() {
+		return collection;
+	}
+	virtual Fields shows() const {
+		auto result = Ensemble::shows();
+		auto condition = Condition<Trig>::shows();
+		auto op = Operator<Operate>::shows();
+
+		result.insert(condition.begin(), condition.end());
+		result.insert(op.begin(), op.end());
+		result.insert(VARIABLE(performer));
+		result.insert(VARIABLE(collection));
 
 		return result;
 	}
-	base::Quantity does_collect(const Log* caller = nullptr) {
-		return as_method<false>(__func__, caller, typeid(base::Quantity)).returns(
-				collection);
-	}
-	Ensemble::Unique_ptr construct(Condition::Function condition,
-			Simulator simulation, base::Quantity collection, const Log* caller =
-					nullptr, base::Fields attributes = nullptr) {
-		auto log = as_method(base::make_scopes(AGR, TYPEID(Action), __func__),
-				true, caller, typeid(base::Quantity), condition, simulation,
-				collection, attributes);
+	virtual std::string prints() const {
+		std::ostringstream result;
 
-		return log.returns(
-				Ensemble::Unique_ptr::construct<Action>(&log, condition,
-						simulation, collection,
-						base::Primitive<const Log*>(&log, &log), attributes));
+		result << NAME(agr::Action) << "{ " << this << " }";
+
+		return result.str();
+	}
+	static Ensemble::Unique_ptr construct(Quantity collection = { }, Fields attributes = Fields()) {
+		return Ensemble::Unique_ptr(new Action<Trig, Operate>(collection, attributes));
 	}
 };
 

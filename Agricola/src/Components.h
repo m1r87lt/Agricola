@@ -8,335 +8,306 @@
 #ifndef COMPONENTS_H_
 #define COMPONENTS_H_
 
-//#include <array>
 #include "Logics.h"
 #include <src/Gamecard.h>
-#define BOARD(caller, label, open, attributes) Object(caller, label), Log(caller, label, open), Board(label, caller, attributes)
-#define NUMBERED(caller, label, open, number) Object(caller, label), Log(caller, label, open), Numbered(number, caller)
-#define WOODEN_SHAPE(caller, label, open, color, shape, attributes) Object(caller, label), Log(caller, label, open), WoodenPiece(color, shape, #shape, label, caller, attributes)
-#define RESOURCE(color, label, open, caller, attributes) Object(caller, label), Log(caller, label, open), Resource(color, label, caller, attributes)
-#define BUILDRESOURCE(color, label, open, caller, attributes) Object(caller, label), Log(caller, label, open), BuildResource(color, label, caller, attributes)
-#define ANIMAL(caller, label, open, color, shape, attributes) Object(caller, label), Log(caller, label, open), WoodenPiece(color, shape, #shape, label, caller, attributes)
-#define TILE(caller, label, open, attributes) Object(caller, label), Log(caller, label, open), Tile(label, caller, attributes)
-#define SPACE_NAME "Space"
-#define PERSONAL_SUPPLY_NAME "Personal Supply"
-#define CARD_MAJOR_IMPROVEMENT "Major Improvement"
-#define CARD_MINOR_IMPROVEMENT "Minor Improvement"
-#define CARD_OCCUPATION "Occupation"
+#include <array>
+#define WOODENPIECE(shape, color, attributes) WoodenPiece(shape, #shape, color, attributes)
 
 namespace agr {
 
 struct Board: public base::Ensemble {
 	virtual ~Board() = default;
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static Board construct_gameboard(Fields = Fields());
 	Board(Board&&);
 protected:
-	Board(std::string, const Log* = nullptr, base::Fields = nullptr);
-	friend Board construct_gameboard(const Log*);
+	Board() = default;
+	Board(Fields);
 };
 
-template<typename Type, size_t N> std::ostringstream print_std__array(
-		const std::array<Type, N>& container) {
-	return base::Container_Printer(container, "\t", "")();
-}
-template<typename First, typename Second> std::ostringstream print_std__pair(
-		const std::pair<First, Second>& pair) {
-	return std::ostringstream(
-			base::Container_Printer(std::string(), pair, "{ ", "; ", " }")(
-					false).str().substr(1));
-}
 struct Farmyard final: private Board {
 	struct Space final: public Ensemble {
-		struct Fence: public Log {
-			base::Primitive<Element*> which;
-			base::Primitive<bool> vertical;
-			base::Class<std::array<Space*, 2>> spaces;
-
-			Fence(const Log*);
+		class Fence final: public Ensemble {
+			bool vertical;
+			std::array<Space*, 2> spaces;
+			friend Farmyard;
+			Fence(bool);
+		public:
+			bool is_vertical() const;
+			Space* operator ()(bool) const;
+			virtual Fields shows() const;
+			virtual std::string prints() const;
 		};
 		enum Direction {
-			N, S, W, E
+			S, E, W, N
 		};
 
-		base::Class<std::tuple<Farmyard*, short, short>> is_located(const Log* =
-				nullptr) const;
-		base::Primitive<Element*> operator ()(base::Primitive<Direction>,
-				const Log* = nullptr);
+		std::tuple<Farmyard*, short unsigned, short unsigned> is_located() const;
+		Ensemble* operator ()(Direction, bool = false) const;
+		virtual Fields shows() const;
+		virtual std::string prints() const;
 	private:
-		base::Class<std::array<Fence*, 4>> fences;
-		friend class Row;
+		std::array<Fence*, 4> fences;
+		std::array<Space*, 4> adjacents;
+		friend Ensemble;
 		friend Farmyard;
-		friend Ensemble::Unique_ptr;
-		Space(const Log*, base::Fields = nullptr);
+		Space(std::array<Fence*, 2>, std::array<Space**, 2>,
+				std::array<Fence**, 2>);
 	};
-	class Row final: public Log {
-		base::Primitive<short> row;
-		base::Primitive<Farmyard*> owner;
+	class Row final: public Object {
+		short unsigned row;
+		const Farmyard* owner;
 		friend Farmyard;
-		Row(base::Primitive<short>, const Farmyard&, const Log* = nullptr);
-		Row(const Row&);
-		Row& operator =(const Row&);
+		virtual Fields shows() const;
+		virtual std::string prints() const;
+		Row(short unsigned, const Farmyard*);
 	public:
-		Space& operator [](base::Primitive<short>) const;
+		Space& operator [](short unsigned) const;
 	};
-	Ensemble& personal_supply(const Log* = nullptr) const;
-	Row operator [](base::Primitive<short>) const;
-	static Ensemble::Unique_ptr construct(const Log* = nullptr);
+	class PersonalSupply final: public Ensemble {
+		PersonalSupply() = default;
+		friend Ensemble;
+	public:
+		virtual Fields shows() const;
+		virtual std::string prints() const;
+	};
+	friend Space;
+	PersonalSupply& gives_personal_supply() const;
+	Row operator [](short unsigned) const;
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static Unique_ptr construct(Fields = Fields());
+	static Board* cast(const Farmyard*);
 private:
-	Farmyard(const Log*, base::Fields = nullptr);
-	Farmyard(Farmyard&&) = delete;
-	friend Ensemble::Unique_ptr;
-	friend Farmyard& give_farmyard(Player&, const Log*);
+	Space* puts_next_space();
+	Space* puts_next_space(Space&);
+	void initializes();
+	Farmyard();
+	Farmyard(Fields);
 };
 
-class Colored: virtual public base::Log {
+class Colored: virtual public base::Object {
 	Color color;
 public:
-	Color has_color(const Log* = nullptr) const;
-	virtual std::ostringstream prints() const = 0;
-
-	Colored(Color, const Log* = nullptr);
+	Color has_color() const;
+	virtual Fields shows() const;
+	Colored() = default;
+	Colored(Color);
 	virtual ~Colored() = default;
-	Colored(const Colored&);
-	Colored& operator =(const Colored&);
 };
-class Face: public base::Ensemble, public Colored {
-	base::Class<std::vector<Condition*>> prerequisite;
-	base::Class<std::string> name;
-	base::Quantity cost;
-	base::Primitive<char> deck;
-	base::Class<std::vector<Ensemble*>> events;
-	base::Primitive<bool> bonus_points;
+class Face: public base::Element, public Colored {
+	std::vector<Object*> prerequisite;
+	std::string name;
+	Quantity cost;
+	char deck;
+	std::vector<Object*> events;
+	bool bonus_points;
 protected:
-	Face(base::Class<std::vector<Condition*>>, base::Class<std::string>,
-			base::Quantity, base::Primitive<char>,
-			base::Class<std::vector<Ensemble*>>, base::Primitive<bool>, Color,
-			std::string, const Log* = nullptr, base::Fields = nullptr);
+	Face(std::vector<Object*>, std::string, Quantity, char,
+			std::vector<Object*>, bool, Color, Fields = Fields());
 public:
-	base::Class<std::vector<Condition*>> has_prerequisites(
-			const Log* = nullptr) const;
-	base::Class<std::string> has_name(const Log* = nullptr) const;
-	base::Quantity has_cost(const Log* = nullptr) const;
-	base::Primitive<char> belongs(const Log* = nullptr) const;
-	base::Class<std::vector<Ensemble*>> has_events(const Log* = nullptr) const;
-	base::Primitive<bool> has_bonus_points(const Log* = nullptr) const;
-
+	std::vector<Object*> has_prerequisites() const;
+	std::string has_name() const;
+	Quantity has_cost() const;
+	char belongs() const;
+	std::vector<Object*> has_events() const;
+	bool has_bonus_points() const;
+	virtual Fields shows() const;
 	virtual ~Face() = default;
 };
 class Cover final: public base::Ensemble, public Colored {
-	base::Class<std::string> name;
-	friend Ensemble::Unique_ptr;
-	Cover(base::Class<std::string>, Color, const Log* = nullptr, base::Fields =
-			nullptr);
+	std::string name;
+	Cover(std::string, Color, Fields = Fields());
 public:
-	base::Class<std::string> has_name(const Log* = nullptr) const;
-	virtual std::ostringstream prints() const;
-	static Ensemble::Unique_ptr construct(base::Class<std::string>, Color,
-			const Log* = nullptr, base::Fields = nullptr);
+	std::string has_name() const;
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static Unique_ptr construct(std::string, Color, Fields = Fields());
 };
-class Numbered: virtual public base::Log {
-	base::Primitive<unsigned> number;
+class Numbered: virtual public base::Object {
+	unsigned number;
 public:
-	base::Primitive<unsigned> is_number(const Log* = nullptr) const;
-	virtual std::ostringstream prints() const = 0;
-
-	Numbered(base::Primitive<unsigned> number, const Log* = nullptr);
+	unsigned is_number() const;
+	virtual Fields shows() const;
+	Numbered(unsigned number);
 	virtual ~Numbered() = default;
-	Numbered(const Numbered&);
-	Numbered& operator =(const Numbered&);
 };
-
 struct WoodenPiece: public base::Element, public Colored {
 	enum class Shape {
 		disc, house, bar, cube, cylinder
 	};
 
-	base::Primitive<bool> has_same_shape_of(const WoodenPiece&) const;
-	virtual std::ostringstream prints() const;
-
+	bool has_same_shape_of(const WoodenPiece&) const;
+	virtual Fields shows() const;
 	virtual ~WoodenPiece() = default;
 protected:
-	WoodenPiece(Color, Shape, base::Primitive<const char*>, std::string,
-			const Log* = nullptr, base::Fields = nullptr);
+	WoodenPiece(Shape, const char*, Color, Fields = Fields());
 private:
 	Shape shape;
-	const char* label;
+	std::string label;
 };
+
 class FamilyMember: public WoodenPiece, public Owned {
-	FamilyMember(Player&, const Log* = nullptr, base::Fields = nullptr);
+	FamilyMember(Player&, Fields = Fields());
 public:
-	virtual std::ostringstream prints() const;
-	friend base::Unique_ptr;
-	static base::Unique_ptr construct(Player&, const Log* = nullptr,
-			base::Fields = nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Player&, Fields = Fields());
 };
 class Stable: public WoodenPiece, public Owned {
-	Stable(Player&, const Log* = nullptr, base::Fields = nullptr);
+	Stable(Player&, Fields = Fields());
 public:
-	virtual std::ostringstream prints() const;
-	friend base::Unique_ptr;
-	static base::Unique_ptr construct(Player&, const Log* = nullptr,
-			base::Fields = nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Player&, Fields = Fields());
 };
 class Fence: public WoodenPiece, public Owned {
-	Fence(Player&, const Log* = nullptr, base::Fields = nullptr);
+	Fence(Player&, Fields = Fields());
 public:
-	virtual std::ostringstream prints() const;
-	friend base::Unique_ptr;
-	static base::Unique_ptr construct(Player&, const Log* = nullptr,
-			base::Fields = nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Player&, Fields = Fields());
 };
 
 struct Resource: public WoodenPiece {
+	virtual Fields shows() const;
 	virtual ~Resource() = default;
 protected:
-	Resource(Color, std::string, const Log* = nullptr, base::Fields = nullptr);
+	Resource(Color, Fields = Fields());
 };
 struct BuildResource: public Resource {
+	virtual Fields shows() const;
 	virtual ~BuildResource() = default;
 protected:
-	BuildResource(Color, std::string, const Log* = nullptr, base::Fields =
-			nullptr);
+	BuildResource(Color, Fields = Fields());
 };
+
 class Wood: public BuildResource {
-	Wood(const Log*, base::Fields = nullptr);
+	Wood();
 public:
-	friend base::Unique_ptr;
-	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
-			nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Fields = Fields());
 };
 class Clay: public BuildResource {
-	Clay(const Log*, base::Fields = nullptr);
+	Clay();
 public:
-	friend base::Unique_ptr;
-	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
-			nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Fields = Fields());
 };
 class Reed: public BuildResource {
-	Reed(const Log*, base::Fields = nullptr);
+	Reed();
 public:
-	friend base::Unique_ptr;
-	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
-			nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Fields = Fields());
 };
 class Stone: public BuildResource {
-	Stone(const Log*, base::Fields = nullptr);
+	Stone();
 public:
-	friend base::Unique_ptr;
-	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
-			nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Fields = Fields());
 };
 class Grain: public Resource {
-	Grain(const Log*, base::Fields = nullptr);
+	Grain();
 public:
-	friend base::Unique_ptr;
-	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
-			nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Fields = Fields());
 };
 class Vegetable: public Resource {
-	Vegetable(const Log*, base::Fields = nullptr);
+	Vegetable();
 public:
-	friend base::Unique_ptr;
-	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
-			nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Fields = Fields());
 };
 
-class Animal: public WoodenPiece {
+struct Animal: public WoodenPiece {
+	virtual Fields shows() const;
 	virtual ~Animal() = default;
 protected:
-	Animal(Color, std::string, const Log* = nullptr, base::Fields = nullptr);
+	Animal(Color, Fields = Fields());
 };
 class Sheep: public Animal {
-	Sheep(const Log*, base::Fields = nullptr);
+	Sheep();
 public:
-	friend base::Unique_ptr;
-	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
-			nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Fields = Fields());
 };
 class WildBoar: public Animal {
-	WildBoar(const Log*, base::Fields = nullptr);
+	WildBoar();
 public:
-	friend base::Unique_ptr;
-	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
-			nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Fields = Fields());
 };
 class Cattle: public Animal {
-	Cattle(const Log*, base::Fields = nullptr);
+	Cattle();
 public:
-	friend base::Unique_ptr;
-	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
-			nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Fields = Fields());
 };
 class StartingPlayer: public WoodenPiece {
-	StartingPlayer(const Log*);
+	StartingPlayer();
 public:
-	friend base::Unique_ptr;
-	static base::Unique_ptr construct(const Log* = nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct();
 };
 struct Tile: public base::Element {
-	virtual std::ostringstream prints() const;
-
+	virtual Fields shows() const;
 	virtual ~Tile() = default;
 protected:
-	Tile(std::string, const Log*, base::Fields = nullptr);
+	Tile() = default;
 };
 class WoodHut: public Tile {
-	WoodHut(const Log*, base::Fields = nullptr);
+	WoodHut() = default;
 public:
-	friend base::Unique_ptr;
-	base::Unique_ptr construct(const Log* = nullptr, base::Fields = nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Fields = Fields());
 };
 class ClayHut: public Tile {
-	ClayHut(const Log*, base::Fields = nullptr);
+	ClayHut() = default;
 public:
-	friend base::Unique_ptr;
-	base::Unique_ptr construct(const Log* = nullptr, base::Fields = nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Fields = Fields());
 };
 class StoneHouse: public Tile {
-	StoneHouse(const Log*, base::Fields = nullptr);
+	StoneHouse() = default;
 public:
-	friend base::Unique_ptr;
-	base::Unique_ptr construct(const Log* = nullptr, base::Fields = nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Fields = Fields());
 };
 class Field: public Tile {
-	Field(const Log*, base::Fields = nullptr);
+	Field() = default;
 public:
-	friend base::Unique_ptr;
-	base::Unique_ptr construct(const Log* = nullptr, base::Fields = nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Fields = Fields());
 };
 class Food: public base::Element {
-	Food(const Log*, base::Fields = nullptr);
+	Food() = default;
 public:
-	friend base::Unique_ptr;
-	static base::Unique_ptr construct(const Log* = nullptr, base::Fields =
-			nullptr);
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	static base::Ensemble::Unique_ptr construct(Fields = Fields());
 };
-
-template<typename Base, typename Derived> std::string log_wrong_deriving(
-		base::Log& logger) {
-	std::ostringstream result("ERROR '");
-
-	result << typeid(Derived).name() << "' is not derived from '"
-			<< typeid(Base).name() << "'.";
-	logger.logs_error(result);
-
-	return result.str();
-}
-template<typename Base, typename Derived> std::domain_error throw_wrong_deriving(
-		base::Log& logger) {
-	return std::domain_error(log_wrong_deriving<Base, Derived>(logger));
-}
-template<typename Base, typename Derived> void derive(base::Log& caller) {
-	if (!std::is_base_of<Base, Derived>::value)
-		throw_wrong_deriving<Base, Derived>(caller);
-}
 
 } /* namespace agr */
 
 namespace card {
-#define CARD "card"
 
-class Occupation final: public agr::Numbered, public agr::Face {
-	base::Class<std::pair<short, bool>> player_number;
+class Occupation final: public agr::Face, public agr::Numbered {
+	std::pair<short unsigned, bool> player_number;
 	friend base::Ensemble::Unique_ptr construct_occupation(
 			base::Primitive<unsigned>);
 	Occupation(base::Class<std::vector<agr::Condition*>>,
@@ -398,8 +369,8 @@ class Action final: public agr::Colored, private base::Ensemble {
 		auto log = as_method(__func__, caller, typeid(void), action,
 				actions ...);
 
-		this->gets(action, std::move(action), base::Primitive<size_t>(1, &log),
-				&log);
+		this->gets(action, std::move(action),
+				base::Primitive < size_t > (1, &log), &log);
 		adds(&log, std::move(actions ...));
 	}
 	void adds(const Log* caller);
@@ -407,7 +378,8 @@ class Action final: public agr::Colored, private base::Ensemble {
 	template<typename ... Unique_pointers> Action(const Log* caller,
 			base::Fields attributes, Ensemble::Unique_ptr&& action,
 			Unique_pointers&& ... actions) :
-			ENSEMBLE(true, base::make_scopes(CARD, __func__), caller, attributes), Colored(
+			ENSEMBLE(true, base::make_scopes(CARD, __func__), caller,
+					attributes), Colored(
 					LOGGED_COLOR(agr::Color::Which::Green, caller), caller) {
 		auto log = as_constructor(CARD, __func__, caller, action, actions ...);
 

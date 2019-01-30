@@ -30,11 +30,10 @@ private:
 	std::string label;
 };
 
-class Owned;
 class Player final: public base::Ensemble {
 	std::string name;
 	Color color;
-	std::set<Owned*> pieces;
+	std::set<Object*> pieces;
 	static std::vector<Player*> players;
 
 	Player(std::string, Color, Fields = Fields());
@@ -42,7 +41,7 @@ public:
 	short unsigned which_is() const;
 	std::string who_is() const;
 	Color how_is() const;
-	std::set<Owned*> owns();
+	std::set<Object*> owns();
 	virtual Fields shows() const;
 	virtual std::string prints() const;
 	static short unsigned give_number();
@@ -52,18 +51,12 @@ public:
 	static void construct_all(std::vector<std::pair<std::string, Color>>);
 };
 
-class Owned: virtual public base::Log {
-	base::Primitive<Player*> owner;
+class Owned: virtual public base::Object {
+	Player* owner;
 public:
-	Player& gives_owner(const Log* = nullptr);
-	virtual std::ostringstream prints() const = 0;
-
-	Owned(Player&, const Log* = nullptr);
-	virtual ~Owned();
-	Owned(const Owned&);
-	Owned& operator =(const Owned&);
-	Owned(Owned&&);
-	Owned& operator =(Owned&&);
+	Player& gives_owner();
+	Owned(Player&);
+	virtual ~Owned() = default;
 };
 
 } /* namespace agr */

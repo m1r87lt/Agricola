@@ -10,14 +10,14 @@
 #include "Events.h"
 
 namespace agr {
+Board gameBoard(construct_gameboard());
+
 Board construct_gameboard(const base::Log* caller = nullptr) {
 	auto log = base::Log::as_function(base::make_scopes(AGR, __func__), true,
 			caller, typeid(Board));
 
 	return Board(base::make_scopes(AGR, TYPEID(Board)), &log, nullptr);
 }
-
-Board gameBoard(construct_gameboard());
 
 void construct_board(const base::Log* caller) {
 	auto log = base::Log::as_function(base::make_scopes(AGR, __func__), true,
