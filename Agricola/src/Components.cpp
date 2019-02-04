@@ -21,10 +21,6 @@ std::string Board::prints() const {
 	return result.str();
 }
 
-Board Board::construct_gameboard(Fields attributes) {
-	return attributes;
-}
-
 Board::Board(Fields attributes) :
 		Ensemble(attributes) {
 }
@@ -41,13 +37,13 @@ Farmyard::Row Farmyard::operator [](short unsigned row) const {
 }
 Farmyard::Space* Farmyard::puts_next_space() {
 	std::array<Space**, 2> previous = { nullptr, nullptr };
-	std::array<Fence*, 2> temporary = { generates<Space::Fence>(
+	std::array<Space::Fence*, 2> temporary = { generates<Space::Fence>(
 			NAME(Space::Fence), has_size(), true), generates<Space::Fence>(
 			NAME(Space::Fence), has_size(), false) };
-	std::array<Fence*, 2> fences = { generates<Space::Fence>(NAME(Space::Fence),
-			has_size(), true), generates<Space::Fence>(NAME(Space::Fence),
-			has_size(), false) };
-	std::array<Fence**, 2> bounds = { &temporary[0], &temporary[1] };
+	std::array<Space::Fence*, 2> fences = { generates<Space::Fence>(
+			NAME(Space::Fence), has_size(), true), generates<Space::Fence>(
+			NAME(Space::Fence), has_size(), false) };
+	std::array<Space::Fence**, 2> bounds = { &temporary[0], &temporary[1] };
 	Space* result = nullptr;
 
 	temporary[0]->spaces[1] = temporary[1]->spaces[1] = fences[1]->spaces[0] =
@@ -61,10 +57,10 @@ Farmyard::Space* Farmyard::puts_next_space(Space& space) {
 	auto row = std::get<1>(position);
 	auto column = std::get<2>(position);
 	std::array<Space**, 2> previous = { nullptr, nullptr };
-	std::array<Fence**, 2> bounds = { nullptr, nullptr };
-	std::array<Fence*, 2> fences = { generates<Space::Fence>(NAME(Space::Fence),
-			has_size(), true), generates<Space::Fence>(NAME(Space::Fence),
-			has_size(), false) };
+	std::array<Space::Fence**, 2> bounds = { nullptr, nullptr };
+	std::array<Space::Fence*, 2> fences = { generates<Space::Fence>(
+			NAME(Space::Fence), has_size(), true), generates<Space::Fence>(
+			NAME(Space::Fence), has_size(), false) };
 	Space* result = nullptr;
 
 	if (std::get<0>(position) != this)
@@ -80,16 +76,16 @@ Farmyard::Space* Farmyard::puts_next_space(Space& space) {
 		(*bounds[0] = generates<Space::Fence>(NAME(Space::Fence), has_size(),
 				false))->spaces[1] = result;
 	else
-		(*bounds[0] =
-				(*previous[0] = &operator [](row - 1)[column])->operator ()(
-						Space::Direction::N, true))->spaces[1] = result;
+		(*bounds[0] = dynamic_cast<Space::Fence*>((*previous[0] = &operator [](
+				row - 1)[column])->operator ()(Space::Direction::N, true)))->spaces[1] =
+				result;
 	if (column == 1)
 		(*bounds[1] = generates<Space::Fence>(NAME(Space::Fence), has_size(),
 				true))->spaces[1] = result;
 	else
-		(*bounds[1] =
-				(*previous[1] = &operator [](row)[column - 1])->operator ()(
-						Space::Direction::W, true))->spaces[1] = result;
+		(*bounds[1] = dynamic_cast<Space::Fence*>((*previous[1] = &operator [](
+				row)[column - 1])->operator ()(Space::Direction::W, true)))->spaces[1] =
+				result;
 
 	return result;
 }
@@ -120,7 +116,7 @@ Farmyard::Unique_ptr Farmyard::construct(Fields attributes) {
 	return Unique_ptr(new Farmyard(attributes));
 }
 Board* Farmyard::cast(const Farmyard* farmyard) {
-	return dynamic_cast<const Board*>(const_cast<Farmyard*>(farmyard));
+	return dynamic_cast<Board*>(const_cast<Farmyard*>(farmyard));
 }
 
 Farmyard::Farmyard() {
@@ -143,11 +139,11 @@ std::tuple<Farmyard*, short unsigned, short unsigned> Farmyard::Space::is_locate
 
 		return std::make_tuple(location, row, column);
 	} catch (std::bad_cast& e) {
-		throw throw_not_allowed(
+		throw base::Throw::not_allowed(
 				"Expected a " + NAME(Farmyard) + " for " + NAME(Space)
 						+ prints() + ".");
 	} catch (std::exception& e) {
-		throw throw_not_allowed(
+		throw base::Throw::not_allowed(
 				"\"" + name + "\" expected as \"" + NAME(Space) + "\" + #,#.");
 	}
 }
@@ -206,9 +202,9 @@ std::string Farmyard::Space::Fence::prints() const {
 	std::string result = NAME(agr::Farmyard::Space::Fence)+ "{ ";
 
 	if (spaces[0])
-	result += (vertical ? "W" : "N") + " }" + std::get<2>(localize(*spaces[0])).substr(5);
+	result += std::string(vertical ? "W" : "N") + " }" + std::get<2>(localize(*spaces[0])).substr(5);
 	else
-	result += (vertical ? "E" : "S") + " }" + std::get<2>(localize(*spaces[0])).substr(5);
+	result += std::string(vertical ? "E" : "S") + " }" + std::get<2>(localize(*spaces[0])).substr(5);
 
 	return result;
 }
@@ -219,7 +215,7 @@ Farmyard::Space::Fence::Fence(bool vertical) {
 
 //Farmyard::Row
 Farmyard::Space& Farmyard::Row::operator [](short unsigned column) const {
-	auto space = dynamic_cast<Farmyard::Space*>(owner->operator [](2));
+	auto space = &dynamic_cast<Farmyard::Space&>(owner->Ensemble::operator [](2));
 
 	if (row > 1)
 		space = dynamic_cast<Farmyard::Space*>(space->operator ()(
@@ -244,9 +240,9 @@ Farmyard::Fields Farmyard::Row::shows() const {
 std::string Farmyard::Row::prints() const {
 	return NAME(agr::Farmyard::Row)+ "{ " + std::to_string(row) + " }";
 }
-Farmyard::Row::Row(short unsigned row, const Farmyard* owner) {
+Farmyard::Row::Row(short unsigned row, const Farmyard& owner) {
 	this->row = row;
-	this->owner = owner;
+	this->owner = &owner;
 }
 
 //Farmyard::PersonalSupply
@@ -274,7 +270,7 @@ Colored::Colored(Color color) :
 }
 
 //Face
-std::vector<base::Object*> Face::has_prerequisites() const {
+std::vector<Conditional*> Face::has_prerequisites() const {
 	return prerequisite;
 }
 std::string Face::has_name() const {
@@ -286,7 +282,7 @@ Quantity Face::has_cost() const {
 char Face::belongs() const {
 	return deck;
 }
-std::vector<base::Object*> Face::has_events() const {
+std::vector<Operation*> Face::has_events() const {
 	return events;
 }
 bool Face::has_bonus_points() const {
@@ -308,17 +304,16 @@ Face::Fields Face::shows() const {
 	return result;
 }
 
-Face::Face(std::vector<Object*> prerequisite, std::string name,
-		Quantity cost, char deck, std::vector<Object*> events,
+Face::Face(std::vector<Conditional*> prerequisite, std::string name,
+		Quantity cost, char deck, std::vector<Operation*> events,
 		bool bonus_points, Color color, Fields attributes) :
-		Element(attributes), Colored(color) {
+		Ensemble(attributes), Colored(color) {
 	this->prerequisite = prerequisite;
 	this->name = name;
 	this->cost = cost;
 	this->deck = deck;
 	this->events = events;
 	this->bonus_points = bonus_points;
-	this->color = color;
 }
 
 //Cover
@@ -364,6 +359,23 @@ Numbered::Fields Numbered::shows() const {
 
 Numbered::Numbered(unsigned number) {
 	this->number = number;
+}
+
+//VictoryPointed
+short VictoryPointed::has_victory_points() const {
+	return victory_points;
+}
+
+VictoryPointed::Fields VictoryPointed::shows() const {
+	auto result = Object::shows();
+
+	result.insert(VARIABLE(victory_points));
+
+	return result;
+}
+
+VictoryPointed::VictoryPointed(short victory_points) {
+	this->victory_points = victory_points;
 }
 
 //WoodenPiece
@@ -819,160 +831,62 @@ base::Ensemble::Unique_ptr StoneHouse::construct(Fields attributes) {
 } /* namespace agr */
 
 namespace card {
-#define CARD "card"
-
-//Occupation
-base::Class<std::pair<short, bool>> Occupation::has_player_number(
-		const Log* caller) const {
-	return as_method < false
-			> (__func__, caller, typeid(base::Class<std::pair<short, bool>>)).returns(
-					player_number);
-}
-std::ostringstream Occupation::prints() const {
-	std::ostringstream result;
-
-	result << has_label() << "{" << is_number() << "}";
-
-	return result;
-}
-
-Occupation::Occupation(base::Class<std::vector<agr::Condition*>> prerequisite,
-		base::Class<std::string> name, base::Quantity cost,
-		base::Primitive<char> deck,
-		base::Class<std::vector<base::Ensemble*>> events,
-		base::Primitive<bool> bonus_points, base::Primitive<unsigned> number,
-		base::Class<std::pair<short, bool>> player_number, const Log* caller,
-		base::Fields attributes) :
-		NUMBERED(caller, base::make_scopes(CARD, __func__), false, number), Face(
-				prerequisite, name, cost, deck, events, bonus_points,
-				LOGGED_COLOR(agr::Color::Which::Yellow, caller),
-				base::make_scopes(CARD, __func__), caller, attributes), player_number(
-				player_number) {
-	as_constructor < false
-			> (AGR, __func__, caller, prerequisite, name, cost, deck, events, bonus_points, number, player_number, attributes);
-}
-
-//Improvement
-base::Primitive<short> Improvement::has_victory_points(
-		const Log* caller) const {
-	return as_method < false
-			> (__func__, caller, typeid(base::Primitive<short>)).returns(
-					victory_points);
-}
-base::Primitive<bool> Improvement::is_oven(const Log* caller) const {
-	return as_method < false
-			> (__func__, caller, typeid(base::Primitive<bool>)).returns(oven);
-}
-base::Primitive<bool> Improvement::is_kitchen(const Log* caller) const {
-	return as_method < false
-			> (__func__, caller, typeid(base::Primitive<bool>)).returns(kitchen);
-}
-std::ostringstream Improvement::prints() const {
-	std::ostringstream result;
-
-	result << has_label() << "{" << is_number() << "}";
-
-	return result;
-}
-
-Improvement::Improvement(base::Class<std::vector<agr::Condition*>> prerequisite,
-		base::Class<std::string> name, base::Quantity cost,
-		base::Primitive<char> deck,
-		base::Class<std::vector<base::Ensemble*>> events,
-		base::Primitive<bool> bonus_points, agr::Color color,
-		base::Primitive<unsigned> number, base::Primitive<short> victory_points,
-		base::Primitive<bool> oven, base::Primitive<bool> kitchen,
-		const Log* caller, base::Fields attributes) :
-		NUMBERED(caller, base::make_scopes(CARD, __func__), false, number), Face(
-				prerequisite, name, cost, deck, events, bonus_points, color,
-				base::make_scopes(CARD, __func__), caller, attributes), victory_points(
-				victory_points), oven(oven), kitchen(kitchen) {
-	as_constructor < false
-			> (AGR, __func__, caller, prerequisite, name, cost, deck, events, bonus_points, color, number, victory_points, oven, kitchen, attributes);
-}
-
-//Minor Improvement
-MinorImprovement::MinorImprovement(
-		base::Class<std::vector<agr::Condition*>> prerequisite,
-		base::Class<std::string> name, base::Quantity cost,
-		base::Primitive<char> deck, base::Class<std::vector<Ensemble*>> events,
-		base::Primitive<bool> bonus_points, base::Primitive<unsigned> number,
-		base::Primitive<short> victory_points, base::Primitive<bool> oven,
-		base::Primitive<bool> kitchen, const Log* caller,
-		base::Fields attributes) :
-		NEW_LOG(caller, base::make_scopes(AGR, __func__), false), Improvement(
-				prerequisite, name, cost, deck, events, bonus_points,
-				LOGGED_COLOR(agr::Color::Which::Blue, caller), number,
-				victory_points, oven, kitchen, caller, attributes) {
-	as_constructor < false
-			> (AGR, __func__, caller, prerequisite, name, cost, deck, events, bonus_points, number, victory_points, oven, kitchen, attributes);
-}
-
-//Major Improvement
-MajorImprovement::MajorImprovement(
-		base::Class<std::vector<agr::Condition*>> prerequisite,
-		base::Class<std::string> name, base::Quantity cost,
-		base::Primitive<char> deck,
-		base::Class<std::vector<base::Ensemble*>> events,
-		base::Primitive<bool> bonus_points, base::Primitive<unsigned> number,
-		base::Primitive<short> victory_points, base::Primitive<bool> oven,
-		base::Primitive<bool> kitchen, const Log* caller,
-		base::Fields attributes) :
-		NEW_LOG(caller, base::make_scopes(AGR, __func__), false), Improvement(
-				prerequisite, name, cost, deck, events, bonus_points,
-				LOGGED_COLOR(agr::Color::Which::Blue, caller), number,
-				victory_points, oven, kitchen, caller, attributes) {
-	as_constructor < false
-			> (AGR, __func__, caller, prerequisite, name, cost, deck, events, bonus_points, number, victory_points, oven, kitchen, attributes);
-}
 
 //Action
-const std::string Action::type = "action";
-
-void Action::adds(const Log* caller) {
-	as_method < false > (__func__, caller, typeid(void));
+void Action::adds() {
 }
-base::Class<std::vector<base::Ensemble*>> Action::includes(const Log* caller) {
-	auto log = as_method(__func__, caller,
-			typeid(base::Class<std::vector<Ensemble*>>));
-	base::Class<std::vector<Ensemble*>> result(std::vector<Ensemble*>(), &log);
-	auto index = has_size(&log);
+std::vector<base::Ensemble*> Action::includes() {
+	std::vector<base::Ensemble*> result;
+	auto index = has_size();
 
-	while ((size_t) index)
-		result.is().push_back(dynamic_cast<Ensemble*>(&operator [](index--)));
+	while (index)
+		result.push_back(dynamic_cast<base::Ensemble*>(&operator [](index--)));
 
-	return log.returns(result);
+	return result;
+}
+Action::Fields Action::shows() const {
+	auto result = Ensemble::shows();
+	auto colored = Colored::shows();
+
+	result.insert(colored.begin(), colored.end());
+
+	return result;
+}
+std::string Action::prints() const {
+	auto result = NAME(card::Action)+ "{";
+	auto size = has_size();
+	decltype(size) action = 1;
+
+	while (action < size)
+	result += "\n\t" + operator [](action++).prints();
+
+	return result + (size ? "\n" : " ") + "}";
 }
 
-std::ostringstream Action::prints() const {
-	return Ensemble::prints();
-}
 //Begging
-std::ostringstream Begging::prints() const {
-	return Ensemble::prints();
-}
-base::Ensemble::Unique_ptr Begging::construct(const Log* caller,
-		base::Fields attributes) {
-	auto log = as_method(base::make_scopes(AGR, __func__), true, caller,
-			typeid(Ensemble::Unique_ptr), attributes);
+Begging::Fields Begging::shows() const {
+	auto result = Face::shows();
+	auto vp = VictoryPointed::shows();
 
-	return log.returns(
-			Ensemble::Unique_ptr::construct < Begging
-					> (&log, base::Primitive<const Log*>(&log, &log), attributes));
+	result.insert(vp.begin(), vp.end());
+
+	return result;
+}
+std::string Begging::prints() const {
+	std::ostringstream result(NAME(card::Begging)+ "{ ");
+
+	result << this << " }";
+
+	return result;
 }
 
-Begging::Begging(const Log* caller, base::Fields attributes) :
-		NEW_LOG(caller, base::make_scopes(AGR, __func__), false), Face(
-				base::Class<std::vector<agr::Condition*>>(
-						std::vector<agr::Condition*>(), caller),
-				base::Class<std::string>(__func__, caller),
-				base::Quantity(std::map<std::type_index, int>(), caller),
-				base::Primitive<char>('\0', caller),
-				base::Class<std::vector<Ensemble*>>(std::vector<Ensemble*>(),
-						caller), base::Primitive<bool>(false, caller),
-				LOGGED_COLOR(agr::Color::Which::Grey, caller),
-				base::make_scopes(AGR, __func__), caller, attributes) {
-	as_constructor(AGR, __func__, caller, attributes);
+Begging::Unique_ptr Begging::construct(Fields attributes) {
+	return Unique_ptr(new Begging(attributes));
+}
+
+Begging::Begging(Fields attributes) :
+		Face( { }, NAME(Begging), { }, 0, { }, false,
+				COLOR(agr::Color::Which::Grey), attributes), VictoryPointed(-3) {
 }
 
 } /*namespace card */

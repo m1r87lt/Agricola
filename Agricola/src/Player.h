@@ -35,7 +35,7 @@ class Player final: public base::Ensemble {
 	Color color;
 	std::set<Object*> pieces;
 	static std::vector<Player*> players;
-
+	friend class Owned;
 	Player(std::string, Color, Fields = Fields());
 public:
 	short unsigned which_is() const;

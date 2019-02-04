@@ -20,7 +20,7 @@ bool Color::operator !=(Color& righthand) const {
 Color::Fields Color::shows() const {
 	auto result = Object::shows();
 
-	result.emplace(NAME(which), label);
+	result.emplace(TYPE(which), label);
 
 	return result;
 }
@@ -30,7 +30,7 @@ std::string Color::prints() const {
 
 Color::Color() {
 	which = Which::No;
-	label = NAME(agr::Color::Which::No);
+	label = TYPE(agr::Color::Which::No);
 }
 Color::Color(Which which, const char* label) {
 	this->which = which;

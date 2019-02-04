@@ -9,4 +9,7 @@
 
 namespace agr {
 
+//BuildRooms_andOr_BuildStables
+//TODO: BuildRooms_andOr_BuildStables definitions
+
 } /* namespace agr */

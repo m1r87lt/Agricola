@@ -6,36 +6,33 @@
  */
 
 #include "Board.h"
-#include "Simulations.h"
+
+#include "Conditions.h"
 #include "Events.h"
 
 namespace agr {
+Board construct_gameboard(base::Object::Fields attributes =
+		base::Object::Fields()) {
+	return Board(attributes);
+}
+
 Board gameBoard(construct_gameboard());
 
-Board construct_gameboard(const base::Log* caller = nullptr) {
-	auto log = base::Log::as_function(base::make_scopes(AGR, __func__), true,
-			caller, typeid(Board));
-
-	return Board(base::make_scopes(AGR, TYPEID(Board)), &log, nullptr);
+void construct_board() {
+	for (size_t i = 1; i <= 6; ++i)
+		gameBoard.generates<CardSpace>(NAME(CardSpace));
+/*	gameBoard.gets(NAME(agr::BuildRooms_andOr_BuildStables),
+			Action<Condition::No, BuildRooms_andOr_BuildStables>::construct(),
+			7);*/
 }
 
-void construct_board(const base::Log* caller) {
-	auto log = base::Log::as_function(base::make_scopes(AGR, __func__), true,
-			caller, typeid(void));
-	base::Primitive<size_t> I(6, &log);
-	base::Class<std::string> cardSpace(CARD_SPACE_NAME, &log);
-	base::Primitive<std::string> ensemble(TYPEID(Ensemble), &log);
-	base::Primitive<const base::Log*> it(&log, &log);
-
-	for (base::Primitive<size_t> i(1, &log); i <= I; ++i)
-		gameBoard.generates<base::Ensemble>(cardSpace, i, &log, ensemble, it);
-	gameBoard.generates<Action<BuildRooms_andOr_BuildStables>>(
-			base::Class<std::string>(TYPEID(BuildRooms_andOr_BuildStables),
-					&log), base::Primitive<size_t>(1, &log), &log,
-			Condition::Function(Condition::no, &log),
-			Simulator(build_rooms_and_or_build_stables, &log),
-			base::Quantity(std::map<std::type_index, int>(), &log),
-			base::Primitive<const base::Log*>(&log, &log));
+//CardSpace
+CardSpace::Fields CardSpace::shows() const {
+	return Ensemble::shows();
+}
+std::string CardSpace::prints() const {
+	return NAME(agr::CardSpace)+"{ " + std::get<2>(localize(*this));
 }
 
-} /* namespace agr */
+}
+/* namespace agr */

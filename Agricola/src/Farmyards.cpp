@@ -7,17 +7,8 @@
 
 #include "Farmyards.h"
 
-namespace base {
-
-template<> std::function<
-		std::ostringstream(const std::pair<std::type_index, short unsigned>&)> Class<
-		std::pair<std::type_index, short unsigned>>::printer =
-		unprint_std__pair_std__type_info_second_<std::type_index, short unsigned>;
-
-} /* namespace base */
-
 namespace agr {
-
+/*
 Farmyard& give_farmyard(const Player& player,
 		const base::Log* caller = nullptr) {
 	return base::Log::as_function(base::make_scopes(AGR, __func__), false,
@@ -68,5 +59,5 @@ base::Class<std::pair<std::type_index, short unsigned>> how_many_rooms_may_it_bu
 	return log.returns(
 			base::Class<std::pair<std::type_index, short unsigned>>());
 }
-
+*/
 } /* namespace agr */

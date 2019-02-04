@@ -13,9 +13,9 @@
 
 namespace agr {
 
-base::Class<std::pair<std::type_index, short unsigned>> how_many_rooms_may_it_build(
+/*base::Class<std::pair<std::type_index, short unsigned>> how_many_rooms_may_it_build(
 		const Player&, const base::Log* = nullptr);
-
+*/
 } /* namespace agr */
 
 #endif /* FARMYARDS_H_ */

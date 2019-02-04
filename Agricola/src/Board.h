@@ -14,6 +14,11 @@ namespace agr {
 
 void construct_board();
 
+struct CardSpace: public base::Ensemble {
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+};
+
 } /* namespace agr */
 
 #endif /* BOARD_H_ */
