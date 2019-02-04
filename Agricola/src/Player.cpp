@@ -127,7 +127,7 @@ Player::Player(std::string name, Color color, Fields attributes) :
 }
 
 //Owned
-Player& Owned::gives_owner() {
+Player& Owned::gives_owner() const {
 	return *owner;
 }
 

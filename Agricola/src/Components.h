@@ -415,6 +415,7 @@ template<typename Trigger, typename Operator> class MinorImprovement final: publ
 					attributes) {
 	}
 public:
+	virtual ~MinorImprovement() = default;
 	virtual std::string prints() const {
 		return std::string("card::MinorImprovement< ")
 				+ std::type_index(typeid(Trigger)).name() + ", "
@@ -445,6 +446,7 @@ template<typename Trigger, typename Operator> class MajorImprovement final: publ
 					attributes) {
 	}
 public:
+	virtual ~MajorImprovement() = default;
 	virtual std::string prints() const {
 		return std::string("card::MajorImprovement< ")
 				+ std::type_index(typeid(Trigger)).name() + ", "

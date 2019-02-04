@@ -54,7 +54,7 @@ public:
 class Owned: virtual public base::Object {
 	Player* owner;
 public:
-	Player& gives_owner();
+	Player& gives_owner() const;
 	Owned(Player&);
 	virtual ~Owned() = default;
 };

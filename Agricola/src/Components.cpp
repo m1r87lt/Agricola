@@ -7,6 +7,12 @@
 
 #include "Components.h"
 
+namespace base {
+
+
+
+} /*namespace base */
+
 namespace agr {
 
 //Board
@@ -412,7 +418,7 @@ FamilyMember::Fields FamilyMember::shows() const {
 std::string FamilyMember::prints() const {
 	std::ostringstream result(NAME(FamilyMember));
 
-	result << "( " << gives_owner().prints() << " ){ " << this << " }";
+	result << "( " << Owned::gives_owner().prints() << " ){ " << this << " }";
 
 	return result.str();
 }
@@ -596,7 +602,7 @@ Stone::Stone() :
 
 //Grain
 Grain::Fields Grain::shows() const {
-	return BuildResource::shows();
+	return Resource::shows();
 }
 std::string Grain::prints() const {
 	std::ostringstream result(NAME(Grain));
@@ -620,7 +626,7 @@ Grain::Grain() :
 
 //Vegetable
 Vegetable::Fields Vegetable::shows() const {
-	return BuildResource::shows();
+	return Resource::shows();
 }
 std::string Vegetable::prints() const {
 	std::ostringstream result(NAME(Vegetable));
