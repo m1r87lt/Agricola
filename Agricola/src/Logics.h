@@ -13,91 +13,102 @@
 namespace agr {
 
 using Quantity = std::map<std::type_index, unsigned>;
-struct Trigger: public base::Object {
+
+
+class Trigger: public base::Object {
+	Object* condition;
+protected:
+	Object& gives_parent() const;
+	Trigger(Object&);
+public:
 	using Unique_ptr = std::unique_ptr<Trigger>;
 
 	virtual bool operator ()() = 0;
 	virtual Fields shows() const;
-	virtual ~Trigger() = default;
+	virtual ~Trigger();
+};
+class Conditional: public virtual base::Object {
 protected:
-	Trigger() = default;
+	Trigger::Unique_ptr* trigger;
+public:
+	struct No final: public Trigger {
+		virtual bool operator ()();
+		virtual Fields shows() const;
+		virtual std::string prints() const;
+		No(Conditional&);
+	};
+	friend Trigger;
+	virtual Fields shows() const {
+		auto result = Object::shows();
+
+		result.insert(VARIABLE(trigger));
+
+		return result;
+	}
+	virtual Trigger::Unique_ptr operator ()() = 0;
+	Conditional();
+	virtual ~Conditional();
 };
-struct Conditional {
-	virtual Trigger::Unique_ptr operator ()(const Player&) = 0;
-	virtual ~Conditional() = default;
-};
-template<typename Function> struct Condition: public Conditional,
-		virtual public base::Object {
-	virtual Trigger::Unique_ptr operator ()(const Player& player) {
-		return Trigger::Unique_ptr(new Function(player));
+template<typename Function> struct Condition: public Conditional {
+	virtual Trigger::Unique_ptr operator ()() {
+		return Trigger::Unique_ptr(new Function(*this));
 	}
 	virtual ~Condition() = default;
-protected:
-	struct No final: public Trigger {
-		virtual bool operator ()() {
-			return true;
-		}
-		virtual Fields shows() const {
-			return Trigger::shows();
-		}
-		virtual std::string prints() const {
-			return NAME(agr::Trigger)+ "::" + NAME(No);
-		}
-	};
-	virtual Fields shows() const {
-		return Object::shows();
-	}
 };
 
 struct Simulator: public base::Object {
 	using Unique_ptr = std::unique_ptr<Simulator>;
 
-	void start(Unique_ptr*);
+	void starts();
 	virtual bool operator ()() = 0;
 	virtual Fields shows() const;
 	virtual ~Simulator() = default;
 private:
 	unsigned state;
-	Unique_ptr* it;
-	Player* performer;
+	Object* operation;
+	std::set<Object*> branches;
 protected:
-	Player* gives_performer() const;
+	Object* gives_operation() const;
 	unsigned gives_state() const;
 	void pass_to_state(unsigned);
-	Simulator(Player&);
+	std::set<Object*> gives_branches() const;
+	void gets_branch(Object*);
+	Simulator(Object&);
 };
-class Operation {
-	virtual Simulator::Unique_ptr operator ()(Player&) = 0;
+class Operation: virtual public base::Object {
+	friend Simulator;
+protected:
+	Player* performer;
+public:
+	Player* is_performed_by();
+	virtual Fields shows() const;
+	virtual Simulator::Unique_ptr operator ()() = 0;
 	virtual ~Operation() = default;
 };
 template<typename Function> struct Operator: public Operation,
 		virtual public base::Object {
-	virtual Simulator::Unique_ptr operator ()(Player& player) {
-		return Simulator::Unique_ptr(new Function(player));
-	}
-	virtual Fields shows() const {
-		return Object::shows();
+	virtual Simulator::Unique_ptr operator ()() {
+		return Simulator::Unique_ptr(new Function(*this));
 	}
 	virtual ~Operator() = default;
 };
-template<typename Trig, typename Operate> class Event: public Condition<Trig>,
+
+template<typename Trig, typename Operate> struct Event: public Condition<Trig>,
 		public Operator<Operate> {
-	Player* performer;
-protected:
-	Event() {
-		performer = nullptr;
-	}
-public:
-	Player* is_performed_by() {
-		return performer;
+	virtual base::Object::Fields shows() const {
+		auto result = Condition<Trig>::shows();
+		auto o = Operator<Operate>::shows();
+
+		result.insert(o.begin(), o.end());
+
+		return result;
 	}
 	virtual ~Event() = default;
 };
-
 template<typename Trig, typename Operate> class Action final: public base::Ensemble,
 		public Event<Trig, Operate> {
 	Quantity collection;
-
+	friend base::Ensemble;
 	Action(Quantity collection, Fields attributes = Fields()) :
 			Ensemble(attributes), Event<Trig, Operate>() {
 		this->collection = collection;
@@ -127,6 +138,21 @@ public:
 		return Ensemble::Unique_ptr(
 				new Action<Trig, Operate>(collection, attributes));
 	}
+};
+
+class Master: public base::Object {
+	//TODO Master declaration
+	static std::list<Trigger::Unique_ptr> triggers;
+	friend Conditional;
+	static void removes_trigger(Trigger::Unique_ptr*);
+public:
+	class Branch: public base::Object {
+		Simulator* parent;
+	public:
+		Simulator* gives_parent() const;
+		Branch(const Simulator&);
+		virtual ~Branch();
+	};
 };
 
 } /* namespace agr */

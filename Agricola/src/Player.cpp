@@ -7,6 +7,15 @@
 
 #include "Player.h"
 
+namespace base {
+
+template<> std::function<std::string(const std::set<Object*>*)> Class<
+		std::set<Object*>>::printer = print_std__set<Object*>;
+template<> std::function<std::string(Object* const *)> Class<Object*>::printer =
+		print_fundamental<Object*>;
+
+} /* namespace base */
+
 namespace agr {
 
 //Color

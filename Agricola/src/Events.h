@@ -19,7 +19,7 @@ public:
 	virtual bool operator ()();
 	virtual Fields shows() const;
 	virtual std::string prints() const;
-	BuildRooms_andOr_BuildStables(Player&);
+	BuildRooms_andOr_BuildStables(Operation&);
 };
 
 } /* namespace agr */

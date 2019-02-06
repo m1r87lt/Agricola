@@ -10,22 +10,53 @@
 namespace agr {
 
 //Trigger
+base::Object& Trigger::gives_parent() const {
+	return *condition;
+}
+
 Trigger::Fields Trigger::shows() const {
-	return Object::shows();
+	auto result = Object::shows();
+
+	result.insert(VARIABLE(condition));
+
+	return result;
+}
+
+Trigger::Trigger(Object& condition) {
+	this->condition = &condition;
+}
+Trigger::~Trigger() {
+	dynamic_cast<Conditional*>(condition)->trigger = nullptr;
+}
+
+//Conditional
+Conditional::Conditional() {
+	trigger = nullptr;
+}
+Conditional::~Conditional() {
+	Master::removes_trigger(trigger);
+}
+
+//Conditional::No
+bool Conditional::No::operator ()() {
+	return true;
+}
+Conditional::No::Fields Conditional::No::shows() const {
+	return Trigger::shows();
+}
+std::string Conditional::No::prints() const {
+	return NAME(agr::Trigger)+ "::" + NAME(No);
+}
+Conditional::No::No(Conditional& condition) :
+		Trigger(condition) {
 }
 
 //Simulator
-void Simulator::start(Unique_ptr* it) {
-	if (it->get() == this)
-		++state;
-	else {
-		std::ostringstream result(
-				"The first argument of Simulator::start must be the pointer to itself, instead of {");
-
-		result << it->get() << " }.";
-
-		throw base::Throw::not_allowed(result.str());
-	}
+void Simulator::starts() {
+	++state;
+}
+base::Object* Simulator::gives_operation() const {
+	return operation;
 }
 unsigned Simulator::gives_state() const {
 	return state;
@@ -37,22 +68,38 @@ void Simulator::pass_to_state(unsigned state) {
 						+ std::to_string(state) + " }.");
 	this->state = state;
 }
-Player* Simulator::gives_performer() const {
-	return performer;
+std::set<base::Object*> Simulator::gives_branches() const {
+	return branches;
+}
+void Simulator::gets_branch(base::Object* branch) {
+	branches.emplace(branch);
 }
 
 Simulator::Fields Simulator::shows() const {
 	auto result = Object::shows();
 
 	result.insert(VARIABLE(state));
+	result.insert(VARIABLE(operation));
+	result.insert(VARIABLE(branches));
 
 	return result;
 }
 
-Simulator::Simulator(Player& performer) {
+Simulator::Simulator(Object& operation) {
 	state = 1;
-	it = nullptr;
-	this->performer = &performer;
+	this->operation = &operation;
+}
+
+//Operation
+Player* Operation::is_performed_by() {
+	return performer;
+}
+Operation::Fields Operation::shows() const {
+	auto result = Object::shows();
+
+	result.insert(VARIABLE(performer));
+
+	return result;
 }
 
 } /* namespace agr */
