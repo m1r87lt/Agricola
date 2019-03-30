@@ -26,14 +26,14 @@ Board construct_gameboard(base::Object::Fields attributes =
 }
 
 Board gameBoard(construct_gameboard());
-
+/*
 void construct_board() {
 	for (size_t i = 1; i <= 6; ++i)
 		gameBoard.generates<CardSpace>(NAME(CardSpace));
 	gameBoard.generates<Action<Conditional::No, BuildRooms_andOr_BuildStables>>(
 			NAME(BuildRooms_andOr_BuildStables), 7, Quantity());
 }
-
+*/
 //CardSpace
 CardSpace::Fields CardSpace::shows() const {
 	return Ensemble::shows();

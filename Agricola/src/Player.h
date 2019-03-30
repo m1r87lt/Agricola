@@ -10,7 +10,6 @@
 
 #include <src/Existence.h>
 #define COLOR(color) agr::Color(color, #color)
-#define COLOR_OBJECT(object, color) agr::Color #object(color, #color)
 
 namespace agr {
 

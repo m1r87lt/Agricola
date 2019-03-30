@@ -54,14 +54,10 @@ template<> std::function<std::string(const std::type_index*)> Class<
 };
 template<> std::function<std::string(const unsigned*)> Class<unsigned>::printer =
 		print_fundamental<unsigned>;
-template<> std::function<std::string(const int*)> Class<int>::printer =
-		print_fundamental<int>;
 template<> std::function<std::string(const char*)> Class<char>::printer =
 		[](const char* character) {
 			return "'" + std::string(*character, 1) + "' ( " + std::to_string(*character) + " )";
 		};
-template<> std::function<std::string(const bool*)> Class<bool>::printer =
-		print_fundamental<bool>;
 template<> std::function<std::string(const short*)> Class<short>::printer =
 		print_fundamental<short>;
 

@@ -9,11 +9,11 @@
 #define LOGICS_H_
 
 #include "Player.h"
+#define KEY(event, type, number) agr::Key(event, #event, type, #type, number)
 
 namespace agr {
 
 using Quantity = std::map<std::type_index, unsigned>;
-
 
 class Trigger: public base::Object {
 	Object* condition;
@@ -139,20 +139,47 @@ public:
 				new Action<Trig, Operate>(collection, attributes));
 	}
 };
+/*
+struct Key: public base::Object {
+	enum class Event {
+		action, spending, effect
+	};
+	enum class Type {
+		buildRoom
+	};
 
-class Master: public base::Object {
+	short unsigned has_number() const;
+	Event has_event() const;
+	Type has_type() const;
+	virtual Fields shows() const;
+	virtual std::string prints() const;
+	Key(Event, std::string, Type, std::string, short unsigned);
+private:
+	short unsigned number;
+	Event event;
+	Type type;
+	std::string event_label;
+	std::string type_label;
+};
+*/
+struct Master: public base::Object {
 	//TODO Master declaration
+	class Branch: public base::Object {
+		Simulator* parent;
+		std::list<std::unique_ptr<Branch>> branches;
+	public:
+//		Simulator* gives_parent() const = 0;
+//		virtual std::list<std::unique_ptr<Branch>> branches();
+		Branch(const Simulator&);
+		virtual ~Branch() = default;
+	};
+
+	static Quantity transcode(std::string);
+private:
+	static std::list<std::unique_ptr<Branch>> branches;
 	static std::list<Trigger::Unique_ptr> triggers;
 	friend Conditional;
 	static void removes_trigger(Trigger::Unique_ptr*);
-public:
-	class Branch: public base::Object {
-		Simulator* parent;
-	public:
-		Simulator* gives_parent() const;
-		Branch(const Simulator&);
-		virtual ~Branch();
-	};
 };
 
 } /* namespace agr */

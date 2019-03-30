@@ -34,7 +34,7 @@ Conditional::Conditional() {
 	trigger = nullptr;
 }
 Conditional::~Conditional() {
-	Master::removes_trigger(trigger);
+//	Master::removes_trigger(trigger);
 }
 
 //Conditional::No
@@ -101,5 +101,41 @@ Operation::Fields Operation::shows() const {
 
 	return result;
 }
+/*
+//Key
+short unsigned Key::has_number() const {
+	return number;
+}
+Key::Event Key::has_event() const {
+	return event;
+}
+Key::Type Key::has_type() const {
+	return type;
+}/*
+Key::Fields Key::shows() const {
+	auto result = Object::shows();
 
-} /* namespace agr */
+	result.insert(VARIABLE(number));
+	result.insert(
+			std::make_pair(const_cast<const std::string>(TYPE(event)),
+					event_label));
+	result.insert(
+			std::make_pair(const_cast<const std::string>(TYPE(type)),
+					type_label));
+
+	return result;
+}
+std::string Key::prints() const {
+	return NAME(Key)+ "{ " + event_label + "; " + type_label + "; " + std::to_string(number) + " }";
+}
+Key::Key(Event event_value, std::string event_label, Type type_value,
+		std::string type_label, short unsigned number) {
+	event = event_value;
+	this->event_label = event_label;
+	type = type_value;
+	this->type_label = type_label;
+	this->number = number;
+}
+*/
+}
+/* namespace agr */
