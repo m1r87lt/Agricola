@@ -31,6 +31,7 @@ struct Farmyard final: private Board {
 			bool vertical;
 			std::array<Space*, 2> spaces;
 			friend Farmyard;
+			friend base::Ensemble;
 			Fence(bool);
 		public:
 			bool is_vertical() const;

@@ -10,7 +10,6 @@
 
 #include <src/Existence.h>
 #define COLOR(color) agr::Color(color, #color)
-#define COLOR_OBJECT(object, color) agr::Color #object(color, #color)
 
 namespace agr {
 
@@ -18,7 +17,7 @@ struct Color: public base::Object {
 	enum class Which {
 		No, Black, Grey, White, Brown, Red, Orange, Yellow, Green, Blue, Purple
 	};
-
+	friend base::Class<Color>;
 	bool operator ==(Color&) const;
 	bool operator !=(Color&) const;
 	virtual Fields shows() const;

@@ -9,7 +9,57 @@
 
 namespace base {
 
-
+template<> std::function<std::string(const agr::Color*)> Class<agr::Color>::printer =
+		[](const agr::Color* color) {
+			return color->label;
+		};
+template<> std::function<std::string(const std::vector<agr::Operation*>*)> Class<
+		std::vector<agr::Operation*>>::printer = print_std__vector<
+		agr::Operation*>;
+template<> std::function<std::string(agr::Operation* const *)> Class<
+		agr::Operation*>::printer = print_fundamental<agr::Operation*>;
+template<> std::function<std::string(const std::vector<agr::Conditional*>*)> Class<
+		std::vector<agr::Conditional*>>::printer = print_std__vector<
+		agr::Conditional*>;
+template<> std::function<std::string(agr::Conditional* const *)> Class<
+		agr::Conditional*>::printer = print_fundamental<agr::Conditional*>;
+template<> std::function<
+		std::string(const std::array<agr::Farmyard::Space*, 2>*)> Class<
+		std::array<agr::Farmyard::Space*, 2> >::printer = print_std__array<
+		agr::Farmyard::Space*, 2>;
+template<> std::function<std::string(agr::Farmyard::Space* const *)> Class<
+		agr::Farmyard::Space*>::printer = print_fundamental<
+		agr::Farmyard::Space*>;
+template<> std::function<
+		std::string(const std::array<agr::Farmyard::Space*, 4>*)> Class<
+		std::array<agr::Farmyard::Space*, 4> >::printer = print_std__array<
+		agr::Farmyard::Space*, 4>;
+template<> std::function<
+		std::string(const std::array<agr::Farmyard::Space::Fence*, 4>*)> Class<
+		std::array<agr::Farmyard::Space::Fence*, 4> >::printer =
+		print_std__array<agr::Farmyard::Space::Fence*, 4>;
+template<> std::function<std::string(agr::Farmyard::Space::Fence* const *)> Class<
+		agr::Farmyard::Space::Fence*>::printer = print_fundamental<
+		agr::Farmyard::Space::Fence*>;
+template<> std::function<std::string(const short unsigned *)> Class<
+		unsigned short>::printer = print_fundamental<short unsigned>;
+template<> std::function<std::string(const agr::Farmyard* const *)> Class<
+		const agr::Farmyard*>::printer = print_fundamental<const agr::Farmyard*>;
+template<> std::function<std::string(const std::map<std::type_index, unsigned>*)> Class<
+		std::map<std::type_index, unsigned>>::printer = print_std__map<
+		std::type_index, unsigned>;
+template<> std::function<std::string(const std::type_index*)> Class<
+		const std::type_index>::printer = [](const std::type_index* index) {
+	return std::string("< ") + index->name() + " >";
+};
+template<> std::function<std::string(const unsigned*)> Class<unsigned>::printer =
+		print_fundamental<unsigned>;
+template<> std::function<std::string(const char*)> Class<char>::printer =
+		[](const char* character) {
+			return "'" + std::string(*character, 1) + "' ( " + std::to_string(*character) + " )";
+		};
+template<> std::function<std::string(const short*)> Class<short>::printer =
+		print_fundamental<short>;
 
 } /*namespace base */
 
@@ -221,7 +271,8 @@ Farmyard::Space::Fence::Fence(bool vertical) {
 
 //Farmyard::Row
 Farmyard::Space& Farmyard::Row::operator [](short unsigned column) const {
-	auto space = &dynamic_cast<Farmyard::Space&>(owner->Ensemble::operator [](2));
+	auto space =
+			&dynamic_cast<Farmyard::Space&>(owner->Ensemble::operator [](2));
 
 	if (row > 1)
 		space = dynamic_cast<Farmyard::Space*>(space->operator ()(
@@ -300,12 +351,12 @@ Face::Fields Face::shows() const {
 	auto colored = Colored::shows();
 
 	result.insert(colored.begin(), colored.end());
-	result(VARIABLE(prerequisite));
-	result(VARIABLE(name));
-	result(VARIABLE(cost));
-	result(VARIABLE(deck));
-	result(VARIABLE(events));
-	result(VARIABLE(bonus_points));
+	result.insert(VARIABLE(prerequisite));
+	result.insert(VARIABLE(name));
+	result.insert(VARIABLE(cost));
+	result.insert(VARIABLE(deck));
+	result.insert(VARIABLE(events));
+	result.insert(VARIABLE(bonus_points));
 
 	return result;
 }
@@ -394,7 +445,7 @@ WoodenPiece::Fields WoodenPiece::shows() const {
 	auto colored = Colored::shows();
 
 	result.insert(colored.begin(), colored.end());
-	result.insert(VARIABLE(shape));
+	result.emplace(NAME(Shape), label);
 
 	return result;
 }
@@ -621,7 +672,7 @@ base::Ensemble::Unique_ptr Grain::construct(Fields attributes) {
 }
 
 Grain::Grain() :
-		BuildResource(COLOR(agr::Color::Which::Yellow)) {
+		Resource(COLOR(agr::Color::Which::Yellow)) {
 }
 
 //Vegetable
@@ -645,7 +696,7 @@ base::Ensemble::Unique_ptr Vegetable::construct(Fields attributes) {
 }
 
 Vegetable::Vegetable() :
-		BuildResource(COLOR(agr::Color::Which::Orange)) {
+		Resource(COLOR(agr::Color::Which::Orange)) {
 }
 
 //Animal
@@ -826,7 +877,7 @@ std::string Food::prints() const {
 	return result.str();
 }
 
-base::Ensemble::Unique_ptr StoneHouse::construct(Fields attributes) {
+base::Ensemble::Unique_ptr Food::construct(Fields attributes) {
 	auto food = new Food;
 
 	food->gets_attributes(attributes);
@@ -883,7 +934,7 @@ std::string Begging::prints() const {
 
 	result << this << " }";
 
-	return result;
+	return result.str();
 }
 
 Begging::Unique_ptr Begging::construct(Fields attributes) {
