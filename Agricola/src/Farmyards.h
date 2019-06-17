@@ -12,8 +12,8 @@
 
 namespace agr {
 
-base::Class<std::pair<std::type_index, short unsigned>> how_many_rooms_may_it_build(
-		const Player&, const base::Log* = nullptr);
+std::type_index give_room_type(const Farmyard&);
+std::type_index give_next_room_cost(const Farmyard&);
 
 } /* namespace agr */
 
