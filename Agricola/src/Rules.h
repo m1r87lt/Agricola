@@ -38,9 +38,8 @@ template<typename Type> class Action final: public base::Ensemble {
 	std::unique_ptr<game::Simulator::Choice> choice;
 
 	Action(std::vector<Object*> collection = { }, Fields attributes = Fields()) :
-			Ensemble(attributes) {
+			Ensemble(attributes), choice(new Type) {
 		this->collection = collection;
-		choice.reset(new Type);
 	}
 public:
 	Type* gives_trigger() const {
@@ -73,12 +72,15 @@ class BuildRooms_Stables final : public game::Simulator::Choice {
 	virtual bool operator ()(std::string);
 	virtual std::set<std::string> provides();
 	virtual std::string prints() const;
+	virtual void reverts();
 public:
 	BuildRooms_Stables();
 	~BuildRooms_Stables();
 };
 class Room {
-	static std::map<Player*, std::vector<std::vector<base::Object*>>> costs;
+	static std::map<Player*,
+			std::pair<std::vector<std::vector<base::Object*>>,
+					std::list<std::unique_ptr<game::Trigger>>>> costs;
 	friend BuildRooms_Stables;
 };
 
